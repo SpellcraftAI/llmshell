@@ -1,0 +1,27 @@
+name: Test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: "**"
+
+permissions:
+  contents: write
+
+jobs:
+  test-extension:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Test
+        run: bun test

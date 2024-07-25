@@ -1,5 +1,5 @@
 import { expect, test, describe, beforeAll, afterAll } from "bun:test";
-import { server } from "./index";
+import { server } from "./fs";
 
 const BASE_URL = `http://localhost:${server.port}`;
 
@@ -146,7 +146,7 @@ describe("Server API", () => {
       if (done) break;
       
       const chunk = decoder.decode(value, { stream: true });
-      console.log({ chunk })
+      console.log({ chunk });
       fullOutput += chunk;
       receivedParts.push(chunk.trim());
   

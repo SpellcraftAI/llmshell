@@ -111,28 +111,28 @@ export const server = serve({
     // console.log(url.pathname, body);
 
     switch (url.pathname) {
-      case '/file': {
-        const result = await apiHandler.handleFileOperation(body as FileOperation);
-        return new Response(JSON.stringify(result), {
-          status: result.success ? 200 : 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
+    case '/file': {
+      const result = await apiHandler.handleFileOperation(body as FileOperation);
+      return new Response(JSON.stringify(result), {
+        status: result.success ? 200 : 400,
+        headers: { 'Content-Type': 'application/json' }
+      });
+    }
+
+    case '/terminal': {
+      const { command } = body;
+      if (!command) {
+        return new Response('Bad Request', { status: 400 });
       }
 
-      case '/terminal': {
-        const { command } = body;
-        if (!command) {
-          return new Response('Bad Request', { status: 400 });
-        }
+      const stream = apiHandler.handleTerminalCommand(command);
+      return new Response(stream, {
+        headers: { 'Content-Type': 'text/plain' }
+      });
+    }
 
-        const stream = apiHandler.handleTerminalCommand(command);
-        return new Response(stream, {
-          headers: { 'Content-Type': 'text/plain' }
-        });
-      }
-
-      default:
-        return new Response('Not Found', { status: 404 });
+    default:
+      return new Response('Not Found', { status: 404 });
     }
   },
 });
