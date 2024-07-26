@@ -1,6 +1,5 @@
 import { tool } from "ai";
 import { z } from "zod";
-import { server } from "./fs";
 
 export const tools = {
   terminal_command: tool({
@@ -9,13 +8,13 @@ export const tools = {
       command: z.string().describe("The terminal command to execute. Runs through bash -c.")
     }),
     execute: async ({ command }) => {
-      const response = await fetch(`http://localhost:${server.port}/terminal`, {
+      const response = await fetch(`http://localhost:3000/terminal`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ command })
       });
 
-      return await response.text();
+      return response.body;
     }
   }),
 
@@ -29,7 +28,7 @@ export const tools = {
       endLine: z.number().optional().describe("The ending line for edit operation (required for edit operation)")
     }),
     execute: async (args) => {
-      const response = await fetch(`http://localhost:${server.port}/file`, {
+      const response = await fetch(`http://localhost:3000/file`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(args)

@@ -1,16 +1,17 @@
-import { expect, test, describe, beforeAll, afterAll } from "bun:test";
-import { server } from "./fs";
+import { expect, test, describe, afterAll } from "bun:test";
+import { startServer } from "./fs";
+import type { Server } from "bun";
 
-const BASE_URL = `http://localhost:${server.port}`;
+let server: Server;
+try {
+  server = startServer();
+} catch (error) {}
+
+const BASE_URL = `http://localhost:3000`;
 
 describe("Server API", () => {
-  beforeAll(() => {
-    // The server is already started by importing it, but we'll wait a bit to ensure it's ready
-    return new Promise(resolve => setTimeout(resolve, 100));
-  });
-
   afterAll(() => {
-    server.stop();
+    server?.stop();
   });
 
   test("POST /terminal - tree command", async () => {

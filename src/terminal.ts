@@ -3,6 +3,7 @@ import chalk from "chalk";
 import { streamText, type CoreMessage } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { tools } from "./tools";
+import { startServer } from "./fs";
 
 const model = anthropic('claude-3-5-sonnet-20240620');
 
@@ -34,6 +35,9 @@ Bun.write(Bun.stdout, chalk.green("You: "));
 
 const messages: CoreMessage[] = [];
 
+const server = startServer();
+process.on("exit", () => server.stop());
+
 for await (const chunk of readStdin()) {
   const chunkText = Buffer.from(chunk).toString();
   for (const char of chunkText) {
@@ -54,25 +58,39 @@ for await (const chunk of readStdin()) {
     // Add user message to the conversation history
     messages.push({ role: "user", content: currentLine });
 
-    const { textStream, toolCalls, toolResults } = await streamText({
+    const { fullStream, toolCalls, toolResults } = await streamText({
       model,
       messages,
       tools,
+      experimental_toolCallStreaming: true
     });
     
     let isFirstChunk = true;
     let textResponse = '';
 
-    for await (const text of textStream) {
-      if (isFirstChunk) {
-        clearInterval(loadingInterval);
-        process.stdout.write('\r' + ' '.repeat(20) + '\r');
-        Bun.write(Bun.stdout, chalk.blue("Bot: "));
-        isFirstChunk = false;
+    for await (const chunk of fullStream) {
+      switch (chunk.type) {
+      case "text-delta": {
+        const text = chunk.textDelta;
+        if (isFirstChunk) {
+          clearInterval(loadingInterval);
+          process.stdout.write('\r' + ' '.repeat(20) + '\r');
+          Bun.write(Bun.stdout, chalk.blue("Bot: "));
+          isFirstChunk = false;
+        }
+    
+        // console.table({ chunk: text });
+        Bun.write(Bun.stdout, text);
+        textResponse += text;
+        break;
       }
 
-      Bun.write(Bun.stdout, text);
-      textResponse += text;
+      case "tool-call": {
+        console.log();
+        console.table(chunk);
+        break;
+      }
+      }
     }
 
     // Process tool results after the stream is done
@@ -80,13 +98,17 @@ for await (const chunk of readStdin()) {
     const finishedResults = await toolResults;
     if (finishedResults.length) {
       for (const toolResult of finishedResults) {
-        if (typeof toolResult.result !== "string") {
+        if (!(toolResult.result instanceof ReadableStream)) {
           throw new Error("Terminal tool result must be a string");
         }
 
         Bun.write(Bun.stdout, "\n\n");
-        const text = toolResult.result.trim();
-        Bun.write(Bun.stdout, chalk.cyan(text));
+        const reader = toolResult.result.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          Bun.write(Bun.stdout, value);
+        }
       }
 
       messages.push({ role: "assistant", content: finishedCalls });

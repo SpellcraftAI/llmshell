@@ -1,6 +1,8 @@
 import { serve } from "bun";
 import { spawn } from "child_process";
 
+const ENCODER = new TextEncoder();
+
 // Types
 type FileContent = string;
 
@@ -65,25 +67,25 @@ class ApiHandler {
     }
   }
 
-  handleTerminalCommand(command: string): ReadableStream<string> {
+  handleTerminalCommand(command: string): ReadableStream<Uint8Array> {
     command = command.trim();
     // console.log(`calling: '${command}'`);
 
-    return new ReadableStream<string>({
+    return new ReadableStream<Uint8Array>({
       start(controller) {
         const process = spawn("bash", ["-c", command], { shell: false });
 
         process.stdout.on('data', (data) => {
-          controller.enqueue(data.toString());
+          controller.enqueue(data);
         });
 
         process.stderr.on('data', (data) => {
-          controller.enqueue(data.toString());
+          controller.enqueue(data);
         });
 
         process.on('close', (code) => {
           if (code !== 0) {
-            controller.enqueue(`Process exited with code ${code}\n`);
+            controller.enqueue(ENCODER.encode(`Process exited with code ${code}\n`));
           }
           controller.close();
         });
@@ -99,8 +101,8 @@ class ApiHandler {
 // Server setup
 const apiHandler = new ApiHandler();
 
-export const server = serve({
-  port: 3000,
+export const startServer = () => serve({
+  // port: 3000,
   async fetch(req: Request): Promise<Response> {
     if (req.method !== 'POST') {
       return new Response('Method Not Allowed', { status: 405 });
@@ -136,5 +138,3 @@ export const server = serve({
     }
   },
 });
-
-console.log(`Server running at http://localhost:${server.port}`);
