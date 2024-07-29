@@ -1,5 +1,6 @@
 import { tool } from "ai";
 import { z } from "zod";
+import type { FileOperationResult } from "./fs";
 
 export const tools = {
   terminal_command: tool({
@@ -33,7 +34,7 @@ export const tools = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(args)
       });
-      return await response.json();
+      return await response.json() as FileOperationResult;
     }
   })
 };

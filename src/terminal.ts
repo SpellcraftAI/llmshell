@@ -62,7 +62,7 @@ for await (const chunk of readStdin()) {
       model,
       messages,
       tools,
-      experimental_toolCallStreaming: true
+      experimental_toolCallStreaming: true,
     });
     
     let isFirstChunk = true;
@@ -98,16 +98,26 @@ for await (const chunk of readStdin()) {
     const finishedResults = await toolResults;
     if (finishedResults.length) {
       for (const toolResult of finishedResults) {
-        if (!(toolResult.result instanceof ReadableStream)) {
-          throw new Error("Terminal tool result must be a string");
-        }
+        if (!toolResult.result) continue;
 
         Bun.write(Bun.stdout, "\n\n");
-        const reader = toolResult.result.getReader();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-          Bun.write(Bun.stdout, value);
+
+        switch (toolResult.toolName) {
+        case "terminal_command":
+          const reader = toolResult.result.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            Bun.write(Bun.stdout, value);
+          }
+          break;
+
+        case "file_operation":
+          if (toolResult.result.data) {
+            Bun.write(Bun.stdout, toolResult.result.data);
+          }
+
+          break;
         }
       }
 

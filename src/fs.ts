@@ -23,7 +23,12 @@ class FileSystem {
     await Bun.write(path, content);
   }
 
-  async editFileLines(path: string, content: FileContent, startLine: number, endLine: number): Promise<void> {
+  async editFileLines(
+    path: string, 
+    content: FileContent, 
+    startLine: number, 
+    endLine: number
+  ): Promise<void> {
     const fileContent = await this.readFile(path);
     const lines = fileContent.split('\n');
     const newLines = [
@@ -35,6 +40,8 @@ class FileSystem {
   }
 }
 
+export type FileOperationResult = { success: boolean; message: string; data?: string };
+
 // API Handler
 class ApiHandler {
   private fileSystem: FileSystem;
@@ -43,7 +50,7 @@ class ApiHandler {
     this.fileSystem = new FileSystem();
   }
 
-  async handleFileOperation(operation: FileOperation): Promise<{ success: boolean; message: string; data?: string }> {
+  async handleFileOperation(operation: FileOperation): Promise<FileOperationResult> {
     try {
       let message: string;
       let data: string | undefined;
