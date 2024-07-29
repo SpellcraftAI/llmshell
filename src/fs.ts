@@ -108,40 +108,47 @@ class ApiHandler {
 // Server setup
 const apiHandler = new ApiHandler();
 
-export const startServer = () => serve({
-  // port: 3000,
-  async fetch(req: Request): Promise<Response> {
-    if (req.method !== 'POST') {
-      return new Response('Method Not Allowed', { status: 405 });
-    }
+export interface StartServerArgs {
+  cwd?: string
+}
 
-    const url = new URL(req.url);
-    const body = await req.json();
-    // console.log(url.pathname, body);
-
-    switch (url.pathname) {
-    case '/file': {
-      const result = await apiHandler.handleFileOperation(body as FileOperation);
-      return new Response(JSON.stringify(result), {
-        status: result.success ? 200 : 400,
-        headers: { 'Content-Type': 'application/json' }
-      });
-    }
-
-    case '/terminal': {
-      const { command } = body;
-      if (!command) {
-        return new Response('Bad Request', { status: 400 });
+export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
+  process.chdir(cwd);
+  return serve({
+    // port: 3000,
+    async fetch(req: Request): Promise<Response> {
+      if (req.method !== 'POST') {
+        return new Response('Method Not Allowed', { status: 405 });
       }
-
-      const stream = apiHandler.handleTerminalCommand(command);
-      return new Response(stream, {
-        headers: { 'Content-Type': 'text/plain' }
-      });
-    }
-
-    default:
-      return new Response('Not Found', { status: 404 });
-    }
-  },
-});
+  
+      const url = new URL(req.url);
+      const body = await req.json();
+      // console.log(url.pathname, body);
+  
+      switch (url.pathname) {
+      case '/file': {
+        const result = await apiHandler.handleFileOperation(body as FileOperation);
+        return new Response(JSON.stringify(result), {
+          status: result.success ? 200 : 400,
+          headers: { 'Content-Type': 'application/json' }
+        });
+      }
+  
+      case '/terminal': {
+        const { command } = body;
+        if (!command) {
+          return new Response('Bad Request', { status: 400 });
+        }
+  
+        const stream = apiHandler.handleTerminalCommand(command);
+        return new Response(stream, {
+          headers: { 'Content-Type': 'text/plain' }
+        });
+      }
+  
+      default:
+        return new Response('Not Found', { status: 404 });
+      }
+    },
+  });
+};

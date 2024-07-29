@@ -1,10 +1,10 @@
 import { expect, test, describe, afterAll } from "bun:test";
-import { startServer } from "./fs";
 import type { Server } from "bun";
+import { startServer } from "@/fs";
 
 let server: Server;
 try {
-  server = startServer();
+  server = startServer({ cwd: import.meta.dir });
 } catch (error) {}
 
 const BASE_URL = `http://localhost:3000`;

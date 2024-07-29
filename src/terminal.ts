@@ -5,6 +5,8 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { tools } from "./tools";
 import { startServer } from "./fs";
 
+const DECODER = new TextDecoder();
+
 const model = anthropic('claude-3-5-sonnet-20240620');
 
 function showLoadingDots() {
@@ -96,34 +98,53 @@ for await (const chunk of readStdin()) {
     // Process tool results after the stream is done
     const finishedCalls = await toolCalls;
     const finishedResults = await toolResults;
-    if (finishedResults.length) {
-      for (const toolResult of finishedResults) {
-        if (!toolResult.result) continue;
 
-        Bun.write(Bun.stdout, "\n\n");
+    Bun.write(Bun.stdout, "\n");
+    console.log({ finishedCalls, finishedResults });
 
-        switch (toolResult.toolName) {
-        case "terminal_command":
-          const reader = toolResult.result.getReader();
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            Bun.write(Bun.stdout, value);
-          }
-          break;
 
-        case "file_operation":
-          if (toolResult.result.data) {
-            Bun.write(Bun.stdout, toolResult.result.data);
-          }
+    // Add tool calls to start of history - will throw if missing results.
+    messages.push({ role: "assistant", content: finishedCalls });
+    messages.push({ role: "tool", content: finishedResults });
 
-          break;
+    for (const toolResult of finishedResults) {
+      console.log({ toolResult });
+      if (!toolResult.result) continue;
+
+      Bun.write(Bun.stdout, "\n\n");
+
+      let content = '';
+
+      switch (toolResult.toolName) {
+      case "terminal_command":
+        const reader = toolResult.result.getReader();
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          Bun.write(Bun.stdout, value);
+          content += DECODER.decode(value);
         }
+        break;
+
+      case "file_operation":
+        if (toolResult.result.data) {
+          content = toolResult.result.data;
+          Bun.write(Bun.stdout, toolResult.result.data);
+        }
+        break;
       }
 
-      messages.push({ role: "assistant", content: finishedCalls });
-      messages.push({ role: "tool", content: finishedResults });
+      // @ts-ignore
+      // messages.push({ 
+      //   role: "user", 
+      //   content: [toolResult] 
+      // });
     }
+
+    // messages.push({ role: "user", content: [
+    //   { type: "text", text: content }
+    // ] });
 
     messages.push({ role: "assistant", content: textResponse });
 
