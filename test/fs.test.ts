@@ -4,7 +4,7 @@ import { startServer } from "@/fs";
 
 let server: Server;
 try {
-  server = startServer({ cwd: import.meta.dir });
+  server = startServer();
 } catch (error) {}
 
 const BASE_URL = `http://localhost:3000`;
