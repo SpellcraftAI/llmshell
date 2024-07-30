@@ -1,19 +1,13 @@
-import readline from 'readline';
 import { EventEmitter } from "events";
-
-Object.assign(globalThis, { readline });
-
-export type CursorPosition = { x: number; y: number };
 
 export type Key = { 
   key: string; 
   ctrl: boolean; 
   alt: boolean; 
-  shift: boolean
+  shift: boolean;
 }
 
 export interface KeyPressEvent extends Key {
-  cursor: CursorPosition;
   text: string;
 }
 
@@ -23,26 +17,38 @@ export interface KeyHandlerEvents {
 }
 
 export class KeyHandler extends EventEmitter<KeyHandlerEvents> {
-  private readonly stdin: typeof process.stdin;
-  private readonly stdout: typeof process.stdout;
-  private cursorPosition: CursorPosition = { x: 0, y: 0 };
+  private readonly stdin = process.stdin;
+  private readonly stdout = process.stdout;
   private text: string = '';
-  private lines: string[] = [''];
+  private enabled: boolean = false;
+  private prefix?: string;
 
-  constructor() {
+  constructor(prefix: string = '') {
     super();
-    this.stdin = process.stdin;
-    this.stdout = process.stdout;
 
+    this.prefix = prefix;
+    this.resume();
+  }
+
+  resume() {
     this.stdin.setRawMode(true);
-    this.stdin.resume();
     this.stdin.on('data', this.handleKeyPress.bind(this));
+  }
+
+  enable() {
+    this.enabled = true;
+    this.stdin.resume();
+    this.updateDisplay();
+  }
+
+  disable() {
+    this.enabled = false;
+    this.stdin.pause();
   }
 
   clear() {
     this.text = '';
-    this.lines = [''];
-    this.cursorPosition = { x: 0, y: 0 };
+    this.updateDisplay();
   }
 
   private toKey(chunk: Buffer): Key {
@@ -107,109 +113,52 @@ export class KeyHandler extends EventEmitter<KeyHandlerEvents> {
   }
 
   private handleKeyPress(chunk: Buffer) {
+    if (!this.enabled) return;
+
     const keyEvent = this.toKey(chunk);
-    let textUpdated = false;
 
     if (keyEvent.ctrl && (keyEvent.key === 'C' || keyEvent.key === 'D')) {
-      Bun.write(Bun.stdout, '\n');
+      this.stdout.write('\n');
       process.exit(2);
     }
 
     switch (keyEvent.key) {
     case 'backspace':
-      if (this.cursorPosition.x > 0) {
-        const currentLine = this.lines[this.cursorPosition.y];
-        this.lines[this.cursorPosition.y] = currentLine.slice(0, this.cursorPosition.x - 1) + currentLine.slice(this.cursorPosition.x);
-        this.cursorPosition.x--;
-        textUpdated = true;
-      } else if (this.cursorPosition.y > 0) {
-        const previousLine = this.lines[this.cursorPosition.y - 1];
-        const currentLine = this.lines[this.cursorPosition.y];
-        this.lines[this.cursorPosition.y - 1] = previousLine + currentLine;
-        this.lines.splice(this.cursorPosition.y, 1);
-        this.cursorPosition.y--;
-        this.cursorPosition.x = previousLine.length;
-        textUpdated = true;
+      if (this.text.length > 0) {
+        this.text = this.text.slice(0, -1);
       }
       break;
     case 'enter':
-      const currentLine = this.lines[this.cursorPosition.y];
-      const newLine = currentLine.slice(this.cursorPosition.x);
-      this.lines[this.cursorPosition.y] = currentLine.slice(0, this.cursorPosition.x);
-      this.lines.splice(this.cursorPosition.y + 1, 0, newLine);
-      this.cursorPosition.y++;
-      this.cursorPosition.x = 0;
-      textUpdated = true;
-      break;
-    case 'up':
-      if (this.cursorPosition.y > 0) {
-        this.cursorPosition.y--;
-        this.cursorPosition.x = Math.min(this.cursorPosition.x, this.lines[this.cursorPosition.y].length);
-      }
-      break;
-    case 'down':
-      if (this.cursorPosition.y < this.lines.length - 1) {
-        this.cursorPosition.y++;
-        this.cursorPosition.x = Math.min(this.cursorPosition.x, this.lines[this.cursorPosition.y].length);
-      }
-      break;
-    case 'right':
-      if (this.cursorPosition.x < this.lines[this.cursorPosition.y].length) {
-        this.cursorPosition.x++;
-      } else if (this.cursorPosition.y < this.lines.length - 1) {
-        this.cursorPosition.y++;
-        this.cursorPosition.x = 0;
-      }
-      break;
-    case 'left':
-      if (this.cursorPosition.x > 0) {
-        this.cursorPosition.x--;
-      } else if (this.cursorPosition.y > 0) {
-        this.cursorPosition.y--;
-        this.cursorPosition.x = this.lines[this.cursorPosition.y].length;
-      }
+      // Handle enter key press (e.g., submit message)
       break;
     default:
       if (keyEvent.key.length === 1) {
-        const currentLine = this.lines[this.cursorPosition.y];
-        this.lines[this.cursorPosition.y] = currentLine.slice(0, this.cursorPosition.x) + keyEvent.key + currentLine.slice(this.cursorPosition.x);
-        this.cursorPosition.x++;
-        textUpdated = true;
+        this.text += keyEvent.key;
       }
       break;
     }
 
-    if (textUpdated) {
-      this.text = this.lines.join('\n');
-      this.emit('textUpdate', this.text);
-    }
-
     this.updateDisplay();
-    this.emit('keypress', { ...keyEvent, cursor: this.cursorPosition, text: this.text });
+    this.emit('keypress', { ...keyEvent, text: this.text });
+    this.emit('textUpdate', this.text);
   }
 
   private updateDisplay() {
-    // Clear the screen
-    this.stdout.write('\x1b[2J');
-    this.stdout.write('\x1b[0f');
-
-    // Redraw the entire text content
-    this.stdout.write(this.text);
-
-    // Move the cursor to the correct position
-    const absoluteX = this.cursorPosition.x;
-    const absoluteY = this.cursorPosition.y;
-    this.stdout.cursorTo(absoluteX, absoluteY);
+    // Move cursor to the end of the current line
+    this.stdout.write('\r\x1b[K');
+    // Write the prefix and current text
+    this.stdout.write(this.prefix + this.text);
   }
 
   public getText(): string {
     return this.text;
   }
 
-  public getCursorPosition(): CursorPosition {
-    return { ...this.cursorPosition };
+  public setPrefix(prefix: string) {
+    this.prefix = prefix;
   }
 }
+
 
 // Helper function to compare arrays
 function arrayEqual(arr1: number[], arr2: number[]): boolean {

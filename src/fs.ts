@@ -97,24 +97,31 @@ export class ApiHandler {
 
     return new ReadableStream<Uint8Array>({
       start(controller) {
-        const process = spawn("bash", ["-c", command], { shell: false });
+        const bash = spawn(
+          "bash", 
+          ["-c", command], 
+          { 
+            shell: false,
+            env: { ...process.env, FORCE_COLOR: "1" } 
+          }
+        );
 
-        process.stdout.on('data', (data) => {
+        bash.stdout.on('data', (data) => {
           controller.enqueue(data);
         });
 
-        process.stderr.on('data', (data) => {
+        bash.stderr.on('data', (data) => {
           controller.enqueue(data);
         });
 
-        process.on('close', (code) => {
+        bash.on('close', (code) => {
           if (code !== 0) {
             controller.enqueue(ENCODER.encode(`Process exited with code ${code}\n`));
           }
           controller.close();
         });
 
-        process.on('error', (err) => {
+        bash.on('error', (err) => {
           controller.error(err);
         });
       }

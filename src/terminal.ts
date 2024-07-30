@@ -5,7 +5,9 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { tools } from "./tools";
 import { startServer } from "./fs";
 import { KeyHandler } from "./keys";
+import { createInterface } from "readline";
 import ora from "ora";
+import boxen from "boxen";
 
 const DECODER = new TextDecoder();
 
@@ -24,28 +26,27 @@ function showLoadingDots() {
 
 export const terminal = async () => {
   console.log();
-  console.log(chalk.grey("Start typing to chat with the bot. Press Ctrl+C to exit.\n"));
+  // console.log(chalk.grey("Type below. Enter to send, Ctrl+C to exit.\n"));
 
-  let cursorPosition = 0;
-  let currentLine = '';
+  // let cursorPosition = 0;
+  // let currentLine = '';
   Bun.write(Bun.stdout, chalk.green("You: "));
 
   const messages: CoreMessage[] = [];
 
   const server = startServer();
 
-  const submitMessage = async () => {
-    // if (!currentLine.trim()) {
-    //   currentLine = '';
-    //   cursorPosition = 0;
-    //   Bun.write(Bun.stdout, '\n' + chalk.green("You: "));
-    //   return;
-    // }
+  const submitMessage = async (content: string) => {
+    if (!content.trim()) {
+      return;
+    }
+
+    // console.log('submitMessage');
 
     Bun.write(Bun.stdout, '\n');
 
     // Add user message to the conversation history
-    messages.push({ role: "user", content: currentLine });
+    messages.push({ role: "user", content });
 
     const spinner = ora({ text: 'Loading...', spinner: "dots" }).start();
 
@@ -63,7 +64,10 @@ export const terminal = async () => {
       if (isFirstChunk) {
         isFirstChunk = false;
         spinner.stop();
-        Bun.write(Bun.stdout, chalk.yellow("Claude: "));
+        Bun.write(
+          Bun.stdout, 
+          boxen(chalk.yellow("Claude"), { borderColor: "yellow", padding: { left: 2, right: 2 } }) + "\n"
+        );
       }
 
       // spinner.stop();
@@ -74,12 +78,6 @@ export const terminal = async () => {
         textResponse += text;
         break;
       }
-
-      case "tool-call": {
-        console.log();
-        console.table(chunk);
-        break;
-      }
       }
     }
 
@@ -87,20 +85,20 @@ export const terminal = async () => {
     const finishedCalls = await toolCalls;
     const finishedResults = await toolResults;
 
-    Bun.write(Bun.stdout, "\n");
-    console.log({ finishedCalls, finishedResults });
-
     // Add tool calls to start of history - will throw if missing results.
     if (finishedCalls.length > 0) {
+      process.stdout.write('\r\n\n');
+      console.table(finishedCalls, ['toolName', 'args']);
+      // process.stdout.write('\n');
+    
       messages.push({ role: "assistant", content: finishedCalls });
       messages.push({ role: "tool", content: finishedResults });
     }
 
     for (const toolResult of finishedResults) {
-      console.log({ toolResult });
       if (!toolResult.result) continue;
 
-      Bun.write(Bun.stdout, "\n\n");
+      console.log();
       let content = '';
 
       switch (toolResult.toolName) {
@@ -110,8 +108,9 @@ export const terminal = async () => {
           const { done, value } = await reader.read();
           if (done) break;
 
+          const text = DECODER.decode(value);
           Bun.write(Bun.stdout, value);
-          content += DECODER.decode(value);
+          content += text;
         }
         break;
 
@@ -120,40 +119,78 @@ export const terminal = async () => {
       case "edit":
         if (toolResult.result.data) {
           content = toolResult.result.data;
-          Bun.write(Bun.stdout, toolResult.result.data);
+          Bun.write(Bun.stdout, chalk.dim(chalk.blue(content)));
         }
         break;
       }
     }
 
     messages.push({ role: "assistant", content: textResponse });
+    process.stdout.write('\r\n\n');
 
-    cursorPosition = 0;
-    currentLine = '';
-    Bun.write(Bun.stdout, '\n' + chalk.green("You: "));
+    // cursorPosition = 0;
+    // currentLine = '';
   };
 
   process.on("exit", () => {
     server.stop();
   });
 
-  const keyboardHandler = new KeyHandler();
-  keyboardHandler.on('keypress', async ({ key, ctrl, alt, text }) => {
-    console.table({ key, ctrl, alt, text });
-    if (ctrl && key === 'C') {
-      Bun.write(Bun.stdout, '\n');
-      process.exit(2);
-    }
-    
-    // console.log({ key, ctrl, alt, text });
-    if (key === "enter" && !alt && !ctrl) {
-      currentLine = text;
-      process.stdin.pause();
-      await submitMessage();
-      keyboardHandler.clear();
-      process.stdin.resume();
-    }
-  });
+  while (true) {
+    const userTextMessages = 
+      messages
+        .filter(({ role }) => role === "user")
+        .filter(({ content }) => typeof content === "string")
+        .toReversed();
+        
+    const rl = createInterface({
+      input: process.stdin,
+      output: process.stdout,
+      history: userTextMessages.map(({ content }) => content as string),
+    });
+
+    rl.addListener("SIGINT", () => {
+      console.log("\n");
+      rl.close();
+      process.exit();
+    });
+
+    await new Promise<void>((resolve) => {
+      rl.question(
+        boxen(chalk.green("You"), { borderColor: "green", padding: { left: 2, right: 2 }, margin: 0 }) + "\n", 
+        async (content) => {
+          rl.close();
+          await submitMessage(content);
+          resolve();
+        }
+      );
+
+      const oneTime = (data: Uint8Array) => {
+        process.stdin.removeListener("data", oneTime);
+        process.stdout.clearLine(0);
+        process.stdout.cursorTo(0);
+        process.stdout.write(data);
+      };
+
+      process.stdin.on("data", oneTime);
+      Bun.write(Bun.stdout, chalk.dim('  Type here. Press Enter to send, Ctrl+C to exit.'));
+      process.stdout.cursorTo(0);
+    });
+  }
+
+  // const keyHandler = new KeyHandler(chalk.green("You: "));
+  // keyHandler.enable();
+
+  // keyHandler.on('keypress', async ({ key, ctrl, alt, text }) => {
+  //   console.table({ key, ctrl, alt, text });
+  //   if (key === "enter" && !alt && !ctrl) {
+  //     currentLine = text;
+  //     keyHandler.disable();
+  //     await submitMessage();
+  //     keyHandler.clear();
+  //     keyHandler.enable();
+  //   }
+  // });
 
   // keyboardHandler.on('keypress', async ({ key, ctrl, alt }) => {
   //   if (ctrl && key === 'C') {
