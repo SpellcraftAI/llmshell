@@ -4,6 +4,7 @@
   "type": "module",
   "devDependencies": {
     "@types/bun": "^1.1.6",
+    "@types/screenshot-desktop": "^1.12.3",
     "@typescript-eslint/eslint-plugin": "^7.17.0",
     "@typescript-eslint/parser": "^7.17.0",
     "eslint": "^9.7.0",
@@ -16,6 +17,8 @@
     "@ai-sdk/anthropic": "^0.0.32",
     "ai": "^3.2.35",
     "chalk": "^5.3.0",
+    "screenshot-desktop": "^1.15.0",
+    "terminal-image": "^3.0.0",
     "zod": "^3.23.8"
   }
 }
