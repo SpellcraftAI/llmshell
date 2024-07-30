@@ -5,6 +5,7 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { tools } from "./tools";
 import { startServer } from "./fs";
 import { KeyHandler } from "./keys";
+import ora from "ora";
 
 const DECODER = new TextDecoder();
 
@@ -32,21 +33,21 @@ export const terminal = async () => {
   const messages: CoreMessage[] = [];
 
   const server = startServer();
-  const keyboardHandler = new KeyHandler();
 
   const submitMessage = async () => {
-    if (!currentLine.trim()) {
-      currentLine = '';
-      cursorPosition = 0;
-      Bun.write(Bun.stdout, '\n' + chalk.green("You: "));
-      return;
-    }
+    // if (!currentLine.trim()) {
+    //   currentLine = '';
+    //   cursorPosition = 0;
+    //   Bun.write(Bun.stdout, '\n' + chalk.green("You: "));
+    //   return;
+    // }
 
     Bun.write(Bun.stdout, '\n');
-    const loadingInterval = showLoadingDots();
 
     // Add user message to the conversation history
     messages.push({ role: "user", content: currentLine });
+
+    const spinner = ora({ text: 'Loading...', spinner: "dots" }).start();
 
     const { fullStream, toolCalls, toolResults } = await streamText({
       model,
@@ -59,16 +60,16 @@ export const terminal = async () => {
     let textResponse = '';
 
     for await (const chunk of fullStream) {
+      if (isFirstChunk) {
+        isFirstChunk = false;
+        spinner.stop();
+        Bun.write(Bun.stdout, chalk.yellow("Claude: "));
+      }
+
+      // spinner.stop();
       switch (chunk.type) {
       case "text-delta": {
-        const text = chunk.textDelta;
-        if (isFirstChunk) {
-          clearInterval(loadingInterval);
-          Bun.write(Bun.stdout, '\r' + ' '.repeat(20) + '\r');
-          Bun.write(Bun.stdout, chalk.blue("Bot: "));
-          isFirstChunk = false;
-        }
-    
+        const text = chunk.textDelta;    
         Bun.write(Bun.stdout, text);
         textResponse += text;
         break;
@@ -136,63 +137,73 @@ export const terminal = async () => {
     server.stop();
   });
 
-  const refreshLine = () => {
-    process.stdout.clearLine(1);
-    // process.stdout.write('\r' + ' '.repeat(process.stdout.columns)); // Clear the line
-    process.stdout.write('\r' + chalk.green("You: ") + currentLine);
-    // process.stdout.write('\r' + chalk.green("You: ") + currentLine.slice(0, cursorPosition));
-  };
-
-  refreshLine();
-
-  keyboardHandler.on('keypress', async ({ key, ctrl, alt }) => {
+  const keyboardHandler = new KeyHandler();
+  keyboardHandler.on('keypress', async ({ key, ctrl, alt, text }) => {
+    console.table({ key, ctrl, alt, text });
     if (ctrl && key === 'C') {
-      process.exit();
+      Bun.write(Bun.stdout, '\n');
+      process.exit(2);
     }
-
-    switch (key) {
-    case 'backspace':
-      if (cursorPosition > 0) {
-        currentLine = currentLine.slice(0, cursorPosition - 1) + currentLine.slice(cursorPosition);
-        cursorPosition--;
-        refreshLine();
-      }
-      break;
-    case 'left':
-      if (cursorPosition > 0) {
-        cursorPosition--;
-        refreshLine();
-      }
-      break;
-    case 'right':
-      if (cursorPosition < currentLine.length) {
-        cursorPosition++;
-        refreshLine();
-      }
-      break;
-    case 'up':
-    case 'down':
-      // Implement history navigation if desired
-      break;
-    case 'enter':
-      // console.log({ alt, ctrl });
-      if (alt || ctrl) {
-        // console.log({ currentLine });
-        currentLine += '\n\r';
-        cursorPosition++;
-        refreshLine();
-        break;
-      }
-
+    
+    // console.log({ key, ctrl, alt, text });
+    if (key === "enter" && !alt && !ctrl) {
+      currentLine = text;
+      process.stdin.pause();
       await submitMessage();
-      break;
-
-    default:
-      if (!ctrl && !alt && key.length === 1) {
-        currentLine = currentLine.slice(0, cursorPosition) + key + currentLine.slice(cursorPosition);
-        cursorPosition++;
-        refreshLine();
-      }
+      keyboardHandler.clear();
+      process.stdin.resume();
     }
   });
+
+  // keyboardHandler.on('keypress', async ({ key, ctrl, alt }) => {
+  //   if (ctrl && key === 'C') {
+  //     process.exit();
+  //   }
+
+  //   switch (key) {
+  //   case 'backspace':
+  //     if (cursorPosition > 0) {
+  //       currentLine = currentLine.slice(0, cursorPosition - 1) + currentLine.slice(cursorPosition);
+  //       cursorPosition--;
+  //       refreshLine();
+  //     }
+  //     break;
+  //   case 'left':
+  //     if (cursorPosition > 0) {
+  //       cursorPosition--;
+  //       refreshLine();
+  //     }
+  //     break;
+  //   case 'right':
+  //     if (cursorPosition < currentLine.length) {
+  //       cursorPosition++;
+  //       refreshLine();
+  //     }
+  //     break;
+  //   case 'up':
+  //   case 'down':
+  //     // Implement history navigation if desired
+  //     break;
+  //   case 'enter':
+  //     // console.log({ alt, ctrl });
+  //     if (alt || ctrl) {
+  //       // console.log({ currentLine });
+  //       currentLine += '\n';
+  //       cursorPosition++;
+  //       // cursorPosition = 0;
+  //       refreshLine();
+  //       break;
+  //     }
+
+  //     await submitMessage();
+  //     break;
+
+  //   default:
+  //     if (!ctrl && !alt && key.length === 1) {
+  //       currentLine = currentLine.slice(0, cursorPosition) + key + currentLine.slice(cursorPosition);
+  //       cursorPosition++;
+  //       refreshLine();
+  //     }
+  //   }
+  // });
 };
