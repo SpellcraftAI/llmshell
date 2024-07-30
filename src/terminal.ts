@@ -1,10 +1,10 @@
 import "../shim";
 import chalk from "chalk";
-import { EventEmitter } from 'events';
 import { streamText, type CoreMessage } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
 import { tools } from "./tools";
 import { startServer } from "./fs";
+import { KeyHandler } from "./keys";
 
 const DECODER = new TextDecoder();
 
@@ -21,97 +21,23 @@ function showLoadingDots() {
   );
 }
 
-async function* readStdin(): AsyncIterable<Uint8Array> {
-  const reader = Bun.stdin.stream().getReader();
-  while (true) {
-    const { value, done } = await reader.read();
-    if (done) break;
-    yield value;
-  }
-}
-
-interface KeyState {
-  key: string;
-  ctrl: boolean;
-  alt: boolean;
-  shift: boolean;
-  meta: boolean;
-}
-
-class KeyboardHandler extends EventEmitter {
-  private stdin: typeof process.stdin;
-
-  constructor() {
-    super();
-    this.stdin = process.stdin;
-    this.stdin.setRawMode(true);
-    this.stdin.resume();
-    this.stdin.setEncoding('utf8');
-    this.stdin.on('data', this.handleKeyPress.bind(this));
-  }
-
-  private handleKeyPress(chunk: string) {
-    const keyState: KeyState = {
-      key: chunk,
-      ctrl: false,
-      alt: false,
-      shift: false,
-      meta: false,
-    };
-
-    // Check for modifier keys
-    if (chunk.length > 1) {
-      keyState.ctrl = (chunk.charCodeAt(0) & 32) === 0;
-      // Add checks for other modifier keys if needed
-    }
-
-    this.emit('keypress', keyState);
-  }
-
-  close() {
-    this.stdin.setRawMode(false);
-    this.stdin.pause();
-    this.removeAllListeners();
-  }
-}
-
-
 export const terminal = async () => {
   console.log();
   console.log(chalk.grey("Start typing to chat with the bot. Press Ctrl+C to exit.\n"));
 
+  let cursorPosition = 0;
   let currentLine = '';
   Bun.write(Bun.stdout, chalk.green("You: "));
 
   const messages: CoreMessage[] = [];
 
   const server = startServer();
-  const keyboardHandler = new KeyboardHandler();
+  const keyboardHandler = new KeyHandler();
 
-  process.on("exit", () => {
-    server.stop();
-    keyboardHandler.close();
-  });
-
-  keyboardHandler.on('keypress', async (keyState: KeyState) => {
-    if (keyState.key === '\u0003') { // Ctrl+C
-      process.exit();
-    }
-
-    if (keyState.key !== '\r' && keyState.key !== '\n') {
-      currentLine += keyState.key;
-      Bun.write(Bun.stdout, keyState.key);
-      return;
-    }
-
-    if (keyState.ctrl || keyState.alt || keyState.shift || keyState.meta) {
-      currentLine += '\n';
-      Bun.write(Bun.stdout, '\n');
-      return;
-    }
-
+  const submitMessage = async () => {
     if (!currentLine.trim()) {
       currentLine = '';
+      cursorPosition = 0;
       Bun.write(Bun.stdout, '\n' + chalk.green("You: "));
       return;
     }
@@ -128,10 +54,10 @@ export const terminal = async () => {
       tools,
       experimental_toolCallStreaming: true,
     });
-      
+    
     let isFirstChunk = true;
     let textResponse = '';
-  
+
     for await (const chunk of fullStream) {
       switch (chunk.type) {
       case "text-delta": {
@@ -142,12 +68,12 @@ export const terminal = async () => {
           Bun.write(Bun.stdout, chalk.blue("Bot: "));
           isFirstChunk = false;
         }
-      
+    
         Bun.write(Bun.stdout, text);
         textResponse += text;
         break;
       }
-  
+
       case "tool-call": {
         console.log();
         console.table(chunk);
@@ -155,39 +81,39 @@ export const terminal = async () => {
       }
       }
     }
-  
+
     // Process tool results after the stream is done
     const finishedCalls = await toolCalls;
     const finishedResults = await toolResults;
-  
+
     Bun.write(Bun.stdout, "\n");
     console.log({ finishedCalls, finishedResults });
-  
+
     // Add tool calls to start of history - will throw if missing results.
     if (finishedCalls.length > 0) {
       messages.push({ role: "assistant", content: finishedCalls });
       messages.push({ role: "tool", content: finishedResults });
     }
-  
+
     for (const toolResult of finishedResults) {
       console.log({ toolResult });
       if (!toolResult.result) continue;
-  
+
       Bun.write(Bun.stdout, "\n\n");
       let content = '';
-  
+
       switch (toolResult.toolName) {
       case "terminal":
         const reader = toolResult.result.getReader();
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-  
+
           Bun.write(Bun.stdout, value);
           content += DECODER.decode(value);
         }
         break;
-  
+
       case "read":
       case "write":
       case "edit":
@@ -198,35 +124,75 @@ export const terminal = async () => {
         break;
       }
     }
-  
+
     messages.push({ role: "assistant", content: textResponse });
-  
+
+    cursorPosition = 0;
     currentLine = '';
-    Bun.write(Bun.stdout, "\n\n");
-    Bun.write(Bun.stdout, chalk.green("You: "));
+    Bun.write(Bun.stdout, '\n' + chalk.green("You: "));
+  };
+
+  process.on("exit", () => {
+    server.stop();
   });
 
-  // for await (const character of readStdin()) {
-  //   const characterString = DECODER.decode(character);
-  //   for (const char of characterString) {
-  //     if (char !== '\n') {
-  //       currentLine += char;
-  //       continue;
-  //     }
+  const refreshLine = () => {
+    process.stdout.clearLine(1);
+    // process.stdout.write('\r' + ' '.repeat(process.stdout.columns)); // Clear the line
+    process.stdout.write('\r' + chalk.green("You: ") + currentLine);
+    // process.stdout.write('\r' + chalk.green("You: ") + currentLine.slice(0, cursorPosition));
+  };
 
-  //     if (!currentLine.trim()) {
-  //       currentLine = '';
-  //       Bun.write(Bun.stdout, chalk.green("You: "));
-  //       continue;
-  //     }
+  refreshLine();
 
-  //     Bun.write(Bun.stdout, '\n');
-  //     const loadingInterval = showLoadingDots();
+  keyboardHandler.on('keypress', async ({ key, ctrl, alt }) => {
+    if (ctrl && key === 'C') {
+      process.exit();
+    }
 
-  //     // Add user message to the conversation history
-  //     messages.push({ role: "user", content: currentLine });
+    switch (key) {
+    case 'backspace':
+      if (cursorPosition > 0) {
+        currentLine = currentLine.slice(0, cursorPosition - 1) + currentLine.slice(cursorPosition);
+        cursorPosition--;
+        refreshLine();
+      }
+      break;
+    case 'left':
+      if (cursorPosition > 0) {
+        cursorPosition--;
+        refreshLine();
+      }
+      break;
+    case 'right':
+      if (cursorPosition < currentLine.length) {
+        cursorPosition++;
+        refreshLine();
+      }
+      break;
+    case 'up':
+    case 'down':
+      // Implement history navigation if desired
+      break;
+    case 'enter':
+      // console.log({ alt, ctrl });
+      if (alt || ctrl) {
+        // console.log({ currentLine });
+        currentLine += '\n\r';
+        cursorPosition++;
+        refreshLine();
+        break;
+      }
 
-      
-  //   }
-  // }
+      await submitMessage();
+      break;
+
+    default:
+      if (!ctrl && !alt && key.length === 1) {
+        currentLine = currentLine.slice(0, cursorPosition) + key + currentLine.slice(cursorPosition);
+        cursorPosition++;
+        refreshLine();
+      }
+    }
+  });
 };
