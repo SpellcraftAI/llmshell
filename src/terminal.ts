@@ -77,12 +77,11 @@ export const terminal = async () => {
           const text = chunk.textDelta;
           if (isFirstChunk) {
             clearInterval(loadingInterval);
-            process.stdout.write('\r' + ' '.repeat(20) + '\r');
+            Bun.write(Bun.stdout, '\r' + ' '.repeat(20) + '\r');
             Bun.write(Bun.stdout, chalk.blue("Bot: "));
             isFirstChunk = false;
           }
     
-          // console.table({ chunk: text });
           Bun.write(Bun.stdout, text);
           textResponse += text;
           break;
@@ -103,7 +102,6 @@ export const terminal = async () => {
       Bun.write(Bun.stdout, "\n");
       console.log({ finishedCalls, finishedResults });
 
-
       // Add tool calls to start of history - will throw if missing results.
       if (finishedCalls.length > 0) {
         messages.push({ role: "assistant", content: finishedCalls });
@@ -115,11 +113,10 @@ export const terminal = async () => {
         if (!toolResult.result) continue;
 
         Bun.write(Bun.stdout, "\n\n");
-
         let content = '';
 
         switch (toolResult.toolName) {
-        case "terminal_command":
+        case "terminal":
           const reader = toolResult.result.getReader();
           while (true) {
             const { done, value } = await reader.read();
@@ -130,24 +127,16 @@ export const terminal = async () => {
           }
           break;
 
-        case "file_operation":
+        case "read":
+        case "write":
+        case "edit":
           if (toolResult.result.data) {
             content = toolResult.result.data;
             Bun.write(Bun.stdout, toolResult.result.data);
           }
           break;
         }
-
-      // @ts-ignore
-      // messages.push({ 
-      //   role: "user", 
-      //   content: [toolResult] 
-      // });
       }
-
-      // messages.push({ role: "user", content: [
-      //   { type: "text", text: content }
-      // ] });
 
       messages.push({ role: "assistant", content: textResponse });
 

@@ -37,7 +37,11 @@ describe("Server API", () => {
     let response = await fetch(`${BASE_URL}/file`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: testFilePath, content: testContent })
+      body: JSON.stringify({
+        operation: "write",
+        path: testFilePath, 
+        content: testContent 
+      })
     });
 
     expect(response.status).toBe(200);
@@ -49,7 +53,10 @@ describe("Server API", () => {
     response = await fetch(`${BASE_URL}/file`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: testFilePath })
+      body: JSON.stringify({
+        operation: "read",
+        path: testFilePath 
+      })
     });
 
     expect(response.status).toBe(200);
@@ -75,6 +82,7 @@ describe("Server API", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
+        operation: "edit",
         path: testFilePath,
         content: newContent,
         startLine: 2,

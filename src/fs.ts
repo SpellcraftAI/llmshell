@@ -3,32 +3,33 @@ import { spawn } from "child_process";
 
 const ENCODER = new TextEncoder();
 
-// Types
-type FileContent = string;
+export type FileOperationType = "read" | "write" | "edit";
 
-interface FileOperation {
+export interface FileOperation {
+  operation: FileOperationType;
   path: string;
-  content?: FileContent;
+  content?: string;
   startLine?: number;
   endLine?: number;
 }
 
 // File System Operations
-class FileSystem {
-  async readFile(path: string): Promise<FileContent> {
+export class FileSystem {
+  async readFile(path: string) {
     return await Bun.file(path).text();
   }
 
-  async writeFile(path: string, content: FileContent): Promise<void> {
+  async writeFile(path: string, content: string) {
     await Bun.write(path, content);
+    return content;
   }
 
   async editFileLines(
     path: string, 
-    content: FileContent, 
+    content: string, 
     startLine: number, 
     endLine: number
-  ): Promise<void> {
+  ) {
     const fileContent = await this.readFile(path);
     const lines = fileContent.split('\n');
     const newLines = [
@@ -36,36 +37,53 @@ class FileSystem {
       content,
       ...lines.slice(endLine)
     ];
-    await this.writeFile(path, newLines.join('\n'));
+
+    const withEdit = newLines.join('\n');
+    await this.writeFile(path, withEdit);
+    return content;
   }
 }
 
-export type FileOperationResult = { success: boolean; message: string; data?: string };
+export type FileOperationResult = { 
+  success: boolean; 
+  message: string; 
+  data?: string 
+};
 
 // API Handler
-class ApiHandler {
-  private fileSystem: FileSystem;
+export class ApiHandler {
+  constructor(private readonly fileSystem = new FileSystem()) {}
 
-  constructor() {
-    this.fileSystem = new FileSystem();
-  }
-
-  async handleFileOperation(operation: FileOperation): Promise<FileOperationResult> {
+  async file({ operation, path, content, startLine, endLine }: FileOperation) {
     try {
       let message: string;
       let data: string | undefined;
 
-      if (operation.content !== undefined) {
-        if (operation.startLine !== undefined && operation.endLine !== undefined) {
-          await this.fileSystem.editFileLines(operation.path, operation.content, operation.startLine, operation.endLine);
-          message = `Lines ${operation.startLine}-${operation.endLine} in ${operation.path} updated successfully`;
-        } else {
-          await this.fileSystem.writeFile(operation.path, operation.content);
-          message = `File ${operation.path} updated successfully`;
+      switch (operation) {
+      case "read":
+        data = await this.fileSystem.readFile(path);
+        message = `File ${path} read successfully`;
+        break;
+
+      case "write":
+        data = await this.fileSystem.writeFile(path, content!);
+        message = `File ${path} updated successfully`;
+        break;
+
+      case "edit":
+        if (content === undefined || startLine === undefined || endLine === undefined) {
+          throw new Error("content, startLine, endLine required for edit operation");
+        } 
+
+        data = await this.fileSystem.editFileLines(path, content, startLine, endLine);
+        message = `Lines ${startLine}-${endLine} in ${path} updated successfully`;
+        break;
+
+      default:
+        if (!operation) {
+          throw new Error("operation required");
         }
-      } else {
-        data = await this.fileSystem.readFile(operation.path);
-        message = `File ${operation.path} read successfully`;
+        throw new Error(`Invalid operation: ${operation}`);
       }
 
       return { success: true, message, data };
@@ -74,9 +92,8 @@ class ApiHandler {
     }
   }
 
-  handleTerminalCommand(command: string): ReadableStream<Uint8Array> {
+  bash(command: string): ReadableStream<Uint8Array> {
     command = command.trim();
-    // console.log(`calling: '${command}'`);
 
     return new ReadableStream<Uint8Array>({
       start(controller) {
@@ -105,17 +122,15 @@ class ApiHandler {
   }
 }
 
-// Server setup
-const apiHandler = new ApiHandler();
-
 export interface StartServerArgs {
   cwd?: string
 }
 
 export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
   process.chdir(cwd);
+  const apiHandler = new ApiHandler();
+
   return serve({
-    // port: 3000,
     async fetch(req: Request): Promise<Response> {
       if (req.method !== 'POST') {
         return new Response('Method Not Allowed', { status: 405 });
@@ -123,15 +138,17 @@ export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
   
       const url = new URL(req.url);
       const body = await req.json();
-      // console.log(url.pathname, body);
   
       switch (url.pathname) {
       case '/file': {
-        const result = await apiHandler.handleFileOperation(body as FileOperation);
-        return new Response(JSON.stringify(result), {
-          status: result.success ? 200 : 400,
-          headers: { 'Content-Type': 'application/json' }
-        });
+        const result = await apiHandler.file(body as FileOperation);
+        return new Response(
+          JSON.stringify(result), 
+          {
+            status: result.success ? 200 : 400,
+            headers: { 'Content-Type': 'application/json' }
+          }
+        );
       }
   
       case '/terminal': {
@@ -140,10 +157,13 @@ export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
           return new Response('Bad Request', { status: 400 });
         }
   
-        const stream = apiHandler.handleTerminalCommand(command);
-        return new Response(stream, {
-          headers: { 'Content-Type': 'text/plain' }
-        });
+        const stream = apiHandler.bash(command);
+        return new Response(
+          stream, 
+          {
+            headers: { 'Content-Type': 'text/plain' }
+          }
+        );
       }
   
       default:
