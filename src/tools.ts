@@ -53,7 +53,7 @@ export const tools = {
   }),
 
   terminal: tool({
-    description: "Execute a terminal command using `bash -c ...` and return the output.",
+    description: "Type directly into the terminal's stdin. The text you type is parsed as JSON and can contain ANSI escape codes.",
     parameters: z.object({
       command: z.string().describe("The terminal command to execute. Runs through bash -c.")
     }),

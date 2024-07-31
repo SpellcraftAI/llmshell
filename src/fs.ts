@@ -1,5 +1,7 @@
 import { serve } from "bun"
 import { spawn } from "child_process"
+import { Readable } from "stream"
+import { StreamingToolArgs } from "./StreamingToolArgs"
 
 const ENCODER = new TextEncoder()
 
@@ -92,9 +94,62 @@ export class ApiHandler {
     }
   }
 
-  bash(command: string): ReadableStream<Uint8Array> {
-    command = command.trim()
+  async bashTest(argStream: ReadableStream<Uint8Array>): Promise<ReadableStream<Uint8Array>> {
+    const keystrokes = argStream.pipeThrough(new StreamingToolArgs())
+    const nodeReadable = Readable.from((async function* () {
+      const reader = keystrokes.getReader()
+      try {
+        while (true) {
+          const { done, value: { key, value } = {} } = await reader.read()
+          if (done) {
+            break
+          }
 
+          if (!key || !value) {
+            break
+          }
+
+          if (key === "command") {
+            yield value
+          }
+        }
+      } finally {
+        reader.releaseLock()
+      }
+    }()))
+
+    const bash = spawn(
+      "bash",
+      [],
+      {
+        shell: true,
+        env: { ...process.env, FORCE_COLOR: "1" },
+        stdio: ["pipe", "pipe", "pipe"]
+      }
+    )
+
+    // Pipe nodeReadable to bash.stdin
+    nodeReadable.pipe(bash.stdin)
+
+    return new ReadableStream<Uint8Array>({
+      start(controller) {
+        bash.stdout.on("data", (chunk) => controller.enqueue(chunk))
+        bash.stderr.on("data", (chunk) => controller.enqueue(chunk))
+        bash.on("close", () => {
+          controller.close()
+        })
+        bash.on("error", (error) => {
+          controller.error(error)
+        })
+      },
+      cancel() {
+        bash.kill()
+      },
+    })
+  }
+
+
+  async bash(command: string): Promise<ReadableStream<Uint8Array>> {
     return new ReadableStream<Uint8Array>({
       start(controller) {
         const bash = spawn(
@@ -144,11 +199,10 @@ export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
       }
   
       const url = new URL(req.url)
-      const body = await req.json()
   
       switch (url.pathname) {
       case "/file": {
-        const result = await apiHandler.file(body as FileOperation)
+        const result = await apiHandler.file(await req.json() as FileOperation)
         return new Response(
           JSON.stringify(result), 
           {
@@ -158,20 +212,20 @@ export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
         )
       }
   
-      case "/terminal": {
-        const { command } = body
-        if (!command) {
+      case "/terminal":
+        if (req.body === null) {
           return new Response("Bad Request", { status: 400 })
         }
-  
-        const stream = apiHandler.bash(command)
+      
+        const stream = await apiHandler.bashTest(req.body)
+        // console.log("LOCKED", stream.locked)
         return new Response(
           stream, 
           {
             headers: { "Content-Type": "text/plain" }
           }
         )
-      }
+
   
       default:
         return new Response("Not Found", { status: 404 })

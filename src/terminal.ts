@@ -10,8 +10,10 @@ import { tools } from "./tools"
 import { startServer } from "./fs"
 import { IndentWrapTransform } from "./IndentWrapper"
 import { OBJ, parse, STR } from "partial-json"
+import { StreamingToolArgs } from "./StreamingToolArgs"
 
 Object.assign(globalThis, { readline })
+const ENCODER = new TextEncoder()
 const DECODER = new TextDecoder()
 
 const model = anthropic("claude-3-5-sonnet-20240620")
@@ -42,10 +44,44 @@ export const terminal = async (): Promise<void> => {
     const stdoutIndent = new IndentWrapTransform(2, Math.min(80, process.stdout.columns - 4))
     stdoutIndent.pipe(process.stdout)
 
-    const toolBuffers = new Map<string, string>()
-    const toolBufferProperties = new Map<string, Set<string>>()
+    // const toolBuffers = new Map<string, string>()
+    // const toolBufferProperties = new Map<string, Set<string>>()
 
     let currentKey: string | null = null
+
+    const toolArgsStream = new StreamingToolArgs()
+    const toolArgsReader = toolArgsStream.readable.getReader()
+    const toolArgsWriter = toolArgsStream.writable.getWriter()
+
+    async function handleToolArgsOutput() {
+      while (true) {
+        const { done, value: result } = await toolArgsReader.read()
+        if (done) break
+        if (!result) break
+    
+        const { key, value } = result
+    
+        if (key !== currentKey) {
+          currentKey = key
+          process.stdout.write("\n")
+          process.stdout.write(
+            boxen(
+              chalk.dim(chalk.yellow(key)),
+              { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
+            )
+          )
+          process.stdout.write("\n")
+        }
+    
+        process.stdout.write(
+          chalk.dim(
+            chalk.yellow(value)
+          )
+        )
+      }
+    }
+
+    handleToolArgsOutput()
 
     for await (const chunk of fullStream) {
       if (isFirstChunk) {
@@ -94,50 +130,51 @@ export const terminal = async (): Promise<void> => {
         break
 
       case "tool-call-delta":
-        const prevBuffer = toolBuffers.get(chunk.toolName) || ""
-        const newBuffer = prevBuffer + chunk.argsTextDelta
-        toolBuffers.set(chunk.toolName, newBuffer)
+        await toolArgsWriter.write(ENCODER.encode(chunk.argsTextDelta))
+        // const prevBuffer = toolBuffers.get(chunk.toolName) || ""
+        // const newBuffer = prevBuffer + chunk.argsTextDelta
+        // toolBuffers.set(chunk.toolName, newBuffer)
 
-        if (newBuffer) {
-          const prevPartial = prevBuffer ? parse(prevBuffer, STR | OBJ) : {}
-          const partial = parse(newBuffer, STR | OBJ)
+        // if (newBuffer) {
+        //   const prevPartial = prevBuffer ? parse(prevBuffer, STR | OBJ) : {}
+        //   const partial = parse(newBuffer, STR | OBJ)
 
-          const keys = new Set<string>(Object.keys(partial))
-          if (keys.size > 0) {
-            const newKeys = new Set([...keys].filter((key) => !toolBufferProperties.get(chunk.toolName)?.has(key)))
-            toolBufferProperties.set(chunk.toolName, keys)
+        //   const keys = new Set<string>(Object.keys(partial))
+        //   if (keys.size > 0) {
+        //     const newKeys = new Set([...keys].filter((key) => !toolBufferProperties.get(chunk.toolName)?.has(key)))
+        //     toolBufferProperties.set(chunk.toolName, keys)
 
-            // Will only ever be one when streaming.
-            const newKey = newKeys.values().next().value
-            if (newKey) {
-              currentKey = newKey
-              process.stdout.write("\n")
-              process.stdout.write(
-                boxen(
-                  chalk.dim(chalk.yellow(newKey)), 
-                  { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
-                )
-              )
-              process.stdout.write("\n")
-            }
-          }
+        //     // Will only ever be one when streaming.
+        //     const newKey = newKeys.values().next().value
+        //     if (newKey) {
+        //       currentKey = newKey
+        //       process.stdout.write("\n")
+        //       process.stdout.write(
+        //         boxen(
+        //           chalk.dim(chalk.yellow(newKey)), 
+        //           { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
+        //         )
+        //       )
+        //       process.stdout.write("\n")
+        //     }
+        //   }
 
-          if (currentKey) {
-            const prevValue = prevPartial?.[currentKey]
-            const newValue = partial?.[currentKey]
-            if (prevValue && !newValue.startsWith(prevValue)) {
-              throw new Error("Error streaming JSON properties.")
-            }
+        //   if (currentKey) {
+        //     const prevValue = prevPartial?.[currentKey]
+        //     const newValue = partial?.[currentKey]
+        //     if (prevValue && !newValue.startsWith(prevValue)) {
+        //       throw new Error("Error streaming JSON properties.")
+        //     }
 
-            const chunk = prevValue ? newValue.slice(prevValue.length) : newValue
+        //     const chunk = prevValue ? newValue.slice(prevValue.length) : newValue
 
-            process.stdout.write(
-              chalk.dim(
-                chalk.yellow(chunk)
-              )
-            )
-          }
-        }
+        //     process.stdout.write(
+        //       chalk.dim(
+        //         chalk.yellow(chunk)
+        //       )
+        //     )
+        //   }
+        // }
         break
       }
     }
