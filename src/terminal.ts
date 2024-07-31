@@ -73,111 +73,111 @@ export const terminal = async (): Promise<void> => {
           process.stdout.write("\n")
         }
     
-        process.stdout.write(
-          chalk.dim(
-            chalk.yellow(value)
-          )
-        )
+        process.stdout.write(value)
       }
     }
-
-    handleToolArgsOutput()
-
-    for await (const chunk of fullStream) {
-      if (isFirstChunk) {
-        isFirstChunk = false
-        spinner.stop()
-        process.stdout.clearLine(0)
-        process.stdout.cursorTo(0)
-
-        Bun.write(
-          Bun.stdout, 
-          boxen(chalk.yellow("Claude"), { borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { left: 1, right: 1 } }) + "\n"
-        )
-      }
-
-      switch (chunk.type) {
-      case "text-delta": {
-        stdoutIndent.write(chunk.textDelta)
-        textResponse += chunk.textDelta
-        break
-      }
-
-      case "tool-call":
-        // stdoutIndent.write("");
-        // process.stdout.write("\nTOOL CALL");
-        break
-
-      case "finish":
-        stdoutIndent._flush()
-        // console.log("\nFINISH");
-        break
-
-      case "tool-call-streaming-start":
-        stdoutIndent._flush()
-
-        process.stdout.write("\n\n")
-        process.stdout.write(chalk.dim("─".repeat(Math.min(80, process.stdout.columns - 2))))
-        process.stdout.write("\n")
-        process.stdout.write(
-          boxen(
-            chalk.dim(chalk.yellow(chunk.toolName)), 
-            { title: "Tool", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
+    
+    async function handleStream() {
+      for await (const chunk of fullStream) {
+        if (isFirstChunk) {
+          isFirstChunk = false
+          spinner.stop()
+          process.stdout.clearLine(0)
+          process.stdout.cursorTo(0)
+  
+          Bun.write(
+            Bun.stdout, 
+            boxen(chalk.yellow("Claude"), { borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { left: 1, right: 1 } }) + "\n"
           )
-        )
-        process.stdout.write("\n")
-
-        break
-
-      case "tool-call-delta":
-        await toolArgsWriter.write(ENCODER.encode(chunk.argsTextDelta))
-        // const prevBuffer = toolBuffers.get(chunk.toolName) || ""
-        // const newBuffer = prevBuffer + chunk.argsTextDelta
-        // toolBuffers.set(chunk.toolName, newBuffer)
-
-        // if (newBuffer) {
-        //   const prevPartial = prevBuffer ? parse(prevBuffer, STR | OBJ) : {}
-        //   const partial = parse(newBuffer, STR | OBJ)
-
-        //   const keys = new Set<string>(Object.keys(partial))
-        //   if (keys.size > 0) {
-        //     const newKeys = new Set([...keys].filter((key) => !toolBufferProperties.get(chunk.toolName)?.has(key)))
-        //     toolBufferProperties.set(chunk.toolName, keys)
-
-        //     // Will only ever be one when streaming.
-        //     const newKey = newKeys.values().next().value
-        //     if (newKey) {
-        //       currentKey = newKey
-        //       process.stdout.write("\n")
-        //       process.stdout.write(
-        //         boxen(
-        //           chalk.dim(chalk.yellow(newKey)), 
-        //           { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
-        //         )
-        //       )
-        //       process.stdout.write("\n")
-        //     }
-        //   }
-
-        //   if (currentKey) {
-        //     const prevValue = prevPartial?.[currentKey]
-        //     const newValue = partial?.[currentKey]
-        //     if (prevValue && !newValue.startsWith(prevValue)) {
-        //       throw new Error("Error streaming JSON properties.")
-        //     }
-
-        //     const chunk = prevValue ? newValue.slice(prevValue.length) : newValue
-
-        //     process.stdout.write(
-        //       chalk.dim(
-        //         chalk.yellow(chunk)
-        //       )
-        //     )
-        //   }
-        // }
-        break
+        }
+  
+        switch (chunk.type) {
+        case "text-delta": {
+          stdoutIndent.write(chunk.textDelta)
+          textResponse += chunk.textDelta
+          break
+        }
+  
+        case "tool-call":
+          // stdoutIndent.write("");
+          // process.stdout.write("\nTOOL CALL");
+          break
+  
+        case "finish":
+          stdoutIndent._flush()
+          // console.log("\nFINISH");
+          break
+  
+        case "tool-call-streaming-start":
+          stdoutIndent._flush()
+  
+          process.stdout.write("\n\n")
+          process.stdout.write(chalk.dim("─".repeat(Math.min(80, process.stdout.columns - 2))))
+          console.log()
+          process.stdout.write(
+            boxen(
+              chalk.dim(chalk.yellow(chunk.toolName)), 
+              { title: "Tool", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
+            )
+          )
+          process.stdout.write("\n")
+  
+          break
+  
+        case "tool-call-delta":
+          await toolArgsWriter.write(ENCODER.encode(chunk.argsTextDelta))
+          // const prevBuffer = toolBuffers.get(chunk.toolName) || ""
+          // const newBuffer = prevBuffer + chunk.argsTextDelta
+          // toolBuffers.set(chunk.toolName, newBuffer)
+  
+          // if (newBuffer) {
+          //   const prevPartial = prevBuffer ? parse(prevBuffer, STR | OBJ) : {}
+          //   const partial = parse(newBuffer, STR | OBJ)
+  
+          //   const keys = new Set<string>(Object.keys(partial))
+          //   if (keys.size > 0) {
+          //     const newKeys = new Set([...keys].filter((key) => !toolBufferProperties.get(chunk.toolName)?.has(key)))
+          //     toolBufferProperties.set(chunk.toolName, keys)
+  
+          //     // Will only ever be one when streaming.
+          //     const newKey = newKeys.values().next().value
+          //     if (newKey) {
+          //       currentKey = newKey
+          //       process.stdout.write("\n")
+          //       process.stdout.write(
+          //         boxen(
+          //           chalk.dim(chalk.yellow(newKey)), 
+          //           { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
+          //         )
+          //       )
+          //       process.stdout.write("\n")
+          //     }
+          //   }
+  
+          //   if (currentKey) {
+          //     const prevValue = prevPartial?.[currentKey]
+          //     const newValue = partial?.[currentKey]
+          //     if (prevValue && !newValue.startsWith(prevValue)) {
+          //       throw new Error("Error streaming JSON properties.")
+          //     }
+  
+          //     const chunk = prevValue ? newValue.slice(prevValue.length) : newValue
+  
+          //     process.stdout.write(
+          //       chalk.dim(
+          //         chalk.yellow(chunk)
+          //       )
+          //     )
+          //   }
+          // }
+          break
+        }
       }
+
+      await toolArgsWriter.close()
     }
+
+    await Promise.all([handleStream(), handleToolArgsOutput()])
 
     process.stdout.write("\n")
 
