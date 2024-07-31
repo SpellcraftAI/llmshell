@@ -8,7 +8,6 @@ import boxen from "boxen";
 import { tools } from "./tools";
 
 import { startServer } from "./fs";
-import { Transform } from "stream";
 import { IndentWrapTransform } from "./IndentWrapper";
 import { OBJ, parse, STR } from "partial-json";
 
@@ -26,7 +25,7 @@ export const terminal = async (): Promise<void> => {
     }
 
     Bun.write(Bun.stdout, '\n');
-    const spinner: Ora = ora({ text: 'Loading...', spinner: "dots" }).start();
+    const spinner: Ora = ora({ text: 'Loading...\n\n', spinner: "dots", indent: 2 }).start();
     
     messages.push({ role: "user", content });
     const { fullStream, toolCalls, toolResults } = await streamText({
@@ -52,9 +51,12 @@ export const terminal = async (): Promise<void> => {
       if (isFirstChunk) {
         isFirstChunk = false;
         spinner.stop();
+        process.stdout.clearLine(0);
+        process.stdout.cursorTo(0);
+
         Bun.write(
           Bun.stdout, 
-          boxen(chalk.yellow("Claude"), { borderColor: "yellow", padding: { left: 2, right: 2 } }) + "\n"
+          boxen(chalk.yellow("Claude"), { borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { left: 1, right: 1 } }) + "\n"
         );
       }
 
@@ -79,6 +81,8 @@ export const terminal = async (): Promise<void> => {
         stdoutIndent._flush();
 
         process.stdout.write("\n\n");
+        process.stdout.write(chalk.dim('─'.repeat(Math.min(80, process.stdout.columns - 2))));
+        process.stdout.write('\n');
         process.stdout.write(
           boxen(
             chalk.dim(chalk.yellow(chunk.toolName)), 
@@ -114,7 +118,7 @@ export const terminal = async (): Promise<void> => {
                   { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
                 )
               );
-              process.stdout.write('\n\n');
+              process.stdout.write('\n');
             }
           }
 
@@ -151,30 +155,9 @@ export const terminal = async (): Promise<void> => {
     for (const toolResult of finishedResults) {
       if (!toolResult.result) continue;
 
-      // process.stdout.write('\n');
-      // process.stdout.write(
-      //   boxen(
-      //     chalk.dim(chalk.yellow(toolResult.toolName)), 
-      //     { title: "Tool", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
-      //   ),
-      // );
-      // process.stdout.write('\n\n');
-
-      // const formattedArgs = Object.fromEntries(
-      //   Object.entries(toolResult.args).map(([key, value]) => {
-      //     if (typeof value === 'string' && value.length > 50) {
-      //       return [key, value.slice(0, 12) + '…'];
-      //     }
-      //     return [key, value];
-      //   })
-      // );
-
-      // console.table(formattedArgs);
-      // console.log();
-      
       let content = '';
       
-      process.stdout.write('\n\n');
+      process.stdout.write('\n');
       process.stdout.write(
         boxen(
           chalk.dim(chalk.yellow(toolResult.toolName)), 
@@ -232,14 +215,17 @@ export const terminal = async (): Promise<void> => {
     });
 
     rl.addListener("SIGINT", () => {
-      console.log("\n");
+      process.stdout.moveCursor(0, 2);
+      process.stdout.write("\n\n");
+      process.stdout.clearLine(0);
+      // process.stdout.write("\n");
       rl.close();
       process.exit();
     });
 
     await new Promise<void>((resolve) => {
       process.stdout.write('\n');
-      process.stdout.write(boxen(chalk.blue("You"), { borderColor: "blue", padding: { left: 2, right: 2 } }));
+      process.stdout.write(boxen(chalk.blue("You"), { borderColor: "blue", padding: { left: 2, right: 2 }, margin: { left: 1, right: 1 } }));
       process.stdout.write('\n  ');
       rl.on(
         "line", 
@@ -269,11 +255,11 @@ export const terminal = async (): Promise<void> => {
         process.stdin.removeListener("data", oneTime);
 
         // Move down to the instructions line.
-        process.stdout.moveCursor(0, 1);
+        process.stdout.moveCursor(0, 2);
         // Clear it.
         process.stdout.clearLine(0);
         // Return to the input line.
-        process.stdout.moveCursor(0, -1);
+        process.stdout.moveCursor(0, -2);
         // Add the indent.
         process.stdout.cursorTo(2);
 
@@ -281,8 +267,8 @@ export const terminal = async (): Promise<void> => {
       };
 
       process.stdin.on("data", oneTime);
-      Bun.write(Bun.stdout, chalk.dim('\n  Begin typing. Press Enter to send, Ctrl+C to exit.'));
-      process.stdout.moveCursor(0, -1);
+      Bun.write(Bun.stdout, chalk.dim('\n\n\n  Begin typing. Press Enter to send, Ctrl+C to exit.'));
+      process.stdout.moveCursor(0, -2);
       process.stdout.cursorTo(2);
     });
   }
