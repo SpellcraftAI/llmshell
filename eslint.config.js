@@ -16,7 +16,8 @@ export default [
     },
     rules: {
       indent: ['error', 2],
-      semi: ['error', 'always'],
+      semi: ['error', 'never'],
+      quotes: ['error', 'double'],
     },
   },
 ];

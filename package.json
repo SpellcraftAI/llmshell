@@ -2,6 +2,9 @@
   "name": "llm-client",
   "module": "index.ts",
   "type": "module",
+  "scripts": {
+    "lint": "eslint . --fix"
+  },
   "devDependencies": {
     "@types/bun": "^1.1.6",
     "@types/screenshot-desktop": "^1.12.3",

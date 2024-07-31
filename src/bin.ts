@@ -1,3 +1,3 @@
-import { terminal } from "./terminal";
+import { terminal } from "./terminal"
 
-await terminal();
+await terminal()

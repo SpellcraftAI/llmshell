@@ -1,6 +1,6 @@
-import { tool } from "ai";
-import { z } from "zod";
-import type { FileOperationResult } from "./fs";
+import { tool } from "ai"
+import { z } from "zod"
+import type { FileOperationResult } from "./fs"
 
 export const tools = {
   read: tool({
@@ -9,12 +9,12 @@ export const tools = {
       path: z.string().describe("The path to the file to read")
     }),
     execute: async ({ path }) => {
-      const response = await fetch(`http://localhost:3000/file`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("http://localhost:3000/file", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path, operation: "read" })
-      });
-      return await response.json() as FileOperationResult;
+      })
+      return await response.json() as FileOperationResult
     }
   }),
 
@@ -25,12 +25,12 @@ export const tools = {
       content: z.string().describe("The content to write to the file")
     }),
     execute: async ({ path, content }) => {
-      const response = await fetch(`http://localhost:3000/file`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("http://localhost:3000/file", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path, operation: "write", content })
-      });
-      return await response.json() as FileOperationResult;
+      })
+      return await response.json() as FileOperationResult
     }
   }),
 
@@ -43,12 +43,12 @@ export const tools = {
       endLine: z.number().describe("The ending line number for the edit")
     }),
     execute: async ({ path, content, startLine, endLine }) => {
-      const response = await fetch(`http://localhost:3000/file`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("http://localhost:3000/file", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path, operation: "edit", content, startLine, endLine })
-      });
-      return await response.json() as FileOperationResult;
+      })
+      return await response.json() as FileOperationResult
     }
   }),
 
@@ -58,13 +58,13 @@ export const tools = {
       command: z.string().describe("The terminal command to execute. Runs through bash -c.")
     }),
     execute: async ({ command }) => {
-      const response = await fetch(`http://localhost:3000/terminal`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("http://localhost:3000/terminal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command })
-      });
+      })
 
-      return response.body;
+      return response.body
     }
   })
-};
+}
