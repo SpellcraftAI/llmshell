@@ -53,21 +53,25 @@ export class IndentWrapTransform extends Transform {
     return '';
   }
 
-  _transform(chunk: Buffer, encoding: string, callback: TransformCallback): void {
+  _transform(chunk: Buffer, encoding: string, callback?: TransformCallback): void {
     let output = '';
     for (const char of chunk.toString()) {
       output += this.processChar(char);
     }
+
     if (output) {
       this.push(output);
     }
-    callback();
+
+    callback?.();
   }
 
-  _flush(callback: TransformCallback): void {
+  _flush(callback?: TransformCallback): void {
     if (this.currentLine) {
       this.push(this.currentLine);
     }
-    callback();
+
+    this.currentLine = '';
+    callback?.();
   }
 }

@@ -10,6 +10,7 @@ import { tools } from "./tools";
 import { startServer } from "./fs";
 import { Transform } from "stream";
 import { IndentWrapTransform } from "./IndentWrapper";
+import { OBJ, parse, STR } from "partial-json";
 
 Object.assign(globalThis, { readline });
 const DECODER = new TextDecoder();
@@ -33,6 +34,7 @@ export const terminal = async (): Promise<void> => {
       messages,
       tools,
       experimental_toolCallStreaming: true,
+      maxTokens: 4096
     });
     
     let isFirstChunk = true;
@@ -40,6 +42,11 @@ export const terminal = async (): Promise<void> => {
 
     const stdoutIndent = new IndentWrapTransform(2, Math.min(80, process.stdout.columns - 4));
     stdoutIndent.pipe(process.stdout);
+
+    const toolBuffers = new Map<string, string>();
+    const toolBufferProperties = new Map<string, Set<string>>();
+
+    let currentKey: string | null = null;
 
     for await (const chunk of fullStream) {
       if (isFirstChunk) {
@@ -53,52 +60,90 @@ export const terminal = async (): Promise<void> => {
 
       switch (chunk.type) {
       case "text-delta": {
-        const text = chunk.textDelta;
-        stdoutIndent.write(text);
-        textResponse += text;
+        stdoutIndent.write(chunk.textDelta);
+        textResponse += chunk.textDelta;
         break;
       }
+
+      case "tool-call":
+        // stdoutIndent.write("");
+        // process.stdout.write("\nTOOL CALL");
+        break;
+
+      case "finish":
+        stdoutIndent._flush();
+        // console.log("\nFINISH");
+        break;
+
+      case "tool-call-streaming-start":
+        stdoutIndent._flush();
+
+        process.stdout.write("\n\n");
+        process.stdout.write(
+          boxen(
+            chalk.dim(chalk.yellow(chunk.toolName)), 
+            { title: "Tool", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
+          )
+        );
+        process.stdout.write("\n");
+
+        break;
+
+      case "tool-call-delta":
+        const prevBuffer = toolBuffers.get(chunk.toolName) || "";
+        const newBuffer = prevBuffer + chunk.argsTextDelta;
+        toolBuffers.set(chunk.toolName, newBuffer);
+
+        if (newBuffer) {
+          const prevPartial = prevBuffer ? parse(prevBuffer, STR | OBJ) : {};
+          const partial = parse(newBuffer, STR | OBJ);
+
+          const keys = new Set<string>(Object.keys(partial));
+          if (keys.size > 0) {
+            const newKeys = new Set([...keys].filter((key) => !toolBufferProperties.get(chunk.toolName)?.has(key)));
+            toolBufferProperties.set(chunk.toolName, keys);
+
+            // Will only ever be one when streaming.
+            const newKey = newKeys.values().next().value;
+            if (newKey) {
+              currentKey = newKey;
+              process.stdout.write('\n');
+              process.stdout.write(
+                boxen(
+                  chalk.dim(chalk.yellow(newKey)), 
+                  { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
+                )
+              );
+              process.stdout.write('\n\n');
+            }
+          }
+
+          if (currentKey) {
+            const prevValue = prevPartial?.[currentKey];
+            const newValue = partial?.[currentKey];
+            if (prevValue && !newValue.startsWith(prevValue)) {
+              throw new Error("Error streaming JSON properties.");
+            }
+
+            const chunk = prevValue ? newValue.slice(prevValue.length) : newValue;
+
+            process.stdout.write(
+              chalk.dim(
+                chalk.yellow(chunk)
+              )
+            );
+          }
+        }
+        break;
       }
     }
 
-    stdoutIndent.end();
+    process.stdout.write('\n');
 
     const finishedCalls = await toolCalls;
     const finishedResults = await toolResults;
 
     if (finishedCalls.length > 0) {
-      // process.stdout.write('\n');
-
-      // shorten values in args with ... if they are strings
-      // const formattedToolCalls = finishedCalls.map(({ toolName, args }) => ({
-      //   toolName,
-      //   args: Object.fromEntries(
-      //     Object.entries(args).map(([key, value]) => {
-      //       if (typeof value === 'string' && value.length > 50) {
-      //         return [key, value.slice(0, 10) + '...'];
-      //       }
-      //       return [key, value];
-      //     })
-      //   ),
-      // }));
-
-      // for (const toolCall of formattedToolCalls) {
-      //   process.stdout.write("\n");
-      //   console.log(
-      //     boxen(
-      //       chalk.yellow(toolCall.toolName), 
-      //       { 
-      //         borderColor: "yellow", 
-      //         padding: { left: 2, right: 2 }, 
-      //         title: "Tool Call",
-      //         titleAlignment: "center" 
-      //       }
-      //     )
-      //   );
-        
-      //   console.table(toolCall.args);
-      // }
-    
       messages.push({ role: "assistant", content: finishedCalls });
       messages.push({ role: "tool", content: finishedResults });
     }
@@ -106,53 +151,36 @@ export const terminal = async (): Promise<void> => {
     for (const toolResult of finishedResults) {
       if (!toolResult.result) continue;
 
-      // process.stdout.write('\n\n');
+      // process.stdout.write('\n');
       // process.stdout.write(
       //   boxen(
-      //     chalk.yellow(toolResult.toolName), 
-      //     { 
-      //       borderColor: "yellow", 
-      //       padding: { left: 2, right: 2 }, 
-      //       title: "Tool Call",
-      //       titleAlignment: "center" 
+      //     chalk.dim(chalk.yellow(toolResult.toolName)), 
+      //     { title: "Tool", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
+      //   ),
+      // );
+      // process.stdout.write('\n\n');
+
+      // const formattedArgs = Object.fromEntries(
+      //   Object.entries(toolResult.args).map(([key, value]) => {
+      //     if (typeof value === 'string' && value.length > 50) {
+      //       return [key, value.slice(0, 12) + '…'];
       //     }
-      //   )
+      //     return [key, value];
+      //   })
       // );
 
-      process.stdout.write('\n\n');
-
-      process.stdout.write(
-        boxen(
-          chalk.dim(chalk.yellow(toolResult.toolName)), 
-          { title: "Tool", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
-        ),
-      );
-
-      process.stdout.write('\n\n');
-
-      const formattedArgs = Object.fromEntries(
-        Object.entries(toolResult.args).map(([key, value]) => {
-          if (typeof value === 'string' && value.length > 50) {
-            return [key, value.slice(0, 20) + '...'];
-          }
-          return [key, value];
-        })
-      );
-
-      console.table(formattedArgs);
-      console.log();
-      // process.stdout.write("\n");
-
+      // console.table(formattedArgs);
       // console.log();
+      
       let content = '';
-
+      
+      process.stdout.write('\n\n');
       process.stdout.write(
         boxen(
           chalk.dim(chalk.yellow(toolResult.toolName)), 
           { title: "Output", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
         )
       ); 
-
       process.stdout.write("\n");
 
       switch (toolResult.toolName) {
@@ -175,7 +203,8 @@ export const terminal = async (): Promise<void> => {
       case "edit":
         if (typeof toolResult.result === 'object' && 'data' in toolResult.result) {
           content = toolResult.result.data as string;
-          Bun.write(Bun.stdout, chalk.dim(chalk.yellow(content)));
+          process.stdout.write(chalk.dim(chalk.yellow(content)));
+          process.stdout.write('\n');
         }
         break;
       }
@@ -194,8 +223,6 @@ export const terminal = async (): Promise<void> => {
         .filter(({ role }) => role === "user")
         .filter(({ content }) => typeof content === "string")
         .reverse();
-        
-    const inputIndent = new IndentWrapTransform(2, Math.min(80, process.stdout.columns - 4));
 
     const rl: Interface = createInterface({
       input: process.stdin,
@@ -211,7 +238,7 @@ export const terminal = async (): Promise<void> => {
     });
 
     await new Promise<void>((resolve) => {
-      process.stdout.write('\n\n');
+      process.stdout.write('\n');
       process.stdout.write(boxen(chalk.blue("You"), { borderColor: "blue", padding: { left: 2, right: 2 } }));
       process.stdout.write('\n  ');
       rl.on(
