@@ -2,54 +2,32 @@ import "../shim";
 import chalk from "chalk";
 import { streamText, type CoreMessage } from "ai";
 import { anthropic } from "@ai-sdk/anthropic";
-import { tools } from "./tools";
-import { startServer } from "./fs";
-import { KeyHandler } from "./keys";
-import { createInterface } from "readline";
-import ora from "ora";
+import readline, { createInterface, Interface } from "readline";
+import ora, { type Ora } from "ora";
 import boxen from "boxen";
+import { tools } from "./tools";
 
+import { startServer } from "./fs";
+import { Transform } from "stream";
+import { IndentWrapTransform } from "./IndentWrapper";
+
+Object.assign(globalThis, { readline });
 const DECODER = new TextDecoder();
 
 const model = anthropic('claude-3-5-sonnet-20240620');
-
-function showLoadingDots() {
-  const dots = ['   ', '.  ', '.. ', '...'];
-  let i = 0;
-  return setInterval(
-    () => {
-      Bun.write(Bun.stdout, '\r' + chalk.yellow(`Bot: ${dots[i++ % dots.length].padEnd(10)}`));
-    }, 
-    250
-  );
-}
-
-export const terminal = async () => {
-  console.log();
-  // console.log(chalk.grey("Type below. Enter to send, Ctrl+C to exit.\n"));
-
-  // let cursorPosition = 0;
-  // let currentLine = '';
-  Bun.write(Bun.stdout, chalk.green("You: "));
-
+export const terminal = async (): Promise<void> => {
+  const server = startServer();
   const messages: CoreMessage[] = [];
 
-  const server = startServer();
-
-  const submitMessage = async (content: string) => {
+  const submitMessage = async (content: string): Promise<void> => {
     if (!content.trim()) {
       return;
     }
 
-    // console.log('submitMessage');
-
     Bun.write(Bun.stdout, '\n');
-
-    // Add user message to the conversation history
+    const spinner: Ora = ora({ text: 'Loading...', spinner: "dots" }).start();
+    
     messages.push({ role: "user", content });
-
-    const spinner = ora({ text: 'Loading...', spinner: "dots" }).start();
-
     const { fullStream, toolCalls, toolResults } = await streamText({
       model,
       messages,
@@ -59,6 +37,9 @@ export const terminal = async () => {
     
     let isFirstChunk = true;
     let textResponse = '';
+
+    const stdoutIndent = new IndentWrapTransform(2, Math.min(80, process.stdout.columns - 4));
+    stdoutIndent.pipe(process.stdout);
 
     for await (const chunk of fullStream) {
       if (isFirstChunk) {
@@ -70,26 +51,53 @@ export const terminal = async () => {
         );
       }
 
-      // spinner.stop();
       switch (chunk.type) {
       case "text-delta": {
-        const text = chunk.textDelta;    
-        Bun.write(Bun.stdout, text);
+        const text = chunk.textDelta;
+        stdoutIndent.write(text);
         textResponse += text;
         break;
       }
       }
     }
 
-    // Process tool results after the stream is done
+    stdoutIndent.end();
+
     const finishedCalls = await toolCalls;
     const finishedResults = await toolResults;
 
-    // Add tool calls to start of history - will throw if missing results.
     if (finishedCalls.length > 0) {
-      process.stdout.write('\r\n\n');
-      console.table(finishedCalls, ['toolName', 'args']);
       // process.stdout.write('\n');
+
+      // shorten values in args with ... if they are strings
+      // const formattedToolCalls = finishedCalls.map(({ toolName, args }) => ({
+      //   toolName,
+      //   args: Object.fromEntries(
+      //     Object.entries(args).map(([key, value]) => {
+      //       if (typeof value === 'string' && value.length > 50) {
+      //         return [key, value.slice(0, 10) + '...'];
+      //       }
+      //       return [key, value];
+      //     })
+      //   ),
+      // }));
+
+      // for (const toolCall of formattedToolCalls) {
+      //   process.stdout.write("\n");
+      //   console.log(
+      //     boxen(
+      //       chalk.yellow(toolCall.toolName), 
+      //       { 
+      //         borderColor: "yellow", 
+      //         padding: { left: 2, right: 2 }, 
+      //         title: "Tool Call",
+      //         titleAlignment: "center" 
+      //       }
+      //     )
+      //   );
+        
+      //   console.table(toolCall.args);
+      // }
     
       messages.push({ role: "assistant", content: finishedCalls });
       messages.push({ role: "tool", content: finishedResults });
@@ -98,38 +106,82 @@ export const terminal = async () => {
     for (const toolResult of finishedResults) {
       if (!toolResult.result) continue;
 
+      // process.stdout.write('\n\n');
+      // process.stdout.write(
+      //   boxen(
+      //     chalk.yellow(toolResult.toolName), 
+      //     { 
+      //       borderColor: "yellow", 
+      //       padding: { left: 2, right: 2 }, 
+      //       title: "Tool Call",
+      //       titleAlignment: "center" 
+      //     }
+      //   )
+      // );
+
+      process.stdout.write('\n\n');
+
+      process.stdout.write(
+        boxen(
+          chalk.dim(chalk.yellow(toolResult.toolName)), 
+          { title: "Tool", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
+        ),
+      );
+
+      process.stdout.write('\n\n');
+
+      const formattedArgs = Object.fromEntries(
+        Object.entries(toolResult.args).map(([key, value]) => {
+          if (typeof value === 'string' && value.length > 50) {
+            return [key, value.slice(0, 20) + '...'];
+          }
+          return [key, value];
+        })
+      );
+
+      console.table(formattedArgs);
       console.log();
+      // process.stdout.write("\n");
+
+      // console.log();
       let content = '';
+
+      process.stdout.write(
+        boxen(
+          chalk.dim(chalk.yellow(toolResult.toolName)), 
+          { title: "Output", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
+        )
+      ); 
+
+      process.stdout.write("\n");
 
       switch (toolResult.toolName) {
       case "terminal":
-        const reader = toolResult.result.getReader();
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        if (toolResult.result instanceof ReadableStream) {
+          const reader = toolResult.result.getReader();
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
 
-          const text = DECODER.decode(value);
-          Bun.write(Bun.stdout, value);
-          content += text;
+            const text = DECODER.decode(value);
+            Bun.write(Bun.stdout, value);
+            content += text;
+          }
         }
         break;
 
       case "read":
       case "write":
       case "edit":
-        if (toolResult.result.data) {
-          content = toolResult.result.data;
-          Bun.write(Bun.stdout, chalk.dim(chalk.blue(content)));
+        if (typeof toolResult.result === 'object' && 'data' in toolResult.result) {
+          content = toolResult.result.data as string;
+          Bun.write(Bun.stdout, chalk.dim(chalk.yellow(content)));
         }
         break;
       }
     }
 
     messages.push({ role: "assistant", content: textResponse });
-    process.stdout.write('\r\n\n');
-
-    // cursorPosition = 0;
-    // currentLine = '';
   };
 
   process.on("exit", () => {
@@ -137,16 +189,19 @@ export const terminal = async () => {
   });
 
   while (true) {
-    const userTextMessages = 
+    const userTextMessages: CoreMessage[] = 
       messages
         .filter(({ role }) => role === "user")
         .filter(({ content }) => typeof content === "string")
-        .toReversed();
+        .reverse();
         
-    const rl = createInterface({
+    const inputIndent = new IndentWrapTransform(2, Math.min(80, process.stdout.columns - 4));
+
+    const rl: Interface = createInterface({
       input: process.stdin,
       output: process.stdout,
       history: userTextMessages.map(({ content }) => content as string),
+      tabSize: 2,
     });
 
     rl.addListener("SIGINT", () => {
@@ -156,9 +211,12 @@ export const terminal = async () => {
     });
 
     await new Promise<void>((resolve) => {
-      rl.question(
-        boxen(chalk.green("You"), { borderColor: "green", padding: { left: 2, right: 2 }, margin: 0 }) + "\n", 
-        async (content) => {
+      process.stdout.write('\n\n');
+      process.stdout.write(boxen(chalk.blue("You"), { borderColor: "blue", padding: { left: 2, right: 2 } }));
+      process.stdout.write('\n  ');
+      rl.on(
+        "line", 
+        async (content: string) => {
           rl.close();
           await submitMessage(content);
           resolve();
@@ -166,81 +224,39 @@ export const terminal = async () => {
       );
 
       const oneTime = (data: Uint8Array) => {
+        // Check if the first byte is within ASCII printable character range
+        const isASCII = data[0] >= 32 && data[0] <= 126;
+        const isPaste = data.length > 3;
+
+        const isEnter = data[0] === 13;
+        if (isEnter) {
+          console.log('first enter');
+          return;
+        }
+
+        if (!isASCII && !isPaste) {
+          return;
+        }
+
+        // Remove the listener after the first keypress.
         process.stdin.removeListener("data", oneTime);
+
+        // Move down to the instructions line.
+        process.stdout.moveCursor(0, 1);
+        // Clear it.
         process.stdout.clearLine(0);
-        process.stdout.cursorTo(0);
-        process.stdout.write(data);
+        // Return to the input line.
+        process.stdout.moveCursor(0, -1);
+        // Add the indent.
+        process.stdout.cursorTo(2);
+
+        Bun.write(Bun.stdin, data);
       };
 
       process.stdin.on("data", oneTime);
-      Bun.write(Bun.stdout, chalk.dim('  Type here. Press Enter to send, Ctrl+C to exit.'));
-      process.stdout.cursorTo(0);
+      Bun.write(Bun.stdout, chalk.dim('\n  Begin typing. Press Enter to send, Ctrl+C to exit.'));
+      process.stdout.moveCursor(0, -1);
+      process.stdout.cursorTo(2);
     });
   }
-
-  // const keyHandler = new KeyHandler(chalk.green("You: "));
-  // keyHandler.enable();
-
-  // keyHandler.on('keypress', async ({ key, ctrl, alt, text }) => {
-  //   console.table({ key, ctrl, alt, text });
-  //   if (key === "enter" && !alt && !ctrl) {
-  //     currentLine = text;
-  //     keyHandler.disable();
-  //     await submitMessage();
-  //     keyHandler.clear();
-  //     keyHandler.enable();
-  //   }
-  // });
-
-  // keyboardHandler.on('keypress', async ({ key, ctrl, alt }) => {
-  //   if (ctrl && key === 'C') {
-  //     process.exit();
-  //   }
-
-  //   switch (key) {
-  //   case 'backspace':
-  //     if (cursorPosition > 0) {
-  //       currentLine = currentLine.slice(0, cursorPosition - 1) + currentLine.slice(cursorPosition);
-  //       cursorPosition--;
-  //       refreshLine();
-  //     }
-  //     break;
-  //   case 'left':
-  //     if (cursorPosition > 0) {
-  //       cursorPosition--;
-  //       refreshLine();
-  //     }
-  //     break;
-  //   case 'right':
-  //     if (cursorPosition < currentLine.length) {
-  //       cursorPosition++;
-  //       refreshLine();
-  //     }
-  //     break;
-  //   case 'up':
-  //   case 'down':
-  //     // Implement history navigation if desired
-  //     break;
-  //   case 'enter':
-  //     // console.log({ alt, ctrl });
-  //     if (alt || ctrl) {
-  //       // console.log({ currentLine });
-  //       currentLine += '\n';
-  //       cursorPosition++;
-  //       // cursorPosition = 0;
-  //       refreshLine();
-  //       break;
-  //     }
-
-  //     await submitMessage();
-  //     break;
-
-  //   default:
-  //     if (!ctrl && !alt && key.length === 1) {
-  //       currentLine = currentLine.slice(0, cursorPosition) + key + currentLine.slice(cursorPosition);
-  //       cursorPosition++;
-  //       refreshLine();
-  //     }
-  //   }
-  // });
 };
