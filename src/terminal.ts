@@ -280,7 +280,8 @@ export const terminal = async (): Promise<void> => {
 
         const isEnter = data[0] === 13
         if (isEnter) {
-          console.log("first enter")
+          process.stdout.cursorTo(0, 0)
+          process.stdout.clearScreenDown()
           return
         }
 
