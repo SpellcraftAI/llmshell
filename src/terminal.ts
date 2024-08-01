@@ -99,13 +99,10 @@ export const terminal = async (): Promise<void> => {
         }
   
         case "tool-call":
-          // stdoutIndent.write("");
-          // process.stdout.write("\nTOOL CALL");
           break
   
         case "finish":
           stdoutIndent._flush()
-          // console.log("\nFINISH");
           break
   
         case "tool-call-streaming-start":
@@ -126,50 +123,6 @@ export const terminal = async (): Promise<void> => {
   
         case "tool-call-delta":
           await toolArgsWriter.write(ENCODER.encode(chunk.argsTextDelta))
-          // const prevBuffer = toolBuffers.get(chunk.toolName) || ""
-          // const newBuffer = prevBuffer + chunk.argsTextDelta
-          // toolBuffers.set(chunk.toolName, newBuffer)
-  
-          // if (newBuffer) {
-          //   const prevPartial = prevBuffer ? parse(prevBuffer, STR | OBJ) : {}
-          //   const partial = parse(newBuffer, STR | OBJ)
-  
-          //   const keys = new Set<string>(Object.keys(partial))
-          //   if (keys.size > 0) {
-          //     const newKeys = new Set([...keys].filter((key) => !toolBufferProperties.get(chunk.toolName)?.has(key)))
-          //     toolBufferProperties.set(chunk.toolName, keys)
-  
-          //     // Will only ever be one when streaming.
-          //     const newKey = newKeys.values().next().value
-          //     if (newKey) {
-          //       currentKey = newKey
-          //       process.stdout.write("\n")
-          //       process.stdout.write(
-          //         boxen(
-          //           chalk.dim(chalk.yellow(newKey)), 
-          //           { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
-          //         )
-          //       )
-          //       process.stdout.write("\n")
-          //     }
-          //   }
-  
-          //   if (currentKey) {
-          //     const prevValue = prevPartial?.[currentKey]
-          //     const newValue = partial?.[currentKey]
-          //     if (prevValue && !newValue.startsWith(prevValue)) {
-          //       throw new Error("Error streaming JSON properties.")
-          //     }
-  
-          //     const chunk = prevValue ? newValue.slice(prevValue.length) : newValue
-  
-          //     process.stdout.write(
-          //       chalk.dim(
-          //         chalk.yellow(chunk)
-          //       )
-          //     )
-          //   }
-          // }
           break
         }
       }
@@ -178,7 +131,6 @@ export const terminal = async (): Promise<void> => {
     }
 
     await Promise.all([handleStream(), handleToolArgsOutput()])
-
     process.stdout.write("\n")
 
     const finishedCalls = await toolCalls
@@ -260,6 +212,37 @@ export const terminal = async (): Promise<void> => {
       process.exit()
     })
 
+    const oneTime = (data: Uint8Array) => {
+      // Check if the first byte is within ASCII printable character range
+      const isASCII = data[0] >= 32 && data[0] <= 126
+      const isPaste = data.length > 3
+
+      const isEnter = data[0] === 13
+      if (isEnter) {
+        process.stdout.cursorTo(0, 0)
+        process.stdout.clearScreenDown()
+        return
+      }
+
+      if (!isASCII && !isPaste) {
+        return
+      }
+
+      // Remove the listener after the first keypress.
+      process.stdin.removeListener("data", oneTime)
+
+      // Move down to the instructions line.
+      process.stdout.moveCursor(0, 2)
+      // Clear it.
+      process.stdout.clearLine(0)
+      // Return to the input line.
+      process.stdout.moveCursor(0, -2)
+      // Add the indent.
+      process.stdout.cursorTo(2)
+
+      Bun.write(Bun.stdin, data)
+    }
+
     await new Promise<void>((resolve) => {
       process.stdout.write("\n")
       process.stdout.write(boxen(chalk.blue("You"), { borderColor: "blue", padding: { left: 2, right: 2 }, margin: { left: 1, right: 1 } }))
@@ -272,37 +255,6 @@ export const terminal = async (): Promise<void> => {
           resolve()
         }
       )
-
-      const oneTime = (data: Uint8Array) => {
-        // Check if the first byte is within ASCII printable character range
-        const isASCII = data[0] >= 32 && data[0] <= 126
-        const isPaste = data.length > 3
-
-        const isEnter = data[0] === 13
-        if (isEnter) {
-          process.stdout.cursorTo(0, 0)
-          process.stdout.clearScreenDown()
-          return
-        }
-
-        if (!isASCII && !isPaste) {
-          return
-        }
-
-        // Remove the listener after the first keypress.
-        process.stdin.removeListener("data", oneTime)
-
-        // Move down to the instructions line.
-        process.stdout.moveCursor(0, 2)
-        // Clear it.
-        process.stdout.clearLine(0)
-        // Return to the input line.
-        process.stdout.moveCursor(0, -2)
-        // Add the indent.
-        process.stdout.cursorTo(2)
-
-        Bun.write(Bun.stdin, data)
-      }
 
       process.stdin.on("data", oneTime)
       Bun.write(Bun.stdout, chalk.dim("\n\n\n  Begin typing. Press Enter to send, Ctrl+C to exit."))
