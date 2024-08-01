@@ -9,12 +9,12 @@ export const tools = {
       path: z.string().describe("The path to the file to read")
     }),
     execute: async ({ path }) => {
-      const response = await fetch("http://localhost:3000/file", {
+      const response = await fetch("http://localhost:3000/read", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path, operation: "read" })
+        body: path
       })
-      return await response.json() as FileOperationResult
+      return response.body
     }
   }),
 
@@ -25,12 +25,12 @@ export const tools = {
       content: z.string().describe("The content to write to the file")
     }),
     execute: async ({ path, content }) => {
-      const response = await fetch("http://localhost:3000/file", {
+      const response = await fetch("http://localhost:3000/write", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path, operation: "write", content })
+        body: JSON.stringify({ path, content })
       })
-      return await response.json() as FileOperationResult
+      return response.body
     }
   }),
 
@@ -38,17 +38,17 @@ export const tools = {
     description: "Edit specific lines in a file.",
     parameters: z.object({
       path: z.string().describe("The path to the file to edit"),
-      content: z.string().describe("The new content to replace the specified lines"),
       startLine: z.number().describe("The starting line number for the edit"),
-      endLine: z.number().describe("The ending line number for the edit")
+      endLine: z.number().describe("The ending line number for the edit"),
+      content: z.string().describe("The new content to replace the specified lines"),
     }),
     execute: async ({ path, content, startLine, endLine }) => {
-      const response = await fetch("http://localhost:3000/file", {
+      const response = await fetch("http://localhost:3000/edit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path, operation: "edit", content, startLine, endLine })
+        body: JSON.stringify({ path, startLine, endLine, content })
       })
-      return await response.json() as FileOperationResult
+      return response.body
     }
   }),
 

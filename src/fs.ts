@@ -1,9 +1,12 @@
-import { serve } from "bun"
+import { serve, type BunFile } from "bun"
 import { spawn } from "child_process"
 import { Readable } from "stream"
-import { StreamingToolArgs } from "./StreamingToolArgs"
+import { StreamingToolArgs, type ToolArgChunk } from "./StreamingToolArgs"
+import { parseContentStream } from "./parseContentStream"
+import { FileWriteStream } from "./FileWriteStream"
 
 const ENCODER = new TextEncoder()
+const DECODER = new TextDecoder()
 
 export type FileOperationType = "read" | "write" | "edit";
 
@@ -15,35 +18,120 @@ export interface FileOperation {
   endLine?: number;
 }
 
+async function readStreamToString(stream: ReadableStream<Uint8Array>): Promise<string> {
+  const reader = stream.getReader()
+  let result = ""
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    result += new TextDecoder().decode(value)
+  }
+  return result
+}
+
 // File System Operations
 export class FileSystem {
-  async readFile(path: string) {
-    return await Bun.file(path).text()
+  async readFile(argChunks: ReadableStream<ToolArgChunk>) {
+    const reader = argChunks.getReader()
+    console.log({ reader })
+
+    let path: string | undefined
+    while (true) {
+      const { done, value: { key, value } = {} } = await reader.read()
+      if (done) break
+
+      if (key === "path") {
+        if (!path) {
+          path = value
+        } else {
+          path += value
+        }
+      }
+    }
+
+    if (!path) {
+      throw new Error("No file path provided in the argument stream")
+    }
+
+    const file = Bun.file(path)
+    return file.stream()
   }
 
-  async writeFile(path: string, content: string) {
-    await Bun.write(path, content)
-    return content
+  async writeFile(argStream: ReadableStream<ToolArgChunk>): Promise<ReadableStream<Uint8Array>> {
+    const { path, content } = await parseContentStream(argStream)
+
+    const file = Bun.file(path)
+    await Bun.write(file, "")
+    
+    const writer = file.writer()
+    const writeToFile = new TransformStream<Uint8Array, Uint8Array>({
+      transform(chunk, controller) {
+        writer.write(chunk)
+        controller.enqueue(chunk)
+      },
+      flush() {
+        writer.flush()
+        writer.end()
+      }
+    })
+
+    return content.pipeThrough(writeToFile)
   }
 
-  async editFileLines(
-    path: string, 
-    content: string, 
-    startLine: number, 
-    endLine: number
-  ) {
-    const fileContent = await this.readFile(path)
+  async editFileLines(argChunks: ReadableStream<ToolArgChunk>): Promise<ReadableStream<Uint8Array>> {
+    // Parse the input stream to extract file editing parameters
+    const { path, startLine, endLine, content } = await parseContentStream(argChunks)
+    console.log({ path, startLine, endLine, content })
+  
+    // Read the entire file content
+    const fileContent = await Bun.file(path).text()
     const lines = fileContent.split("\n")
-    const newLines = [
-      ...lines.slice(0, startLine - 1),
-      content,
-      ...lines.slice(endLine)
-    ]
-
-    const withEdit = newLines.join("\n")
-    await this.writeFile(path, withEdit)
-    return content
+  
+    let replacementContent = ""
+    let isEditingComplete = false
+  
+    const editingTransform = new TransformStream<Uint8Array, Uint8Array>({
+      async transform(chunk, controller) {
+        // Accumulate the replacement content
+        replacementContent += new TextDecoder().decode(chunk)
+        // Enqueue the chunk to be returned as the edited content
+        controller.enqueue(chunk)
+      },
+      async flush() {
+        // Perform the edit
+        const editedLines = [
+          ...lines.slice(0, startLine - 1),
+          replacementContent,
+          ...lines.slice(endLine)
+        ]
+  
+        // Write the edited content back to the file
+        await Bun.write(path, editedLines.join("\n"))
+        isEditingComplete = true
+      }
+    })
+  
+    // Pipe the content through the transform stream
+    const editedContentStream = content.pipeThrough(editingTransform)
+  
+    // Create a new stream that waits for the editing to complete before closing
+    return new ReadableStream({
+      async start(controller) {
+        const reader = editedContentStream.getReader()
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          controller.enqueue(value)
+        }
+        // Wait for the file writing to complete before closing the stream
+        while (!isEditingComplete) {
+          await new Promise(resolve => setTimeout(resolve, 10))
+        }
+        controller.close()
+      }
+    })
   }
+  
 }
 
 export type FileOperationResult = { 
@@ -56,45 +144,22 @@ export type FileOperationResult = {
 export class ApiHandler {
   constructor(private readonly fileSystem = new FileSystem()) {}
 
-  async file({ operation, path, content, startLine, endLine }: FileOperation) {
-    try {
-      let message: string
-      let data: string | undefined
-
-      switch (operation) {
-      case "read":
-        data = await this.fileSystem.readFile(path)
-        message = `File ${path} read successfully`
-        break
-
-      case "write":
-        data = await this.fileSystem.writeFile(path, content!)
-        message = `File ${path} updated successfully`
-        break
-
-      case "edit":
-        if (content === undefined || startLine === undefined || endLine === undefined) {
-          throw new Error("content, startLine, endLine required for edit operation")
-        } 
-
-        data = await this.fileSystem.editFileLines(path, content, startLine, endLine)
-        message = `Lines ${startLine}-${endLine} in ${path} updated successfully`
-        break
-
-      default:
-        if (!operation) {
-          throw new Error("operation required")
-        }
-        throw new Error(`Invalid operation: ${operation}`)
-      }
-
-      return { success: true, message, data }
-    } catch (error) {
-      return { success: false, message: error instanceof Error ? error.message : String(error) }
-    }
+  async read(argStream: ReadableStream<Uint8Array>) {
+    const args = argStream.pipeThrough(new StreamingToolArgs())
+    return await this.fileSystem.readFile(args)
   }
 
-  async bashTest(argStream: ReadableStream<Uint8Array>): Promise<ReadableStream<Uint8Array>> {
+  async write(argStream: ReadableStream<Uint8Array>) {
+    const args = argStream.pipeThrough(new StreamingToolArgs())
+    return await this.fileSystem.writeFile(args)
+  }
+
+  async edit(argStream: ReadableStream<Uint8Array>) {
+    const args = argStream.pipeThrough(new StreamingToolArgs())
+    return await this.fileSystem.editFileLines(args)
+  }
+
+  async shell(argStream: ReadableStream<Uint8Array>): Promise<ReadableStream<Uint8Array>> {
     const keystrokes = argStream.pipeThrough(new StreamingToolArgs())
     const nodeReadable = Readable.from((async function* () {
       const reader = keystrokes.getReader()
@@ -147,41 +212,6 @@ export class ApiHandler {
       },
     })
   }
-
-
-  async bash(command: string): Promise<ReadableStream<Uint8Array>> {
-    return new ReadableStream<Uint8Array>({
-      start(controller) {
-        const bash = spawn(
-          "bash", 
-          ["-c", command], 
-          { 
-            shell: false,
-            env: { ...process.env, FORCE_COLOR: "1" } 
-          }
-        )
-
-        bash.stdout.on("data", (data) => {
-          controller.enqueue(data)
-        })
-
-        bash.stderr.on("data", (data) => {
-          controller.enqueue(data)
-        })
-
-        bash.on("close", (code) => {
-          if (code !== 0) {
-            controller.enqueue(ENCODER.encode(`Process exited with code ${code}\n`))
-          }
-          controller.close()
-        })
-
-        bash.on("error", (err) => {
-          controller.error(err)
-        })
-      }
-    })
-  }
 }
 
 export interface StartServerArgs {
@@ -190,42 +220,33 @@ export interface StartServerArgs {
 
 export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
   process.chdir(cwd)
+
   const apiHandler = new ApiHandler()
 
   return serve({
     async fetch(req: Request): Promise<Response> {
-      if (req.method !== "POST") {
-        return new Response("Method Not Allowed", { status: 405 })
-      }
-  
       const url = new URL(req.url)
-  
-      switch (url.pathname) {
-      case "/file": {
-        const result = await apiHandler.file(await req.json() as FileOperation)
-        return new Response(
-          JSON.stringify(result), 
-          {
-            status: result.success ? 200 : 400,
-            headers: { "Content-Type": "application/json" }
-          }
-        )
+      if (!req.body || req.method !== "POST") {
+        return new Response("Bad Request", { status: 400 })
       }
+
+      switch (url.pathname) {
+      case "/read":
+        console.log("TEST", url.pathname)
+        const readStream = await apiHandler.read(req.body)
+        return new Response(readStream)
+
+      case "/write":
+        const writeStream = await apiHandler.write(req.body)
+        return new Response(writeStream)
+
+      case "/edit":
+        const editStream = await apiHandler.edit(req.body)
+        return new Response(editStream)
   
       case "/terminal":
-        if (req.body === null) {
-          return new Response("Bad Request", { status: 400 })
-        }
-      
-        const stream = await apiHandler.bashTest(req.body)
-        // console.log("LOCKED", stream.locked)
-        return new Response(
-          stream, 
-          {
-            headers: { "Content-Type": "text/plain" }
-          }
-        )
-
+        const terminalStream = await apiHandler.shell(req.body)
+        return new Response(terminalStream)
   
       default:
         return new Response("Not Found", { status: 404 })

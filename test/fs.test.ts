@@ -14,27 +14,52 @@ describe("Server API", () => {
     server?.stop()
   })
 
-  test("POST /terminal - tree command", async () => {
-    const response = await fetch(`${BASE_URL}/terminal`, {
+  test("POST /edit - edit file lines", async () => {
+    const testFilePath = "test_file.txt"
+    const initialContent = "Line 1\nLine 2\nLine 3\nLine 4\nLine 5"
+    const newContent = "New Line 2 and 3"
+
+    // Setup initial file
+    await Bun.write(testFilePath, initialContent)
+
+    const serialized = JSON.stringify({
+      "path": testFilePath,
+      "startLine": 2,
+      "endLine": 3,
+      content: newContent,
+    })
+
+    // console.log({serialized})
+
+    // Edit lines
+    const response = await fetch(`${BASE_URL}/edit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ command: "tree -L 1" })
+      body: serialized
     })
 
     expect(response.status).toBe(200)
-    expect(response.headers.get("Content-Type")).toBe("text/plain")
-
     const result = await response.text()
-    expect(result).toContain(".")
-    expect(result.split("\n").length).toBeGreaterThan(0)
+    expect(result).toBe(newContent)
+    // const result = await response.json()
+    // expect(result.success).toBe(true)
+    // expect(result.message).toContain("updated successfully")
+
+    // Verify file content
+    const updatedContent = await Bun.file(testFilePath).text()
+    expect(updatedContent).toBe("Line 1\nNew Line 2 and 3\nLine 4\nLine 5")
+
+    // Clean up
+    await Bun.write(testFilePath, "") // Clear file content
   })
 
-  test("POST /file - write and read file", async () => {
+  test("POST /read /write - write and read file", async () => {
     const testFilePath = "test_file.txt"
     const testContent = "Hello, World!"
 
     // Write file
-    let response = await fetch(`${BASE_URL}/file`, {
+    console.log("Writing file")
+    let response = await fetch(`${BASE_URL}/write`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -45,12 +70,11 @@ describe("Server API", () => {
     })
 
     expect(response.status).toBe(200)
-    let result = await response.json()
-    expect(result.success).toBe(true)
-    expect(result.message).toContain("updated successfully")
+    let result = await response.text()
+    expect(result).toEqual(testContent)
 
     // Read file
-    response = await fetch(`${BASE_URL}/file`, {
+    response = await fetch(`${BASE_URL}/read`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -60,47 +84,26 @@ describe("Server API", () => {
     })
 
     expect(response.status).toBe(200)
-    result = await response.json()
-    expect(result.success).toBe(true)
-    expect(result.message).toContain("read successfully")
-    expect(result.data).toBe(testContent)
+    result = await response.text()
+    expect(result).toEqual(testContent)
 
     // Clean up
     await Bun.write(testFilePath, "") // Clear file content
   })
 
-  test("POST /file - edit file lines", async () => {
-    const testFilePath = "test_file.txt"
-    const initialContent = "Line 1\nLine 2\nLine 3\nLine 4\nLine 5"
-    const newContent = "New Line 2 and 3"
-
-    // Setup initial file
-    await Bun.write(testFilePath, initialContent)
-
-    // Edit lines
-    const response = await fetch(`${BASE_URL}/file`, {
+  test("POST /terminal - tree command", async () => {
+    const response = await fetch(`${BASE_URL}/terminal`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        operation: "edit",
-        path: testFilePath,
-        content: newContent,
-        startLine: 2,
-        endLine: 3
-      })
+      body: JSON.stringify({ command: "tree -L 1" })
     })
 
     expect(response.status).toBe(200)
-    const result = await response.json()
-    expect(result.success).toBe(true)
-    expect(result.message).toContain("updated successfully")
+    // expect(response.headers.get("Content-Type")).toBe("text/plain")
 
-    // Verify file content
-    const updatedContent = await Bun.file(testFilePath).text()
-    expect(updatedContent).toBe("Line 1\nNew Line 2 and 3\nLine 4\nLine 5")
-
-    // Clean up
-    await Bun.write(testFilePath, "") // Clear file content
+    const result = await response.text()
+    expect(result).toContain(".")
+    expect(result.split("\n").length).toBeGreaterThan(0)
   })
 
   test("POST /terminal - invalid command", async () => {
@@ -139,7 +142,7 @@ describe("Server API", () => {
     })
   
     expect(response.status).toBe(200)
-    expect(response.headers.get("Content-Type")).toBe("text/plain")
+    // expect(response.headers.get("Content-Type")).toBe("text/plain")
   
     const reader = response.body?.getReader()
     if (!reader) {

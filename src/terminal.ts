@@ -173,11 +173,11 @@ export const terminal = async (): Promise<void> => {
       case "read":
       case "write":
       case "edit":
-        if (typeof toolResult.result === "object" && "data" in toolResult.result) {
-          content = toolResult.result.data as string
-          process.stdout.write(chalk.dim(chalk.yellow(content)))
-          process.stdout.write("\n")
-        }
+        // if (typeof toolResult.result === "object" && "data" in toolResult.result) {
+        //   content = toolResult.result.data as string
+        //   process.stdout.write(chalk.dim(chalk.yellow(content)))
+        //   process.stdout.write("\n")
+        // }
         break
       }
     }

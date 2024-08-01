@@ -76,8 +76,12 @@ test("parseContentStream handles stream with only content", async () => {
   expect(Object.keys(result).length).toBe(1) // Only 'content' key
   
   const contentReader = result.content.getReader()
-  const { value } = await contentReader.read()
+  const { done: firstDone, value } = await contentReader.read()
+  expect(firstDone).toBe(false)
   expect(new TextDecoder().decode(value)).toBe("Only Content")
+
+  const { done: secondDone } = await contentReader.read()
+  expect(secondDone).toBe(true)
 })
 
 test("parseContentStream handles multiple parameters without content", async () => {
