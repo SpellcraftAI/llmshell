@@ -5,7 +5,7 @@ export interface ToolArgChunk<T = any> {
   value: T
 }
 
-export class StreamingToolArgs extends TransformStream<Uint8Array, ToolArgChunk> {
+export class JSONPropertyStream extends TransformStream<Uint8Array, ToolArgChunk> {
   private decoder = new TextDecoder()
   private buffer = ""
 
@@ -25,9 +25,7 @@ export class StreamingToolArgs extends TransformStream<Uint8Array, ToolArgChunk>
 
   private parseBuffer(controller: TransformStreamDefaultController<ToolArgChunk>) {
     if (!this.buffer) return
-    // console.log({ buffer: this.buffer })
-    this.parsed = parse(this.buffer, STR | OBJ | NUM)
-    // console.log({ lastKey: this.lastKey, parsed: this.parsed, lastParsed: this.lastParsed })
+    this.parsed = parse(this.buffer, STR | OBJ)
 
     const keys = Object.keys(this.parsed)
     for (const key of keys) {

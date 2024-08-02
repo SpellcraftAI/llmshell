@@ -1,4 +1,4 @@
-import type { ToolArgChunk } from "./StreamingToolArgs"
+import type { ToolArgChunk } from "./JSONPropertyStream"
 
 const ENCODER = new TextEncoder()
 

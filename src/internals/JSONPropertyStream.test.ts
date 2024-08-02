@@ -1,5 +1,5 @@
 import { expect, test } from "bun:test"
-import { StreamingToolArgs, type ToolArgChunk } from "./StreamingToolArgs"
+import { JSONPropertyStream, type ToolArgChunk } from "./JSONPropertyStream"
 
 async function collectResults(stream: ReadableStream<ToolArgChunk>): Promise<ToolArgChunk[]> {
   const results: ToolArgChunk[] = []
@@ -12,7 +12,7 @@ async function collectResults(stream: ReadableStream<ToolArgChunk>): Promise<Too
   return results
 }
 
-test("StreamingToolArgs handles single property JSON", async () => {
+test("JSONPropertyStream handles single property JSON", async () => {
   const inputStream = new ReadableStream({
     start(controller) {
       controller.enqueue(new TextEncoder().encode("{\"abc\": \"xy"))
@@ -21,7 +21,7 @@ test("StreamingToolArgs handles single property JSON", async () => {
     }
   })
 
-  const results = await collectResults(inputStream.pipeThrough(new StreamingToolArgs()))
+  const results = await collectResults(inputStream.pipeThrough(new JSONPropertyStream()))
 
   expect(results).toEqual([
     { key: "abc", value: "xy" },
@@ -29,7 +29,7 @@ test("StreamingToolArgs handles single property JSON", async () => {
   ])
 })
 
-test("StreamingToolArgs handles multiple property JSON", async () => {
+test("JSONPropertyStream handles multiple property JSON", async () => {
   const inputStream = new ReadableStream({
     start(controller) {
       controller.enqueue(new TextEncoder().encode("{\"abc\": \"xy"))
@@ -39,7 +39,7 @@ test("StreamingToolArgs handles multiple property JSON", async () => {
     }
   })
 
-  const results = await collectResults(inputStream.pipeThrough(new StreamingToolArgs()))
+  const results = await collectResults(inputStream.pipeThrough(new JSONPropertyStream()))
 
   expect(results).toEqual([
     { key: "abc", value: "xy" },
@@ -49,7 +49,7 @@ test("StreamingToolArgs handles multiple property JSON", async () => {
   ])
 })
 
-test("StreamingToolArgs handles incomplete JSON", async () => {
+test("JSONPropertyStream handles incomplete JSON", async () => {
   const inputStream = new ReadableStream({
     start(controller) {
       controller.enqueue(new TextEncoder().encode("{\"abc\": \"xy"))
@@ -58,7 +58,7 @@ test("StreamingToolArgs handles incomplete JSON", async () => {
     }
   })
 
-  const results = await collectResults(inputStream.pipeThrough(new StreamingToolArgs()))
+  const results = await collectResults(inputStream.pipeThrough(new JSONPropertyStream()))
 
   expect(results).toEqual([
     { key: "abc", value: "xy" },
@@ -67,7 +67,7 @@ test("StreamingToolArgs handles incomplete JSON", async () => {
   ])
 })
 
-test("StreamingToolArgs handles empty object", async () => {
+test("JSONPropertyStream handles empty object", async () => {
   const inputStream = new ReadableStream({
     start(controller) {
       controller.enqueue(new TextEncoder().encode("{}"))
@@ -75,12 +75,12 @@ test("StreamingToolArgs handles empty object", async () => {
     }
   })
 
-  const results = await collectResults(inputStream.pipeThrough(new StreamingToolArgs()))
+  const results = await collectResults(inputStream.pipeThrough(new JSONPropertyStream()))
 
   expect(results).toEqual([])
 })
 
-test("StreamingToolArgs handles object with empty string values", async () => {
+test("JSONPropertyStream handles object with empty string values", async () => {
   const inputStream = new ReadableStream({
     start(controller) {
       controller.enqueue(new TextEncoder().encode("{\"a\": \"\", "))
@@ -89,7 +89,7 @@ test("StreamingToolArgs handles object with empty string values", async () => {
     }
   })
 
-  const results = await collectResults(inputStream.pipeThrough(new StreamingToolArgs()))
+  const results = await collectResults(inputStream.pipeThrough(new JSONPropertyStream()))
   const expectedResults: ToolArgChunk[] = [
     { key: "a", value: "" },
     { key: "b", value: "" }
@@ -98,7 +98,7 @@ test("StreamingToolArgs handles object with empty string values", async () => {
   expect(results).toEqual(expectedResults)
 })
 
-test("StreamingToolArgs handles chunked serialized object", async () => {
+test("JSONPropertyStream handles chunked serialized object", async () => {
   const inputStream = new ReadableStream({
     start(controller) {
       controller.enqueue(new TextEncoder().encode("{\"path\":\"test_"))
@@ -108,7 +108,7 @@ test("StreamingToolArgs handles chunked serialized object", async () => {
     }
   })
 
-  const results = await collectResults(inputStream.pipeThrough(new StreamingToolArgs()))
+  const results = await collectResults(inputStream.pipeThrough(new JSONPropertyStream()))
 
   const expectedResults: ToolArgChunk[] = [
     { key: "path", value: "test_" },
@@ -121,7 +121,7 @@ test("StreamingToolArgs handles chunked serialized object", async () => {
   expect(results).toEqual(expectedResults)
 })
 
-test("StreamingToolArgs should handle single chunk", async () => {
+test("JSONPropertyStream should handle single chunk", async () => {
   const testFilePath = "test_file.txt"
   const testContent = "Hello, World!"
 
@@ -137,7 +137,7 @@ test("StreamingToolArgs should handle single chunk", async () => {
     }
   })
 
-  const results = await collectResults(inputStream.pipeThrough(new StreamingToolArgs()))
+  const results = await collectResults(inputStream.pipeThrough(new JSONPropertyStream()))
   const expectedResults: ToolArgChunk[] = [
     { key: "path", value: testFilePath },
     { key: "content", value: testContent }

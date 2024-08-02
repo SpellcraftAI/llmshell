@@ -1,0 +1,1 @@
+echo -e "Loading: "; for i in {1..20}; do for s in / - \\ \|; do echo -en "\r$s"; sleep 0.1; done; done; echo -e "\rDone!   "

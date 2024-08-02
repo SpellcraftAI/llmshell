@@ -1,33 +1,14 @@
 import { serve, type BunFile } from "bun"
 import { spawn } from "child_process"
 import { Readable } from "stream"
-import { StreamingToolArgs, type ToolArgChunk } from "./StreamingToolArgs"
-import { parseContentStream } from "./parseContentStream"
-import { FileWriteStream } from "./FileWriteStream"
+import { JSONPropertyStream, type ToolArgChunk } from "@/internals/JSONPropertyStream"
+import { parseContentStream } from "@/internals/parseContentStream"
+import { FileWriteStream } from "@/internals/FileWriteStream"
 
 const ENCODER = new TextEncoder()
 const DECODER = new TextDecoder()
 
 export type FileOperationType = "read" | "write" | "edit";
-
-export interface FileOperation {
-  operation: FileOperationType;
-  path: string;
-  content?: string;
-  startLine?: number;
-  endLine?: number;
-}
-
-async function readStreamToString(stream: ReadableStream<Uint8Array>): Promise<string> {
-  const reader = stream.getReader()
-  let result = ""
-  while (true) {
-    const { done, value } = await reader.read()
-    if (done) break
-    result += new TextDecoder().decode(value)
-  }
-  return result
-}
 
 // File System Operations
 export class FileSystem {
@@ -57,36 +38,17 @@ export class FileSystem {
   }
 
   async writeFile(argStream: ReadableStream<ToolArgChunk>): Promise<ReadableStream<Uint8Array>> {
-    try {
-      const { path, content } = await parseContentStream(argStream)
+    const { path, content } = await parseContentStream(argStream)
 
-      const file = Bun.file(path)
-      const writeToFile = new FileWriteStream(file)
-      return content.pipeThrough(writeToFile)
-  
-      // return content
-      // return content.pipeThrough(new TransformStream<Uint8Array, Uint8Array>({
-      //   transform(chunk, controller) {
-      //     console.log("CHUNK", DECODER.decode(chunk))
-      //     controller.enqueue(ENCODER.encode(DECODER.decode(chunk)))
-      //   },
-      // }))
-    } catch (e) {
-      console.error(e)
-      throw new Error("Failed to write")
-    }
-
-    // const file = Bun.file(path)
-    // await Bun.write(file, "")
-    
-    // const fileWriteStream = new FileWriteStream(file)
-    // return content.pipeThrough(fileWriteStream)
+    const file = Bun.file(path)
+    const writeToFile = new FileWriteStream(file)
+    return content.pipeThrough(writeToFile)
   }
 
   async editFileLines(argChunks: ReadableStream<ToolArgChunk>): Promise<ReadableStream<Uint8Array>> {
     // Parse the input stream to extract file editing parameters
     const { path, startLine, endLine, content } = await parseContentStream(argChunks)
-    // console.log({ path, startLine, endLine, content })
+    console.log({ path, startLine, endLine, content })
   
     // Read the entire file content
     const fileContent = await Bun.file(path).text()
@@ -119,54 +81,31 @@ export class FileSystem {
     // Pipe the content through the transform stream
     const editedContentStream = content.pipeThrough(editingTransform)
     return editedContentStream
-  
-    // Create a new stream that waits for the editing to complete before closing
-    // return new ReadableStream({
-    //   async start(controller) {
-    //     const reader = editedContentStream.getReader()
-    //     while (true) {
-    //       const { done, value } = await reader.read()
-    //       if (done) break
-    //       controller.enqueue(value)
-    //     }
-    //     // Wait for the file writing to complete before closing the stream
-    //     // while (!isEditingComplete) {
-    //     //   continue
-    //     // }
-    //     controller.close()
-    //   }
-    // })
   }
   
 }
-
-export type FileOperationResult = { 
-  success: boolean; 
-  message: string; 
-  data?: string 
-};
-
+ 
 // API Handler
 export class ApiHandler {
   constructor(private readonly fileSystem = new FileSystem()) {}
 
   async read(argStream: ReadableStream<Uint8Array>) {
-    const args = argStream.pipeThrough(new StreamingToolArgs())
+    const args = argStream.pipeThrough(new JSONPropertyStream())
     return await this.fileSystem.readFile(args)
   }
 
   async write(argStream: ReadableStream<Uint8Array>) {
-    const args = argStream.pipeThrough(new StreamingToolArgs())
+    const args = argStream.pipeThrough(new JSONPropertyStream())
     return await this.fileSystem.writeFile(args)
   }
 
   async edit(argStream: ReadableStream<Uint8Array>) {
-    const args = argStream.pipeThrough(new StreamingToolArgs())
+    const args = argStream.pipeThrough(new JSONPropertyStream())
     return await this.fileSystem.editFileLines(args)
   }
 
   async shell(argStream: ReadableStream<Uint8Array>): Promise<ReadableStream<Uint8Array>> {
-    const keystrokes = argStream.pipeThrough(new StreamingToolArgs())
+    const keystrokes = argStream.pipeThrough(new JSONPropertyStream())
     const nodeReadable = Readable.from((async function* () {
       const reader = keystrokes.getReader()
       try {

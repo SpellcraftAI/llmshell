@@ -1,16 +1,17 @@
-import "../shim"
-import chalk from "chalk"
-import { streamText, type CoreMessage, type ToolContent, type ToolResultPart } from "ai"
-import { anthropic } from "@ai-sdk/anthropic"
+// JSONDecoderStream must be polyfilled at the top of the context.
+import "@/internals/shim"
+
 import readline, { createInterface, Interface } from "readline"
+import chalk from "chalk"
+import { streamText, type CoreMessage, type ToolResultPart } from "ai"
+import { anthropic } from "@ai-sdk/anthropic"
 import ora, { type Ora } from "ora"
 import boxen from "boxen"
 import { tools } from "./tools"
 
 import { startServer } from "./fs"
-import { IndentWrapTransform } from "./IndentWrapper"
-import { OBJ, parse, STR } from "partial-json"
-import { StreamingToolArgs } from "./StreamingToolArgs"
+import { IndentWrapTransform } from "@/internals/IndentWrapper"
+import { JSONPropertyStream } from "@/internals/JSONPropertyStream"
 
 Object.assign(globalThis, { readline })
 const ENCODER = new TextEncoder()
@@ -49,7 +50,7 @@ export const terminal = async (): Promise<void> => {
 
     let currentKey: string | null = null
 
-    const toolArgsStream = new StreamingToolArgs()
+    const toolArgsStream = new JSONPropertyStream()
     const toolArgsReader = toolArgsStream.readable.getReader()
     const toolArgsWriter = toolArgsStream.writable.getWriter()
 
@@ -60,6 +61,7 @@ export const terminal = async (): Promise<void> => {
         if (!result) break
     
         const { key, value } = result
+        // console.log("HANDLETOOLARGS", { key, value })
     
         if (key !== currentKey) {
           currentKey = key
@@ -120,8 +122,6 @@ export const terminal = async (): Promise<void> => {
               { title: "Tool", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
             )
           )
-          // console.log()
-          // process.stdout.write("\n")
   
           break
   
@@ -139,6 +139,8 @@ export const terminal = async (): Promise<void> => {
 
     const finishedCalls = await toolCalls
     const finishedResults = await toolResults
+
+    // console.log("PROMISES RESOLVED")
 
     if (finishedCalls.length > 0) {
       messages.push({ role: "assistant", content: finishedCalls })
@@ -166,6 +168,7 @@ export const terminal = async (): Promise<void> => {
       case "write":
       case "edit":
         const reader = toolResult.result.getReader()
+        // console.log("FINISHEDRESULT STREAM")
         while (true) {
           const { done, value } = await reader.read()
           if (done) break
@@ -177,16 +180,6 @@ export const terminal = async (): Promise<void> => {
         
         flushedResults.push({ ...toolResult, result: content })
         break
-
-      // case "read":
-      // case "write":
-      // case "edit":
-      //   // if (typeof toolResult.result === "object" && "data" in toolResult.result) {
-      //   //   content = toolResult.result.data as string
-      //   //   process.stdout.write(chalk.dim(chalk.yellow(content)))
-      //   //   process.stdout.write("\n")
-      //   // }
-      //   break
       }
 
       process.stdout.write("\n")
@@ -226,37 +219,6 @@ export const terminal = async (): Promise<void> => {
       process.exit()
     })
 
-    const oneTime = (data: Uint8Array) => {
-      // Check if the first byte is within ASCII printable character range
-      const isASCII = data[0] >= 32 && data[0] <= 126
-      const isPaste = data.length > 3
-
-      const isEnter = data[0] === 13
-      if (isEnter) {
-        process.stdout.cursorTo(0, 0)
-        process.stdout.clearScreenDown()
-        return
-      }
-
-      if (!isASCII && !isPaste) {
-        return
-      }
-
-      // Remove the listener after the first keypress.
-      process.stdin.removeListener("data", oneTime)
-
-      // Move down to the instructions line.
-      process.stdout.moveCursor(0, 2)
-      // Clear it.
-      process.stdout.clearLine(0)
-      // Return to the input line.
-      process.stdout.moveCursor(0, -2)
-      // Add the indent.
-      process.stdout.cursorTo(2)
-
-      Bun.write(Bun.stdin, data)
-    }
-
     await new Promise<void>((resolve) => {
       process.stdout.write("\n")
       process.stdout.write(boxen(chalk.blue("You"), { borderColor: "blue", padding: { left: 2, right: 2 }, margin: { left: 1, right: 1 } }))
@@ -270,10 +232,41 @@ export const terminal = async (): Promise<void> => {
         }
       )
 
-      process.stdin.on("data", oneTime)
+      process.stdin.on("data", clearMessageOnFirstKeystroke)
       Bun.write(Bun.stdout, chalk.dim("\n\n\n  Begin typing. Press Enter to send, Ctrl+C to exit."))
       process.stdout.moveCursor(0, -2)
       process.stdout.cursorTo(2)
     })
   }
+}
+
+const clearMessageOnFirstKeystroke = (data: Uint8Array) => {
+  // Check if the first byte is within ASCII printable character range
+  const isASCII = data[0] >= 32 && data[0] <= 126
+  const isPaste = data.length > 3
+
+  const isEnter = data[0] === 13
+  if (isEnter) {
+    process.stdout.cursorTo(0, 0)
+    process.stdout.clearScreenDown()
+    return
+  }
+
+  if (!isASCII && !isPaste) {
+    return
+  }
+
+  // Remove the listener after the first keypress.
+  process.stdin.removeListener("data", clearMessageOnFirstKeystroke)
+
+  // Move down to the instructions line.
+  process.stdout.moveCursor(0, 2)
+  // Clear it.
+  process.stdout.clearLine(0)
+  // Return to the input line.
+  process.stdout.moveCursor(0, -2)
+  // Add the indent.
+  process.stdout.cursorTo(2)
+
+  Bun.write(Bun.stdin, data)
 }

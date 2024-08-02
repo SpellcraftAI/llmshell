@@ -1,6 +1,6 @@
 import { expect, test, describe, afterAll } from "bun:test"
 import type { Server } from "bun"
-import { startServer } from "@/fs"
+import { startServer } from "@/lib/fs"
 
 let server: Server
 try {
@@ -22,32 +22,40 @@ describe("Server API", () => {
     // Setup initial file
     await Bun.write(testFilePath, initialContent)
 
-    const serialized = JSON.stringify({
-      "path": testFilePath,
-      "startLine": 2,
-      "endLine": 3,
-      content: newContent,
-    })
-
-    // console.log({serialized})
-
     // Edit lines
-    const response = await fetch(`${BASE_URL}/edit`, {
+    const multiLineEdit = await fetch(`${BASE_URL}/edit`, {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: serialized
+      body: JSON.stringify({
+        "path": testFilePath,
+        "startLine": 2,
+        "endLine": 4,
+        content: newContent,
+      })
     })
 
-    expect(response.status).toBe(200)
-    const result = await response.text()
+    expect(multiLineEdit.status).toBe(200)
+    const result = await multiLineEdit.text()
     expect(result).toBe(newContent)
-    // const result = await response.json()
-    // expect(result.success).toBe(true)
-    // expect(result.message).toContain("updated successfully")
 
     // Verify file content
-    const updatedContent = await Bun.file(testFilePath).text()
-    expect(updatedContent).toBe("Line 1\nNew Line 2 and 3\nLine 4\nLine 5")
+    expect(await Bun.file(testFilePath).text()).toBe("Line 1\nNew Line 2 and 3\nLine 5")
+
+
+    const singleLineEdit = await fetch(`${BASE_URL}/edit`, {
+      method: "POST",
+      body: JSON.stringify({
+        "path": testFilePath,
+        "startLine": 2,
+        "endLine": 2,
+        content: "Single Line Edit"
+      })
+    })
+
+    expect(singleLineEdit.status).toBe(200)
+    const singleEditResult = await singleLineEdit.text()
+    expect(singleEditResult).toBe("Single Line Edit")
+
+    expect(await Bun.file(testFilePath).text(), "Single line edit").toBe("Line 1\nSingle Line Edit\nLine 5")
 
     // Clean up
     await Bun.write(testFilePath, "") // Clear file content

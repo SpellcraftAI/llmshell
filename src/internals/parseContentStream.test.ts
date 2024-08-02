@@ -1,6 +1,6 @@
 import { expect, test } from "bun:test"
 import { parseContentStream } from "./parseContentStream"
-import type { ToolArgChunk } from "./StreamingToolArgs"
+import type { ToolArgChunk } from "./JSONPropertyStream"
 
 const DECODER = new TextDecoder()
 

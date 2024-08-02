@@ -1,4 +1,5 @@
 import { spawn, ChildProcess } from "child_process"
+import { getShellCommand } from "./internals/getShellCommand"
 
 const ENCODER = new TextEncoder()
 
@@ -63,18 +64,6 @@ const keypressStream = new ReadableStream<Uint8Array>({
     controller.close()
   }
 })
-
-// Determine the appropriate shell based on the platform
-function getShellCommand() {
-  switch (process.platform) {
-  case "win32":
-    return "cmd"
-  case "darwin":
-    return "zsh"
-  default:
-    return "bash"
-  }
-}
 
 // Spawn shell process
 const shellCommand= getShellCommand()

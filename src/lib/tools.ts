@@ -1,6 +1,6 @@
+import { getShellCommand } from "@/internals/getShellCommand"
 import { tool } from "ai"
 import { z } from "zod"
-import type { FileOperationResult } from "./fs"
 
 export const tools = {
   read: tool({
@@ -53,7 +53,7 @@ export const tools = {
   }),
 
   terminal: tool({
-    description: "Type directly into the terminal's stdin. The text you type is parsed as JSON and can contain ANSI escape codes.",
+    description: `Type directly into the terminal's stdin. The text you type is parsed as JSON and can contain ANSI escape codes. Shell: ${getShellCommand()}`,
     parameters: z.object({
       command: z.string().describe("The terminal command to execute. Runs through bash -c.")
     }),
