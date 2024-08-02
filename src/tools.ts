@@ -12,7 +12,7 @@ export const tools = {
       const response = await fetch("http://localhost:3000/read", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: path
+        body: JSON.stringify({ path })
       })
       return response.body
     }

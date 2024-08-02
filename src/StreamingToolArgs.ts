@@ -24,6 +24,8 @@ export class StreamingToolArgs extends TransformStream<Uint8Array, ToolArgChunk>
   }
 
   private parseBuffer(controller: TransformStreamDefaultController<ToolArgChunk>) {
+    if (!this.buffer) return
+    // console.log({ buffer: this.buffer })
     this.parsed = parse(this.buffer, STR | OBJ | NUM)
     // console.log({ lastKey: this.lastKey, parsed: this.parsed, lastParsed: this.lastParsed })
 
@@ -46,21 +48,21 @@ export class StreamingToolArgs extends TransformStream<Uint8Array, ToolArgChunk>
     }
 
     const newKeys = this.knownKeys.difference(this.emittedKeys)
-    for (const key of newKeys) {
-      this.lastKey = key
-      this.emittedKeys.add(key)
+    for (const newKey of newKeys) {
+      this.lastKey = newKey
+      this.emittedKeys.add(newKey)
       
-      const value = this.parsed[key]
-      controller.enqueue({ key, value })
+      const value = this.parsed[newKey]
+      // console.log("ENQUEUING", { key: newKey, value })
+      controller.enqueue({ key: newKey, value })
     }
 
     this.lastParsed = this.parsed
   }
 
   private handleChunk(chunk: Uint8Array, controller: TransformStreamDefaultController<ToolArgChunk>) {
-    const argsTextDelta = this.decoder.decode(chunk)
-    this.buffer += argsTextDelta
-    
+    const bufferDelta = this.decoder.decode(chunk)
+    this.buffer += bufferDelta
     this.parseBuffer(controller)
   }
 

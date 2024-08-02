@@ -1,5 +1,7 @@
 import type { ToolArgChunk } from "./StreamingToolArgs"
 
+const ENCODER = new TextEncoder()
+
 export const parseContentStream = async (argChunks: ReadableStream<ToolArgChunk>): Promise<{ [key: string]: any; content: ReadableStream<Uint8Array> }> => {
   const params: { [key: string]: any } = {}
   let paramsComplete = false
@@ -31,7 +33,13 @@ export const parseContentStream = async (argChunks: ReadableStream<ToolArgChunk>
     transform(chunk, controller) {
       const { key, value } = chunk
       if (key === "content") {
-        controller.enqueue(typeof value === "string" ? new TextEncoder().encode(value) : value)
+        if (value instanceof Uint8Array) {
+          controller.enqueue(value)
+        } else if (typeof value === "string") {
+          controller.enqueue(ENCODER.encode(value))
+        } else {
+          throw new Error("Can only extract string or Uint8Array content from content stream")
+        }
       }
     }
   })

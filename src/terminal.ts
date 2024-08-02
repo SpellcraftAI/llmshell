@@ -1,6 +1,6 @@
 import "../shim"
 import chalk from "chalk"
-import { streamText, type CoreMessage } from "ai"
+import { streamText, type CoreMessage, type ToolContent, type ToolResultPart } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import readline, { createInterface, Interface } from "readline"
 import ora, { type Ora } from "ora"
@@ -63,7 +63,8 @@ export const terminal = async (): Promise<void> => {
     
         if (key !== currentKey) {
           currentKey = key
-          process.stdout.write("\n")
+          console.log("\n")
+          // process.stdout.write("\n")
           process.stdout.write(
             boxen(
               chalk.dim(chalk.yellow(key)),
@@ -73,8 +74,10 @@ export const terminal = async (): Promise<void> => {
           process.stdout.write("\n")
         }
     
-        process.stdout.write(value)
+        process.stdout.write(String(value))
       }
+
+      process.stdout.write("\n")
     }
     
     async function handleStream() {
@@ -117,7 +120,8 @@ export const terminal = async (): Promise<void> => {
               { title: "Tool", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
             )
           )
-          process.stdout.write("\n")
+          // console.log()
+          // process.stdout.write("\n")
   
           break
   
@@ -138,9 +142,9 @@ export const terminal = async (): Promise<void> => {
 
     if (finishedCalls.length > 0) {
       messages.push({ role: "assistant", content: finishedCalls })
-      messages.push({ role: "tool", content: finishedResults })
     }
 
+    const flushedResults: ToolResultPart[] = []
     for (const toolResult of finishedResults) {
       if (!toolResult.result) continue
 
@@ -153,35 +157,45 @@ export const terminal = async (): Promise<void> => {
           { title: "Output", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
         )
       ) 
-      process.stdout.write("\n")
+      console.log()
+      // process.stdout.write("\n")
 
       switch (toolResult.toolName) {
       case "terminal":
-        if (toolResult.result instanceof ReadableStream) {
-          const reader = toolResult.result.getReader()
-          while (true) {
-            const { done, value } = await reader.read()
-            if (done) break
-
-            const text = DECODER.decode(value)
-            Bun.write(Bun.stdout, value)
-            content += text
-          }
-        }
-        break
-
       case "read":
       case "write":
       case "edit":
-        // if (typeof toolResult.result === "object" && "data" in toolResult.result) {
-        //   content = toolResult.result.data as string
-        //   process.stdout.write(chalk.dim(chalk.yellow(content)))
-        //   process.stdout.write("\n")
-        // }
-        break
-      }
-    }
+        const reader = toolResult.result.getReader()
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
 
+          const text = DECODER.decode(value)
+          Bun.write(Bun.stdout, value)
+          content += text
+        }
+        
+        flushedResults.push({ ...toolResult, result: content })
+        break
+
+      // case "read":
+      // case "write":
+      // case "edit":
+      //   // if (typeof toolResult.result === "object" && "data" in toolResult.result) {
+      //   //   content = toolResult.result.data as string
+      //   //   process.stdout.write(chalk.dim(chalk.yellow(content)))
+      //   //   process.stdout.write("\n")
+      //   // }
+      //   break
+      }
+
+      process.stdout.write("\n")
+    }
+    
+    if (flushedResults.length > 0) {
+      messages.push({ role: "tool", content: flushedResults })
+    }
+    
     messages.push({ role: "assistant", content: textResponse })
   }
 

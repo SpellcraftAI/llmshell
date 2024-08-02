@@ -1,12 +1,12 @@
-import type { BunFile, FileSink } from "bun"
+import type { BunFile } from "bun"
 
 export class FileWriteStream extends TransformStream<Uint8Array, Uint8Array> {
   constructor(readonly file: BunFile) {
     const writer = file.writer()
     super({
       transform(chunk, controller) {
-        writer.write(chunk)
         controller.enqueue(chunk)
+        writer.write(chunk)
       },
       flush() {
         writer.flush()

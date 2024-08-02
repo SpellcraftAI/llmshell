@@ -120,3 +120,28 @@ test("StreamingToolArgs handles chunked serialized object", async () => {
 
   expect(results).toEqual(expectedResults)
 })
+
+test("StreamingToolArgs should handle single chunk", async () => {
+  const testFilePath = "test_file.txt"
+  const testContent = "Hello, World!"
+
+  const json = JSON.stringify({
+    path: testFilePath, 
+    content: testContent 
+  })
+
+  const inputStream = new ReadableStream({
+    start(controller) {
+      controller.enqueue(new TextEncoder().encode(json))
+      controller.close()
+    }
+  })
+
+  const results = await collectResults(inputStream.pipeThrough(new StreamingToolArgs()))
+  const expectedResults: ToolArgChunk[] = [
+    { key: "path", value: testFilePath },
+    { key: "content", value: testContent }
+  ]
+
+  expect(results).toEqual(expectedResults)
+})

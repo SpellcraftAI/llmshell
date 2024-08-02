@@ -63,7 +63,6 @@ describe("Server API", () => {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        operation: "write",
         path: testFilePath, 
         content: testContent 
       })
@@ -73,16 +72,18 @@ describe("Server API", () => {
     let result = await response.text()
     expect(result).toEqual(testContent)
 
+    const json = JSON.stringify({
+      path: testFilePath 
+    })
+
     // Read file
     response = await fetch(`${BASE_URL}/read`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        operation: "read",
-        path: testFilePath 
-      })
+      body: json
     })
 
+    expect(response.statusText).toBe("OK")
     expect(response.status).toBe(200)
     result = await response.text()
     expect(result).toEqual(testContent)
