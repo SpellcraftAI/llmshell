@@ -1,6 +1,6 @@
 import { parse, STR, OBJ, NUM } from "partial-json"
 
-export interface ToolArgChunk<T = any> {
+export interface ToolArgChunk<T = unknown> {
   key: string
   value: T
 }

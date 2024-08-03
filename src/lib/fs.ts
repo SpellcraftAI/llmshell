@@ -3,7 +3,7 @@ import { spawn } from "child_process"
 import { Readable } from "stream"
 import { JSONPropertyStream, type ToolArgChunk } from "@/internals/JSONPropertyStream"
 import { parseContentStream } from "@/internals/parseContentStream"
-import { FileWriteStream } from "@/internals/FileWriteStream"
+import { FileWriteTransform } from "@/internals/FileWriteStream"
 
 const ENCODER = new TextEncoder()
 const DECODER = new TextDecoder()
@@ -20,12 +20,19 @@ export class FileSystem {
       const { done, value: { key, value } = {} } = await reader.read()
       if (done) break
 
-      if (key === "path") {
-        if (!path) {
-          path = value
-        } else {
-          path += value
+      switch (typeof value) {
+      case "string":
+        if (key === "path") {
+          if (!path) {
+            path = value
+          } else {
+            path += value
+          }
         }
+        break
+
+      default:
+        throw new Error(`Unexpected value type: ${typeof value}`)
       }
     }
 
@@ -39,16 +46,17 @@ export class FileSystem {
 
   async writeFile(argStream: ReadableStream<ToolArgChunk>): Promise<ReadableStream<Uint8Array>> {
     const { path, content } = await parseContentStream(argStream)
-
     const file = Bun.file(path)
-    const writeToFile = new FileWriteStream(file)
-    return content.pipeThrough(writeToFile)
+    // Clear file
+    await Bun.write(file, "")
+    // Each chunk is written to file as it is streamed back
+    return content.pipeThrough(new FileWriteTransform(file))
   }
 
   async editFileLines(argChunks: ReadableStream<ToolArgChunk>): Promise<ReadableStream<Uint8Array>> {
     // Parse the input stream to extract file editing parameters
     const { path, startLine, endLine, content } = await parseContentStream(argChunks)
-    console.log({ path, startLine, endLine, content })
+    // console.log({ path, startLine, endLine, content })
   
     // Read the entire file content
     const fileContent = await Bun.file(path).text()

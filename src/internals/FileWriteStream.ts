@@ -1,14 +1,31 @@
 import type { BunFile } from "bun"
 
-export class FileWriteStream extends TransformStream<Uint8Array, Uint8Array> {
+/**
+ * Writes chunks to the given file and passes them through.
+ */
+export class FileWriteTransform extends TransformStream<Uint8Array, Uint8Array> {
   constructor(readonly file: BunFile) {
     const writer = file.writer()
     super({
       transform(chunk, controller) {
+        writer.write(chunk)
         controller.enqueue(chunk)
+      }
+    })
+  }
+}
+
+/**
+ * Writes chunks to the given file.
+ */
+export class FileWriterStream extends WritableStream<Uint8Array> {
+  constructor(readonly file: BunFile) {
+    const writer = file.writer()
+    super({
+      write(chunk) {
         writer.write(chunk)
       },
-      flush() {
+      close() {
         writer.flush()
         writer.end()
       }
