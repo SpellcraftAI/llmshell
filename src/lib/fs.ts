@@ -48,7 +48,7 @@ export class FileSystem {
     const { path, content } = await parseContentStream(argStream)
     const file = Bun.file(path)
     // Clear file
-    await Bun.write(file, "")
+    // await Bun.write(file, "")
     // Each chunk is written to file as it is streamed back
     return content.pipeThrough(new FileWriteTransform(file))
   }

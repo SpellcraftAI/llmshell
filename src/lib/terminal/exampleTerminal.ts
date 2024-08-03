@@ -3,7 +3,8 @@ import "@/internals/shim"
 import { IndentWrapTransform } from "@/internals/IndentWrapper"
 import { JSONPropertyStream } from "@/internals/JSONPropertyStream"
 
-import readline, { createInterface, Interface } from "readline"
+import { createInterface, Interface } from "readline"
+import styles from "ansi-styles"
 import chalk from "chalk"
 import ora, { type Ora } from "ora"
 import boxen from "boxen"
@@ -15,7 +16,6 @@ import { tools } from "@/lib/tools"
 import { startServer } from "@/lib/fs"
 import { FileWriterStream, FileWriteTransform } from "@/internals/FileWriteStream"
 
-Object.assign(globalThis, { readline })
 const ENCODER = new TextEncoder()
 const DECODER = new TextDecoder()
 
@@ -175,8 +175,8 @@ class Terminal {
               Bun.write(
                 Bun.stdout,
                 boxen(
-                  chunk.toolName, 
-                  { title: chalk.dim(chalk.yellow("Tool")), borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { top: 1, bottom: 1 }, dimBorder: true }
+                  chalk.dim(chunk.toolName), 
+                  { title: chalk.dim("Tool"), borderColor: "gray", padding: { left: 2, right: 2 }, margin: { top: 1, bottom: 1 }, dimBorder: true }
                 )
               )
               break
@@ -191,7 +191,7 @@ class Terminal {
       .pipeThrough(new JSONPropertyStream())
 
     let currentKey: string | null = null
-    await toolStream
+    const stdout = toolStream
       .pipeThrough(
         new TransformStream({
           transform({ key, value }, controller: TransformStreamDefaultController<Uint8Array>) {
@@ -199,8 +199,16 @@ class Terminal {
               currentKey = key
               controller.enqueue(ENCODER.encode(boxen(
                 chalk.dim(chalk.yellow(key)), 
-                { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { top: 1, bottom: 1 }, dimBorder: true }
+                { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { top: 1, bottom: 0 }, dimBorder: true }
               )))
+
+              // controller.enqueue(ENCODER.encode(styles.dim.open))
+              // controller.enqueue(ENCODER.encode(styles.yellow.open))
+              // controller.enqueue(ENCODER.encode("\n"))
+
+              // Bun.write(Bun.stdout, styles.dim.open)
+              // Bun.write(Bun.stdout, styles.yellow.open)
+              // Bun.write(Bun.stdout, "\n")
             }
             
             if (typeof value === "string") {
@@ -210,12 +218,18 @@ class Terminal {
             } else {
               controller.enqueue(ENCODER.encode(JSON.stringify(value)))
             }
+          },
+
+          flush(controller) {
+            // controller.enqueue(ENCODER.encode(styles.yellow.close))
+            // controller.enqueue(ENCODER.encode(styles.dim.close))
+            // controller.enqueue(ENCODER.encode("\n"))
           }
         })
       )
-      .pipeTo(new FileWriterStream(Bun.stdout))
-
-    Bun.write(Bun.stdout, "\n")
+      
+    const stdoutStream = new FileWriterStream(Bun.stdout)
+    await stdout.pipeTo(stdoutStream)
 
     const [finishedCalls, finishedResults] = await Promise.all([toolCalls, toolResults])
     if (finishedResults.length > 0) {

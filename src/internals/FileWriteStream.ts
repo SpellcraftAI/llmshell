@@ -5,11 +5,17 @@ import type { BunFile } from "bun"
  */
 export class FileWriteTransform extends TransformStream<Uint8Array, Uint8Array> {
   constructor(readonly file: BunFile) {
+    console.log("FILEWRITETRANSFORM")
     const writer = file.writer()
     super({
       transform(chunk, controller) {
         writer.write(chunk)
+        console.log({ chunk })
         controller.enqueue(chunk)
+      },
+      flush() {
+        writer.flush()
+        writer.end()
       }
     })
   }
