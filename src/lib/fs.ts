@@ -1,7 +1,7 @@
 import { serve, type BunFile } from "bun"
 import { spawn } from "child_process"
 import { Readable } from "stream"
-import { JSONPropertyStream, type ToolArgChunk } from "@/internals/JSONPropertyStream"
+import { JSONPropertyStream, type JSONPropertyChunk } from "@/internals/JSONPropertyStream"
 import { parseContentStream } from "@/internals/parseContentStream"
 import { FileWriteTransform } from "@/internals/FileWriteStream"
 
@@ -12,7 +12,7 @@ export type FileOperationType = "read" | "write" | "edit";
 
 // File System Operations
 export class FileSystem {
-  async readFile(argChunks: ReadableStream<ToolArgChunk>) {
+  async readFile(argChunks: ReadableStream<JSONPropertyChunk>) {
     const reader = argChunks.getReader()
 
     let path: string | undefined
@@ -44,7 +44,7 @@ export class FileSystem {
     return file.stream()
   }
 
-  async writeFile(argStream: ReadableStream<ToolArgChunk>): Promise<ReadableStream<Uint8Array>> {
+  async writeFile(argStream: ReadableStream<JSONPropertyChunk>): Promise<ReadableStream<Uint8Array>> {
     const { path, content } = await parseContentStream(argStream)
     const file = Bun.file(path)
     // Clear file
@@ -53,7 +53,7 @@ export class FileSystem {
     return content.pipeThrough(new FileWriteTransform(file))
   }
 
-  async editFileLines(argChunks: ReadableStream<ToolArgChunk>): Promise<ReadableStream<Uint8Array>> {
+  async editFileLines(argChunks: ReadableStream<JSONPropertyChunk>): Promise<ReadableStream<Uint8Array>> {
     // Parse the input stream to extract file editing parameters
     const { path, startLine, endLine, content } = await parseContentStream(argChunks)
     // console.log({ path, startLine, endLine, content })
@@ -64,30 +64,33 @@ export class FileSystem {
   
     let replacementContent = ""
     // let isEditingComplete = false
-  
-    const editingTransform = new TransformStream<Uint8Array, Uint8Array>({
-      async transform(chunk, controller) {
-        // Accumulate the replacement content
-        replacementContent += DECODER.decode(chunk)
-        // Enqueue the chunk to be returned as the edited content
-        controller.enqueue(chunk)
-      },
-      async flush() {
-        // Perform the edit
-        const editedLines = [
-          ...lines.slice(0, startLine - 1),
-          replacementContent,
-          ...lines.slice(endLine)
-        ]
-  
-        // Write the edited content back to the file
-        await Bun.write(path, editedLines.join("\n"))
-        // isEditingComplete = true
-      }
-    })
+
+    const editedContentStream = content.pipeThrough(
+      new TransformStream({
+        async transform(chunk, controller) {
+          // Accumulate the replacement content
+          replacementContent += DECODER.decode(chunk)
+          // console.log({ replacementContent, chunk })
+          // Enqueue the chunk to be returned as the edited content
+          controller.enqueue(chunk)
+        },
+        async flush() {
+          // Perform the edit
+          const editedLines = [
+            ...lines.slice(0, startLine - 1),
+            replacementContent,
+            ...lines.slice(endLine)
+          ]
+    
+          // Write the edited content back to the file
+          await Bun.write(path, editedLines.join("\n"))
+          // isEditingComplete = true
+        }
+      })
+    )
   
     // Pipe the content through the transform stream
-    const editedContentStream = content.pipeThrough(editingTransform)
+    
     return editedContentStream
   }
   
@@ -103,12 +106,26 @@ export class ApiHandler {
   }
 
   async write(argStream: ReadableStream<Uint8Array>) {
-    const args = argStream.pipeThrough(new JSONPropertyStream())
+    const args = 
+    argStream
+      .pipeThrough(new TransformStream({
+        transform(chunk, controller){
+          // console.log("\nARGSTREAM", {chunk})
+          controller.enqueue(chunk)
+        }
+      }))
+      .pipeThrough(new JSONPropertyStream())
+
     return await this.fileSystem.writeFile(args)
   }
 
   async edit(argStream: ReadableStream<Uint8Array>) {
-    const args = argStream.pipeThrough(new JSONPropertyStream())
+    const args = argStream.pipeThrough(new JSONPropertyStream()).pipeThrough(new TransformStream({
+      transform(chunk, controller) {
+        // console.log("\nARGSTREAM", {chunk})
+        controller.enqueue(chunk)
+      }
+    }))
     return await this.fileSystem.editFileLines(args)
   }
 
@@ -119,11 +136,7 @@ export class ApiHandler {
       try {
         while (true) {
           const { done, value: { key, value } = {} } = await reader.read()
-          if (done) {
-            break
-          }
-
-          if (!key || !value) {
+          if (done || !key || !value) {
             break
           }
 
@@ -177,29 +190,31 @@ export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
   const apiHandler = new ApiHandler()
 
   return serve({
-    async fetch(req: Request): Promise<Response> {
-      const url = new URL(req.url)
+    async fetch(request: Request): Promise<Response> {
+      const url = new URL(request.url)
       // console.log(`${req.method} ${url.pathname} ${req.body ? "with body" : ""}`)
       // console.log({ url: url.pathname, hasBody: !!req.body, method: req.method })
-      if (!req.body || req.method !== "POST") {
+      if (!request.body || request.method !== "POST") {
+        console.log({ request, body: request.body })
         return new Response("Bad Request", { status: 400 })
       }
 
       switch (url.pathname) {
       case "/read":
-        const readStream = await apiHandler.read(req.body)
+        const readStream = await apiHandler.read(request.body)
         return new Response(readStream)
 
       case "/write":
-        const writeStream = await apiHandler.write(req.body)
+        const writeStream = await apiHandler.write(request.body)
         return new Response(writeStream)
 
       case "/edit":
-        const editStream = await apiHandler.edit(req.body)
+        const editStream = await apiHandler.edit(request.body)
         return new Response(editStream)
   
       case "/terminal":
-        const terminalStream = await apiHandler.shell(req.body)
+        // console.log("TERMINAL")
+        const terminalStream = await apiHandler.shell(request.body)
         return new Response(terminalStream)
   
       default:

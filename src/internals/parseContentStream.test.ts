@@ -1,11 +1,11 @@
 import { expect, test } from "bun:test"
 import { parseContentStream } from "./parseContentStream"
-import type { ToolArgChunk } from "./JSONPropertyStream"
+import type { JSONPropertyChunk } from "./JSONPropertyStream"
 
 const DECODER = new TextDecoder()
 
 test("parseContentStream handles basic parameter and content streaming", async () => {
-  const inputStream = new ReadableStream<ToolArgChunk>({
+  const inputStream = new ReadableStream<JSONPropertyChunk>({
     async start(controller) {
       controller.enqueue({ key: "param1", value: "valu" })
       controller.enqueue({ key: "param1", value: "e 1" })

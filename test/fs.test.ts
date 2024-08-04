@@ -66,7 +66,7 @@ describe("Server API", () => {
     const testContent = "Hello, World!"
 
     // Write file
-    console.log("Writing file")
+    // console.log("Writing file")
     let response = await fetch(`${BASE_URL}/write`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },

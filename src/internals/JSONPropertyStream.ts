@@ -1,16 +1,16 @@
 import { parse, STR, OBJ, NUM } from "partial-json"
 
-export interface ToolArgChunk<T = unknown> {
+export interface JSONPropertyChunk<T = any> {
   key: string
   value: T
 }
 
-export class JSONPropertyStream extends TransformStream<Uint8Array, ToolArgChunk> {
+export class JSONPropertyStream<T> extends TransformStream<Uint8Array, JSONPropertyChunk<T>> {
   private decoder = new TextDecoder()
   private buffer = ""
 
-  private lastParsed: Record<string, any> = {}
-  private parsed: Record<string, any> = {}
+  private lastParsed: Record<string, T> = {}
+  private parsed: Record<string, T> = {}
 
   private lastKey: string | undefined
   private knownKeys = new Set<string>()
@@ -23,7 +23,7 @@ export class JSONPropertyStream extends TransformStream<Uint8Array, ToolArgChunk
     })
   }
 
-  private parseBuffer(controller: TransformStreamDefaultController<ToolArgChunk>) {
+  private parseBuffer(controller: TransformStreamDefaultController<JSONPropertyChunk<T>>) {
     if (!this.buffer) return
     this.parsed = parse(this.buffer, STR | OBJ)
 
@@ -41,7 +41,11 @@ export class JSONPropertyStream extends TransformStream<Uint8Array, ToolArgChunk
       }
 
       const prevValue = this.lastParsed[this.lastKey]
-      const deltaText = currentValue.slice(prevValue.length)
+      if (typeof prevValue !== "string") {
+        throw new Error(`Expected string value for key: ${JSON.stringify(this.lastParsed)} ${this.lastKey}`)
+      }
+
+      const deltaText = currentValue.slice(prevValue.length) as T
       controller.enqueue({ key: this.lastKey, value: deltaText })
     }
 
@@ -58,13 +62,14 @@ export class JSONPropertyStream extends TransformStream<Uint8Array, ToolArgChunk
     this.lastParsed = this.parsed
   }
 
-  private handleChunk(chunk: Uint8Array, controller: TransformStreamDefaultController<ToolArgChunk>) {
+  private handleChunk(chunk: Uint8Array, controller: TransformStreamDefaultController<JSONPropertyChunk<T>>) {
     const bufferDelta = this.decoder.decode(chunk)
+    // console.log("HANDLE", bufferDelta)
     this.buffer += bufferDelta
     this.parseBuffer(controller)
   }
 
-  private flushRemaining(controller: TransformStreamDefaultController<ToolArgChunk>) {
+  private flushRemaining(controller: TransformStreamDefaultController<JSONPropertyChunk<T>>) {
     this.parseBuffer(controller)
   }
 }

@@ -1,7 +1,14 @@
+import { FileWriterStream } from "@/internals/FileWriteStream"
 import { getShellCommand } from "@/internals/getShellCommand"
-import { tool } from "ai"
+import { JSONPropertyStream, type JSONPropertyChunk } from "@/internals/JSONPropertyStream"
+import { streamText, tool, type CoreMessage, type LanguageModel } from "ai"
 import { z } from "zod"
 
+
+/**
+ * execute() must not return streams, since Bun does not support half duplex
+ * (streams up, streams down).
+ */
 export const tools = {
   read: tool({
     description: "Read the contents of a file.",
@@ -15,6 +22,7 @@ export const tools = {
         body: JSON.stringify({ path })
       })
       return response.body
+      // return await response.text()
     }
   }),
 
@@ -31,6 +39,7 @@ export const tools = {
         body: JSON.stringify({ path, content })
       })
       return response.body
+      // return await response.text()
     }
   }),
 
@@ -49,6 +58,7 @@ export const tools = {
         body: JSON.stringify({ path, startLine, endLine, content })
       })
       return response.body
+      // return await response.text()
     }
   }),
 
@@ -65,6 +75,90 @@ export const tools = {
       })
 
       return response.body
+      // return await response.text()
     }
   })
+}
+
+export const callTools = async (
+  model: LanguageModel,
+  messages: CoreMessage[],
+  // argStream: ReadableStream<ToolArgChunk<z.infer<typeof tools[keyof typeof tools]["parameters"]>>>
+) => {
+  const ENCODER = new TextEncoder()
+  const { fullStream, textStream, toolCalls, toolResults } = await streamText({
+    model,
+    messages,
+    tools,
+    experimental_toolCallStreaming: true,
+    maxTokens: 4096
+  })
+
+  const [toolCallStream, toolCallArgStream] = fullStream.tee()
+
+  /**
+   * Display initial text response.
+   */
+  await textStream.pipeTo(new FileWriterStream(Bun.stdout))
+
+  const [finishedCalls, finishedResults] = await Promise.all([toolCalls, toolResults])
+  console.log({ finishedCalls, finishedResults })
+
+  return
+
+  /**
+   * Transform to display tool calls.
+   */
+
+  // const toolCalls = toolCallStream.pipeThrough(
+  //   new TransformStream({
+  //     async transform(chunk, controller: TransformStreamDefaultController<Uint8Array>) {
+  //       switch (chunk.type) {
+  //       case "tool-call-streaming-start":
+  //         const { toolName } = chunk
+
+  //         const toolCallArgs = 
+  //           toolCallArgStream.pipeThrough(
+  //             new TransformStream({
+  //               async transform(chunk, controller: TransformStreamDefaultController<Uint8Array>) {
+  //                 switch(chunk.type) {
+  //                 case "tool-call-delta":
+  //                   controller.enqueue(ENCODER.encode(chunk.argsTextDelta))
+  //                   break
+  //                 }
+  //               }
+  //             })
+  //           )
+
+  //         console.log({ toolName, toolCallArgs })
+
+  //         const response = await fetch("http://localhost:3000/" + toolName, {
+  //           method: "POST",
+  //           body: toolCallArgs,
+  //         })
+
+  //       //   if (!response.ok || !response.body) {
+  //       //     console.error({ response })
+  //       //     throw new Error("Failed to call tool.")
+  //       //   }
+
+  //       //   const reader = response.body.getReader()
+  //       //   try {
+  //       //     while (true) {
+  //       //       const { done, value } = await reader.read()
+  //       //       if (done) {
+  //       //         break
+  //       //       }
+  //       //       controller.enqueue(value)
+  //       //     }
+  //       //   } finally {
+  //       //     reader.releaseLock()
+  //       //   }
+  //       }
+  //     }
+  //   })
+  // )
+
+  return toolCalls
+
 }

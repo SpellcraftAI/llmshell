@@ -1,8 +1,8 @@
 import { expect, test } from "bun:test"
-import { JSONPropertyStream, type ToolArgChunk } from "./JSONPropertyStream"
+import { JSONPropertyStream, type JSONPropertyChunk } from "./JSONPropertyStream"
 
-async function collectResults(stream: ReadableStream<ToolArgChunk>): Promise<ToolArgChunk[]> {
-  const results: ToolArgChunk[] = []
+async function collectResults(stream: ReadableStream<JSONPropertyChunk>): Promise<JSONPropertyChunk[]> {
+  const results: JSONPropertyChunk[] = []
   const reader = stream.getReader()
   while (true) {
     const { done, value } = await reader.read()
@@ -90,7 +90,7 @@ test("JSONPropertyStream handles object with empty string values", async () => {
   })
 
   const results = await collectResults(inputStream.pipeThrough(new JSONPropertyStream()))
-  const expectedResults: ToolArgChunk[] = [
+  const expectedResults: JSONPropertyChunk[] = [
     { key: "a", value: "" },
     { key: "b", value: "" }
   ]
@@ -110,7 +110,7 @@ test("JSONPropertyStream handles chunked serialized object", async () => {
 
   const results = await collectResults(inputStream.pipeThrough(new JSONPropertyStream()))
 
-  const expectedResults: ToolArgChunk[] = [
+  const expectedResults: JSONPropertyChunk[] = [
     { key: "path", value: "test_" },
     { key: "path", value: "file.txt" },
     { key: "startLine", value: 2 },
@@ -138,7 +138,7 @@ test("JSONPropertyStream should handle single chunk", async () => {
   })
 
   const results = await collectResults(inputStream.pipeThrough(new JSONPropertyStream()))
-  const expectedResults: ToolArgChunk[] = [
+  const expectedResults: JSONPropertyChunk[] = [
     { key: "path", value: testFilePath },
     { key: "content", value: testContent }
   ]
