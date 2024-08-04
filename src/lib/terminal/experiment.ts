@@ -7,7 +7,7 @@ import boxen from "boxen"
 import { streamText, CoreMessage, ToolResultPart } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { tools } from "@/lib/tools"
-import { startServer } from "@/lib/fs"
+import { startServer } from "@/lib/api"
 import { IndentWrapTransform } from "@/internals/IndentWrapper"
 import { JSONPropertyStream } from "@/internals/JSONPropertyStream"
 

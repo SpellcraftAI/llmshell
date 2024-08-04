@@ -12,7 +12,7 @@ import { streamText, type CoreMessage, type ToolResultPart } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 
 import { tools } from "@/lib/tools"
-import { startServer } from "@/lib/fs"
+import { startServer } from "@/lib/api"
 import { clearMessageOnFirstKeystroke } from "./utils"
 
 Object.assign(globalThis, { readline })

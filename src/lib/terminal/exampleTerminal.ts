@@ -13,7 +13,7 @@ import { streamText, tool, type AssistantContent, type CoreMessage, type ToolRes
 import { anthropic } from "@ai-sdk/anthropic"
 
 import { tools } from "@/lib/tools"
-import { startServer } from "@/lib/fs"
+import { startServer } from "@/lib/api"
 import { FileWriterStream, FileWriteTransform } from "@/internals/FileWriteStream"
 import { BufferStream } from "@/internals/BufferStream"
 

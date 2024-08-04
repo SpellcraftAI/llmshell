@@ -1,6 +1,6 @@
 import { expect, test, describe, afterAll } from "bun:test"
 import type { Server } from "bun"
-import { startServer } from "@/lib/fs"
+import { startServer } from "@/lib/api"
 
 let server: Server
 try {
