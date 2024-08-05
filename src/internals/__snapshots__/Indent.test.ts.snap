@@ -1,0 +1,54 @@
+// Bun Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`IndentTransform wraps long lines without hyphenation 1`] = `
+"  AAAAAAAAAAAAAAA-
+  AAAAAAAAAAAAAAA-
+  AAAAAAAAAAAAAAA-
+  AAAAAAAAAAAAAAA-
+  AAAAAAAAAAAAAAA-
+  AAAAAAAAAAAAAAA-
+  AAAAAAAAAA"
+`;
+
+exports[`IndentTransform handles multiple lines with word wrapping 1`] = `
+"  This is a long
+  line that should
+  wrap. And here's
+  another line
+  that should also
+  wrap."
+`;
+
+exports[`IndentTransform preserves intentional line breaks 1`] = `
+"  Short line
+  Another short
+  line
+  Yet another"
+`;
+
+exports[`IndentTransform handles very long words 1`] = `
+"  This supercalif-
+  ragilisticexpia-
+  lidocious word
+  is very long."
+`;
+
+exports[`IndentTransform works with short input 1`] = `"   Short input"`;
+
+exports[`IndentTransform handles empty input 1`] = `""`;
+
+exports[`IndentTransform preserves multiple spaces between words 1`] = `
+"  Word1    Word2
+      Word3"
+`;
+
+exports[`IndentTransform handles mixed content with varying line lengths 1`] = `
+"  Short
+  Medium length
+  line
+  Very long line
+  that should def-
+  initely wrap
+  to the next line
+  Short again"
+`;

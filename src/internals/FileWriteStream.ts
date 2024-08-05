@@ -1,6 +1,6 @@
 import type { BunFile, FileSink } from "bun"
 
-export class FileSinkWriter extends WritableStream<Uint8Array> {
+export class FileSinkWriter<T extends string | Uint8Array> extends WritableStream<T> {
   constructor(protected readonly sink: FileSink) {
     super({
       write(chunk) {
@@ -13,7 +13,7 @@ export class FileSinkWriter extends WritableStream<Uint8Array> {
   }
 }
 
-export class FileWriterStream extends FileSinkWriter {
+export class FileWriterStream<T extends string | Uint8Array> extends FileSinkWriter<T> {
   constructor(readonly file: BunFile) {
     super(file.writer())
   }

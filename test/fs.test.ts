@@ -78,7 +78,7 @@ describe("Server API", () => {
 
     expect(response.status).toBe(200)
     let result = await response.text()
-    expect(result).toEqual(testContent)
+    expect(result).toEqual("")
 
     const json = JSON.stringify({
       path: testFilePath 

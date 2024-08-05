@@ -1,6 +1,6 @@
 // JSONDecoderStream must be polyfilled at the top of the context.
 import "@/internals/shim"
-import { IndentWrapTransform } from "@/internals/IndentWrapper"
+import { IndentTransform } from "@/internals/Indent"
 import { JSONPropertyStream } from "@/internals/JSONPropertyStream"
 
 import { createInterface, Interface } from "readline"
@@ -28,7 +28,7 @@ class Terminal {
   private messages: CoreMessage[] = []
   private interface: Interface | undefined
 
-  private indent = 0
+  private indent = 2
 
   private printYouMessage() {
     Bun.write(
@@ -131,8 +131,8 @@ class Terminal {
   }
 
   async submit(line: string) {
-    if (line.length === 0) {
-      throw new Error("Tried to submit empty message.")
+    if (line.trim().length === 0) {
+      return
     }
 
     Bun.write(Bun.stdout, "\n")
@@ -148,11 +148,18 @@ class Terminal {
   
     // const [textStreamFork, textBufferFork] = textStream.tee()
     const [toolCallFork, toolArgsFork] = fullStream.tee()
+    const [textLogStream, textBufferStream] = textStream.tee()
+    const withIndent = textLogStream.pipeThrough(new IndentTransform())
 
     this.printClaudeMessage()
 
-    const streamToStdin = textStream.pipeThrough(new FileWriterTransform(Bun.stdout))
-    const textResponse = await new Response(streamToStdin).text()
+    const [textResponse] = await Promise.all([
+      new Response(textBufferStream).text(),
+      withIndent.pipeTo(new FileWriterStream(Bun.stdout)),
+    ])
+
+    // const streamToStdout = textStream.pipeThrough(new FileWriterTransform(Bun.stdout))
+    // const textResponse = await new Response(streamToStdout).text()
         
     // await Promise.all([
     //   /**
@@ -182,7 +189,7 @@ class Terminal {
               ENCODER.encode(
                 boxen(
                   chalk.dim(chunk.toolName), 
-                  { title: chalk.dim("Tool"), borderColor: "gray", padding: { left: 2, right: 2 }, margin: { top: 1, bottom: 1 }, dimBorder: true }
+                  { title: chalk.dim("Tool"), borderColor: "gray", padding: { left: 2, right: 2 }, margin: { top: 1, bottom: 0 }, dimBorder: true }
                 ),
               )
             )
@@ -198,7 +205,6 @@ class Terminal {
         async transform(chunk, controller: TransformStreamDefaultController<Uint8Array>) {
           switch(chunk.type) {
           case "tool-call-delta":
-            // await new Promise((resolve) => setTimeout(resolve, 500))
             controller.enqueue(ENCODER.encode(chunk.argsTextDelta))
             break
           }
@@ -213,7 +219,7 @@ class Terminal {
             lastKey = key
             const argsBox = boxen(
               chalk.dim(chalk.yellow(key)), 
-              { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { top: 1, bottom: 0 }, dimBorder: true }
+              { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { top: 2, bottom: 0 }, dimBorder: true }
             )
 
             controller.enqueue(ENCODER.encode(argsBox))
@@ -252,12 +258,28 @@ class Terminal {
     for (const toolResult of finishedResults) {
       if (!toolResult.result) continue
 
-      await Bun.write(Bun.stdout, boxen(
-        chalk.dim(chalk.yellow(toolResult.toolName)), 
-        { title: "Output", borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { top: 1, bottom: 1 }, dimBorder: true }
-      ))
+      let firstChunk = false
+      const streamToStdout = toolResult.result.pipeThrough(
+        new TransformStream({
+          async transform(chunk, controller) {
+            if (!firstChunk) {
+              firstChunk = true
+              await Bun.write(
+                Bun.stdout, 
+                boxen(
+                  chalk.dim(chalk.yellow(toolResult.toolName)), 
+                  { title: "Output", borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { top: 2, bottom: 1 }, dimBorder: true }
+                )
+              )
+            }
 
-      const streamToStdout = toolResult.result.pipeThrough(new FileWriterTransform(Bun.stdout))
+            controller.enqueue(chunk)
+          }
+        })
+      ).pipeThrough(
+        new FileWriterTransform(Bun.stdout)
+      )
+
       const result = await new Response(streamToStdout).text()
       bufferedResults.push({ ...toolResult, result })
     }

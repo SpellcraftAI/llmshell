@@ -3,7 +3,7 @@ import { spawn } from "child_process"
 import { Readable } from "stream"
 import { JSONPropertyStream, type JSONPropertyChunk } from "@/internals/JSONPropertyStream"
 import { parseContentStream } from "@/internals/parseContentStream"
-import { FileWriterTransform } from "@/internals/FileWriteStream"
+import { FileWriterStream, FileWriterTransform } from "@/internals/FileWriteStream"
 
 const ENCODER = new TextEncoder()
 const DECODER = new TextDecoder()
@@ -44,13 +44,14 @@ export class FileSystem {
     return file.stream()
   }
 
-  async writeFile(argStream: ReadableStream<JSONPropertyChunk>): Promise<ReadableStream<Uint8Array>> {
+  async writeFile(argStream: ReadableStream<JSONPropertyChunk>) {
     const { path, content } = await parseContentStream(argStream)
     const file = Bun.file(path)
     // Clear file
-    // await Bun.write(file, "")
+    await Bun.write(file, "")
     // Each chunk is written to file as it is streamed back
-    return content.pipeThrough(new FileWriterTransform(file))
+    await content.pipeTo(new FileWriterStream(file))
+    return null
   }
 
   async editFileLines(argChunks: ReadableStream<JSONPropertyChunk>): Promise<ReadableStream<Uint8Array>> {
@@ -100,16 +101,7 @@ export class ApiHandler {
   }
 
   async write(argStream: ReadableStream<Uint8Array>) {
-    const args = 
-    argStream
-      .pipeThrough(new TransformStream({
-        transform(chunk, controller){
-          // console.log("\nARGSTREAM", {chunk})
-          controller.enqueue(chunk)
-        }
-      }))
-      .pipeThrough(new JSONPropertyStream())
-
+    const args = argStream.pipeThrough(new JSONPropertyStream())
     return await this.fileSystem.writeFile(args)
   }
 
@@ -212,7 +204,6 @@ export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
         return new Response(editStream)
   
       case "/terminal":
-        // console.log("TERMINAL")
         const terminalStream = await apiHandler.shell(request.body)
         return new Response(terminalStream)
   
