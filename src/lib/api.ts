@@ -1,9 +1,9 @@
-import { serve, type BunFile } from "bun"
+import { serve } from "bun"
 import { spawn } from "child_process"
 import { Readable } from "stream"
 import { JSONPropertyStream, type JSONPropertyChunk } from "@/internals/JSONPropertyStream"
 import { parseContentStream } from "@/internals/parseContentStream"
-import { FileWriteTransform } from "@/internals/FileWriteStream"
+import { FileWriterTransform } from "@/internals/FileWriteStream"
 
 const ENCODER = new TextEncoder()
 const DECODER = new TextDecoder()
@@ -50,7 +50,7 @@ export class FileSystem {
     // Clear file
     // await Bun.write(file, "")
     // Each chunk is written to file as it is streamed back
-    return content.pipeThrough(new FileWriteTransform(file))
+    return content.pipeThrough(new FileWriterTransform(file))
   }
 
   async editFileLines(argChunks: ReadableStream<JSONPropertyChunk>): Promise<ReadableStream<Uint8Array>> {
@@ -63,9 +63,8 @@ export class FileSystem {
     const lines = fileContent.split("\n")
   
     let replacementContent = ""
-    // let isEditingComplete = false
 
-    const editedContentStream = content.pipeThrough(
+    return content.pipeThrough(
       new TransformStream({
         async transform(chunk, controller) {
           // Accumulate the replacement content
@@ -84,14 +83,9 @@ export class FileSystem {
     
           // Write the edited content back to the file
           await Bun.write(path, editedLines.join("\n"))
-          // isEditingComplete = true
         }
       })
     )
-  
-    // Pipe the content through the transform stream
-    
-    return editedContentStream
   }
   
 }
@@ -120,34 +114,37 @@ export class ApiHandler {
   }
 
   async edit(argStream: ReadableStream<Uint8Array>) {
-    const args = argStream.pipeThrough(new JSONPropertyStream()).pipeThrough(new TransformStream({
-      transform(chunk, controller) {
-        // console.log("\nARGSTREAM", {chunk})
-        controller.enqueue(chunk)
-      }
-    }))
+    const args = argStream.pipeThrough(new JSONPropertyStream())
     return await this.fileSystem.editFileLines(args)
   }
 
   async shell(argStream: ReadableStream<Uint8Array>): Promise<ReadableStream<Uint8Array>> {
     const keystrokes = argStream.pipeThrough(new JSONPropertyStream())
-    const nodeReadable = Readable.from((async function* () {
-      const reader = keystrokes.getReader()
-      try {
-        while (true) {
-          const { done, value: { key, value } = {} } = await reader.read()
-          if (done || !key || !value) {
-            break
-          }
-
+    const commandStream = keystrokes.pipeThrough(
+      new TransformStream({
+        transform(chunk, controller) {
+          const { key, value } = chunk
           if (key === "command") {
-            yield value
+            controller.enqueue(value)
           }
         }
-      } finally {
-        reader.releaseLock()
-      }
-    }()))
+      })
+    )
+
+    /**
+     * Can't use Bun.spawn because no way to join the stdout and sterr streams
+     * while streaming. Any method of joining the ReadableStreams will require
+     * acquiring readers, which blocks the stream and yields only one chunk from
+     * Response.
+     */
+
+    // const bash = Bun.spawn(["bash"], {
+    //   stdio: ["pipe", "pipe", "pipe"],
+    //   env: { ...process.env, FORCE_COLOR: "1" }
+    // })
+
+    // await commandStream.pipeTo(new FileSinkWriter(bash.stdin))
+    // await bash.stdout.pipeTo(new FileWriterStream(Bun.stdout))
 
     const bash = spawn(
       "bash",
@@ -159,16 +156,18 @@ export class ApiHandler {
       }
     )
 
-    // Pipe nodeReadable to bash.stdin
-    nodeReadable.pipe(bash.stdin)
+    // Pipe provided input to bash.stdin
+    Readable.fromWeb(commandStream as unknown as import("stream/web").ReadableStream).pipe(bash.stdin)
 
     return new ReadableStream<Uint8Array>({
       start(controller) {
         bash.stdout.on("data", (chunk) => controller.enqueue(chunk))
         bash.stderr.on("data", (chunk) => controller.enqueue(chunk))
+        
         bash.on("close", () => {
           controller.close()
         })
+
         bash.on("error", (error) => {
           controller.error(error)
         })

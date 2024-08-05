@@ -14,7 +14,7 @@ import { anthropic } from "@ai-sdk/anthropic"
 
 import { tools } from "@/lib/tools"
 import { startServer } from "@/lib/api"
-import { FileWriterStream, FileWriteTransform } from "@/internals/FileWriteStream"
+import { FileWriterStream, FileWriterTransform } from "@/internals/FileWriteStream"
 import { BufferStream } from "@/internals/BufferStream"
 
 const ENCODER = new TextEncoder()
@@ -151,7 +151,7 @@ class Terminal {
 
     this.printClaudeMessage()
 
-    const streamToStdin = textStream.pipeThrough(new FileWriteTransform(Bun.stdout))
+    const streamToStdin = textStream.pipeThrough(new FileWriterTransform(Bun.stdout))
     const textResponse = await new Response(streamToStdin).text()
         
     // await Promise.all([
@@ -246,7 +246,7 @@ class Terminal {
       return
     }
 
-    console.log({ finishedCalls, finishedResults })
+    // console.log({ finishedCalls, finishedResults })
 
     const bufferedResults: ToolResultPart[] = []
     for (const toolResult of finishedResults) {
@@ -257,7 +257,7 @@ class Terminal {
         { title: "Output", borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { top: 1, bottom: 1 }, dimBorder: true }
       ))
 
-      const streamToStdout = toolResult.result.pipeThrough(new FileWriteTransform(Bun.stdout))
+      const streamToStdout = toolResult.result.pipeThrough(new FileWriterTransform(Bun.stdout))
       const result = await new Response(streamToStdout).text()
       bufferedResults.push({ ...toolResult, result })
     }

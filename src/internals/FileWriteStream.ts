@@ -1,37 +1,34 @@
-import type { BunFile } from "bun"
+import type { BunFile, FileSink } from "bun"
 
-/**
- * Writes chunks to the given file and passes them through.
- */
-export class FileWriteTransform<T extends string | Uint8Array> extends TransformStream<T, T> {
-  constructor(readonly file: BunFile) {
-    const writer = file.writer()
+export class FileSinkWriter extends WritableStream<Uint8Array> {
+  constructor(protected readonly sink: FileSink) {
     super({
-      transform(chunk, controller) {
-        writer.write(chunk)
-        controller.enqueue(chunk)
+      write(chunk) {
+        sink.write(chunk)
       },
-      flush() {
-        writer.flush()
-        writer.end()
+      close() {
+        sink.end()
       }
     })
   }
 }
 
-/**
- * Writes chunks to the given file.
- */
-export class FileWriterStream<T extends string | Uint8Array> extends WritableStream<T> {
+export class FileWriterStream extends FileSinkWriter {
   constructor(readonly file: BunFile) {
-    const writer = file.writer()
+    super(file.writer())
+  }
+}
+
+export class FileWriterTransform<T extends string | Uint8Array> extends TransformStream<T, T> {
+  constructor(readonly file: BunFile) {
+    const sink = file.writer()
     super({
-      write(chunk) {
-        writer.write(chunk)
+      transform: (chunk, controller) => {
+        sink.write(chunk)
+        controller.enqueue(chunk)
       },
-      close() {
-        writer.flush()
-        writer.end()
+      flush: () => {
+        sink.end()
       }
     })
   }
