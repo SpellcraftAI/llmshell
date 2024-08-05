@@ -1,3 +1,3 @@
-import { terminal } from "@/lib/terminal"
+import { terminal } from "@/terminal"
 
 await terminal()
