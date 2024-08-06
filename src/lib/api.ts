@@ -69,7 +69,7 @@ export class FileSystem {
       new TransformStream({
         async transform(chunk, controller) {
           // Accumulate the replacement content
-          replacementContent += DECODER.decode(chunk)
+          replacementContent += DECODER.decode(chunk, { stream: true })
           // console.log({ replacementContent, chunk })
           // Enqueue the chunk to be returned as the edited content
           controller.enqueue(chunk)

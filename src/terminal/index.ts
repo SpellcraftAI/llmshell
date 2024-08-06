@@ -1,11 +1,10 @@
 // JSONDecoderStream must be polyfilled at the top of the context.
 import "@/internals/shim"
-import { IndentWrapTransform } from "@/internals/IndentWrapper"
+import { IndentTransform } from "@/internals/Indent"
 import { JSONPropertyStream } from "@/internals/JSONPropertyStream"
 
-import readline, { createInterface, Interface } from "readline"
+import { createInterface, Interface } from "readline"
 import chalk from "chalk"
-import ora, { type Ora } from "ora"
 import boxen from "boxen"
 
 import { streamText, type CoreMessage, type ToolResultPart } from "ai"
@@ -13,235 +12,258 @@ import { anthropic } from "@ai-sdk/anthropic"
 
 import { tools } from "@/lib/tools"
 import { startServer } from "@/lib/api"
-import { clearMessageOnFirstKeystroke } from "./utils"
+import { FileWriterStream, FileWriterTransform } from "@/internals/FileWriteStream"
 
-Object.assign(globalThis, { readline })
 const ENCODER = new TextEncoder()
 const DECODER = new TextDecoder()
 
 const model = anthropic("claude-3-5-sonnet-20240620")
-export const terminal = async (): Promise<void> => {
-  const server = startServer()
-  const messages: CoreMessage[] = []
 
-  const submitMessage = async (content: string): Promise<void> => {
-    if (!content.trim()) {
-      return
-    }
 
-    Bun.write(Bun.stdout, "\n")
-    const spinner: Ora = ora({ text: "Loading...\n\n", spinner: "dots", indent: 2 }).start()
-    
-    messages.push({ role: "user", content })
-    const { fullStream, toolCalls, toolResults } = await streamText({
-      model,
-      messages,
-      tools,
-      experimental_toolCallStreaming: true,
-      maxTokens: 4096
-    })
-    
-    let isFirstChunk = true
-    let textResponse = ""
+export class Terminal {
+  private server = startServer()
+  private messages: CoreMessage[] = []
+  private interface: Interface | undefined
 
-    const stdoutIndent = new IndentWrapTransform(2, Math.min(80, process.stdout.columns - 4))
-    stdoutIndent.pipe(process.stdout)
+  private indent = 2
 
-    // const toolBuffers = new Map<string, string>()
-    // const toolBufferProperties = new Map<string, Set<string>>()
-
-    let currentKey: string | null = null
-
-    const toolArgsStream = new JSONPropertyStream()
-    const toolArgsReader = toolArgsStream.readable.getReader()
-    const toolArgsWriter = toolArgsStream.writable.getWriter()
-
-    async function handleToolArgsOutput() {
-      while (true) {
-        const { done, value: result } = await toolArgsReader.read()
-        if (done) break
-        if (!result) break
-    
-        const { key, value } = result
-        // console.log("HANDLETOOLARGS", { key, value })
-    
-        if (key !== currentKey) {
-          currentKey = key
-          console.log("\n")
-          // process.stdout.write("\n")
-          process.stdout.write(
-            boxen(
-              chalk.dim(chalk.yellow(key)),
-              { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
-            )
-          )
-          process.stdout.write("\n")
-        }
-    
-        process.stdout.write(String(value))
-      }
-
-      process.stdout.write("\n")
-    }
-    
-    async function handleStream() {
-      for await (const chunk of fullStream) {
-        if (isFirstChunk) {
-          isFirstChunk = false
-          spinner.stop()
-          process.stdout.clearLine(0)
-          process.stdout.cursorTo(0)
-  
-          Bun.write(
-            Bun.stdout, 
-            boxen(chalk.yellow("Claude"), { borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { left: 1, right: 1 } }) + "\n"
-          )
-        }
-  
-        switch (chunk.type) {
-        case "text-delta": {
-          stdoutIndent.write(chunk.textDelta)
-          textResponse += chunk.textDelta
-          break
-        }
-  
-        case "tool-call":
-          break
-  
-        case "finish":
-          stdoutIndent._flush()
-          break
-  
-        case "tool-call-streaming-start":
-          stdoutIndent._flush()
-  
-          process.stdout.write("\n\n")
-          process.stdout.write(chalk.dim("─".repeat(Math.min(80, process.stdout.columns - 2))))
-          console.log()
-          process.stdout.write(
-            boxen(
-              chalk.dim(chalk.yellow(chunk.toolName)), 
-              { title: "Tool", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
-            )
-          )
-  
-          break
-  
-        case "tool-call-delta":
-          await toolArgsWriter.write(ENCODER.encode(chunk.argsTextDelta))
-          break
-        }
-      }
-
-      await toolArgsWriter.close()
-    }
-
-    await Promise.all([handleStream(), handleToolArgsOutput()])
-    process.stdout.write("\n")
-
-    const finishedCalls = await toolCalls
-    const finishedResults = await toolResults
-
-    // console.log("PROMISES RESOLVED")
-
-    if (finishedCalls.length > 0) {
-      messages.push({ role: "assistant", content: finishedCalls })
-    }
-
-    const flushedResults: ToolResultPart[] = []
-    for (const toolResult of finishedResults) {
-      if (!toolResult.result) continue
-
-      let content = ""
-      
-      process.stdout.write("\n")
-      process.stdout.write(
-        boxen(
-          chalk.dim(chalk.yellow(toolResult.toolName)), 
-          { title: "Output", borderColor: "yellow", padding: { left: 2, right: 2 }, dimBorder: true }
-        )
-      ) 
-      console.log()
-      // process.stdout.write("\n")
-
-      switch (toolResult.toolName) {
-      case "terminal":
-      case "read":
-      case "write":
-      case "edit":
-        const reader = toolResult.result.getReader()
-        // console.log("FINISHEDRESULT STREAM")
-        while (true) {
-          const { done, value } = await reader.read()
-          if (done) break
-
-          const text = DECODER.decode(value)
-          Bun.write(Bun.stdout, value)
-          content += text
-        }
-        
-        flushedResults.push({ ...toolResult, result: content })
-        break
-      }
-
-      process.stdout.write("\n")
-    }
-    
-    if (flushedResults.length > 0) {
-      messages.push({ role: "tool", content: flushedResults })
-    }
-    
-    messages.push({ role: "assistant", content: textResponse })
+  private printYouMessage() {
+    Bun.write(
+      Bun.stdout,
+      boxen(chalk.blue("You"), { borderColor: "blue", padding: { left: 2, right: 2 }, margin: { left: 0, right: 0, bottom: 1, top: 1 } })
+    )
   }
 
-  process.on("exit", () => {
-    server.stop()
-  })
+  private printClaudeMessage() {
+    Bun.write(
+      Bun.stdout, 
+      boxen(chalk.yellow("Claude"), { borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { left: 0, right: 0, top: 0, bottom: 2 } })
+    )
+  }
 
-  const readlines = async () => {
+  private clearMessageOnFirstKeystroke = (data: Uint8Array) => {
+    // Check if the first byte is within ASCII printable character range
+    const isASCII = data[0] >= 32 && data[0] <= 126
+    const isPaste = data.length > 3
+  
+    const isEnter = data[0] === 13
+    if (isEnter) {
+      process.stdout.cursorTo(0, 0)
+      process.stdout.clearScreenDown()
+      return
+    }
+  
+    if (!isASCII && !isPaste) {
+      return
+    }
+  
+    // Remove the listener after the first keypress.
+    process.stdin.removeListener("data", this.clearMessageOnFirstKeystroke)
+  
+    // Move down to the instructions line.
+    process.stdout.moveCursor(0, 2)
+    // Clear it.
+    process.stdout.clearLine(0)
+    // Return to the input line.
+    process.stdout.moveCursor(0, -2)
+    // Add the indent.
+    process.stdout.cursorTo(this.indent)
+  
+    Bun.write(Bun.stdin, data)
+  }
+
+  private printStartTypingMessage() {
+    const indent = " ".repeat(this.indent)
+    Bun.write(Bun.stdout, chalk.dim(`\n\n\n${indent}Begin typing. Press Enter to send, Ctrl+C to exit.`))
+    process.stdin.on("data", this.clearMessageOnFirstKeystroke)
+    process.stdout.moveCursor(0, -2)
+    process.stdout.cursorTo(this.indent)
+  }
+
+  refresh() {
+    this.interface?.close()
+    this.printYouMessage()
+
     const userTextMessages: CoreMessage[] = 
-      messages
+      this.messages
         .filter(({ role }) => role === "user")
         .filter(({ content }) => typeof content === "string")
         .reverse()
 
-    const rl: Interface = createInterface({
+    this.interface = createInterface({
       input: process.stdin,
       output: process.stdout,
       history: userTextMessages.map(({ content }) => content as string),
       tabSize: 2,
     })
 
-    rl.addListener("SIGINT", () => {
-      process.stdout.moveCursor(0, 2)
-      process.stdout.write("\n\n")
-      process.stdout.clearLine(0)
-      // process.stdout.write("\n");
-      rl.close()
-      process.exit()
-    })
+    this.interface.on("SIGINT", () => this.stop())
+    this.printStartTypingMessage()
+    return this.interface
+  }
 
-    await new Promise<void>((resolve) => {
-      process.stdout.write("\n")
-      process.stdout.write(boxen(chalk.blue("You"), { borderColor: "blue", padding: { left: 2, right: 2 }, margin: { left: 1, right: 1 } }))
-      process.stdout.write("\n  ")
-      rl.on(
-        "line", 
-        async (content: string) => {
-          rl.close()
-          await submitMessage(content)
-          resolve()
-        }
-      )
+  stop() {
+    this.server.stop()
+    process.stdout.moveCursor(0, 2)
+    process.stdout.write("\n\n")
+    process.stdout.clearLine(0)
+    this.interface?.close()
+    process.exit()
+  }
 
-      process.stdin.on("data", clearMessageOnFirstKeystroke)
-      Bun.write(Bun.stdout, chalk.dim("\n\n\n  Begin typing. Press Enter to send, Ctrl+C to exit."))
-      process.stdout.moveCursor(0, -2)
-      process.stdout.cursorTo(2)
+  async readline() {
+    return new Promise<void>((resolve) => {
+      this.refresh()
+      this.interface?.on("line", async (line) => {
+        await this.submit(line)
+        resolve()
+      })
     })
   }
 
-  while (true) {
-    await readlines()
+  async run() {
+    while (true) {
+      await this.readline()
+    }
+  }
+
+  async submit(line: string) {
+    if (line.trim().length === 0) {
+      return
+    }
+
+    Bun.write(Bun.stdout, "\n")
+    this.messages.push({ role: "user", content: line })
+
+    const { fullStream, textStream, toolCalls, toolResults } = await streamText({
+      model,
+      messages: this.messages,
+      tools,
+      experimental_toolCallStreaming: true,
+      maxTokens: 4096
+    })
+  
+    this.printClaudeMessage()
+    const [textLogStream, textBufferStream] = textStream.tee()
+    const withIndent = textLogStream.pipeThrough(new TextEncoderStream()).pipeThrough(new IndentTransform())
+
+    await withIndent.pipeTo(new FileWriterStream(Bun.stdout))
+    const textResponse = await new Response(textBufferStream).text()
+
+    // console.log(this.messages)
+    const [toolCallFork, toolArgsFork] = fullStream.tee()
+
+    /**
+     * Transform that yields tool calls.
+     */
+    const toolCallStream = toolCallFork.pipeThrough(
+      new TransformStream({
+        async transform(chunk, controller: TransformStreamDefaultController<Uint8Array>) {
+          switch (chunk.type) {
+          case "tool-call-streaming-start":
+            controller.enqueue(ENCODER.encode("\n"))
+            controller.enqueue(
+              ENCODER.encode(
+                boxen(
+                  chalk.dim(chunk.toolName), 
+                  { title: chalk.dim("Tool"), borderColor: "gray", padding: { left: 2, right: 2 }, margin: { top: 1, bottom: 0 }, dimBorder: true }
+                ),
+              )
+            )
+            break
+          }
+        }
+      })
+    )
+
+    let lastKey: string | null = null
+    const toolArgsStream = toolArgsFork.pipeThrough(
+      new TransformStream({
+        async transform(chunk, controller: TransformStreamDefaultController<Uint8Array>) {
+          switch(chunk.type) {
+          case "tool-call-delta":
+            controller.enqueue(ENCODER.encode(chunk.argsTextDelta))
+            break
+          }
+        }
+      })
+    ).pipeThrough(
+      new JSONPropertyStream()
+    ).pipeThrough(
+      new TransformStream({
+        async transform({ key, value }, controller: TransformStreamDefaultController<Uint8Array>) {
+          if (key !== lastKey) {
+            lastKey = key
+            const argsBox = boxen(
+              chalk.dim(chalk.yellow(key)), 
+              { title: "Arg", borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { top: 2, bottom: 0 }, dimBorder: true }
+            )
+
+            controller.enqueue(ENCODER.encode(argsBox))
+            controller.enqueue(ENCODER.encode("\n"))
+          }
+
+          if (typeof value === "string") {
+            controller.enqueue(ENCODER.encode(value))
+          } else if (value instanceof Uint8Array) {
+            controller.enqueue(value)
+          } else {
+            controller.enqueue(ENCODER.encode(JSON.stringify(value)))
+          }
+        }
+      })
+    )
+
+    await Promise.all([
+      toolCallStream.pipeTo(new FileWriterStream(Bun.stdout)),
+      toolArgsStream.pipeTo(new FileWriterStream(Bun.stdout))
+    ])
+
+    await Bun.write(Bun.stdout, "\n")
+
+    const [finishedCalls, finishedResults] = await Promise.all([toolCalls, toolResults])
+    const usedTools = finishedCalls.length > 0
+
+    if (!usedTools) {
+      this.messages.push({ role: "assistant", content: textResponse })
+      return
+    }
+
+    // console.log({ finishedCalls, finishedResults })
+
+    const bufferedResults: ToolResultPart[] = []
+    for (const toolResult of finishedResults) {
+      if (!toolResult.result) continue
+
+      let firstChunk = false
+      const streamToStdout = toolResult.result.pipeThrough(
+        new TransformStream({
+          async transform(chunk, controller) {
+            if (!firstChunk) {
+              firstChunk = true
+              await Bun.write(
+                Bun.stdout, 
+                boxen(
+                  chalk.dim(chalk.yellow(toolResult.toolName)), 
+                  { title: "Output", borderColor: "yellow", padding: { left: 2, right: 2 }, margin: { top: 2, bottom: 1 }, dimBorder: true }
+                )
+              )
+            }
+
+            controller.enqueue(chunk)
+          }
+        })
+      ).pipeThrough(
+        new FileWriterTransform(Bun.stdout)
+      )
+
+      const result = await new Response(streamToStdout).text()
+      bufferedResults.push({ ...toolResult, result })
+    }
+
+    this.messages.push(
+      { role: "assistant", content: [{ type: "text", text: textResponse }, ...finishedCalls] },
+      { role: "tool", content: bufferedResults },
+    )
   }
 }

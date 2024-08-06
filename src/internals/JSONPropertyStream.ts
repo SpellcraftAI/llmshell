@@ -63,7 +63,7 @@ export class JSONPropertyStream<T> extends TransformStream<Uint8Array, JSONPrope
   }
 
   private handleChunk(chunk: Uint8Array, controller: TransformStreamDefaultController<JSONPropertyChunk<T>>) {
-    const bufferDelta = this.decoder.decode(chunk)
+    const bufferDelta = this.decoder.decode(chunk, { stream: true })
     // console.log("HANDLE", bufferDelta)
     this.buffer += bufferDelta
     this.parseBuffer(controller)

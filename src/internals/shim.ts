@@ -49,3 +49,37 @@ globalThis.TextDecoderStream = class {
     return "TextDecoderStream"
   }
 }
+
+globalThis.TextEncoderStream = class {
+  #handle: TextEncoder
+  #transform: TransformStream<string, Uint8Array>
+
+  constructor() {
+    this.#handle = new TextEncoder()
+    this.#transform = new TransformStream({
+      transform: (chunk, controller) => {
+        if (typeof chunk !== "string") {
+          throw new TypeError("The input must be a string")
+        }
+        const encoded = this.#handle.encode(chunk)
+        controller.enqueue(encoded)
+      }
+    })
+  }
+
+  get encoding() {
+    return this.#handle.encoding
+  }
+
+  get readable() {
+    return this.#transform.readable
+  }
+
+  get writable() {
+    return this.#transform.writable
+  }
+
+  get [Symbol.toStringTag]() {
+    return "TextEncoderStream"
+  }
+}

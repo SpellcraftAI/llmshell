@@ -1,3 +1,4 @@
-import { terminal } from "@/terminal"
+import { Terminal } from "@/terminal"
 
-await terminal()
+const terminal = new Terminal()
+await terminal.run()

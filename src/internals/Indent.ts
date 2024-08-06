@@ -1,4 +1,4 @@
-export class IndentTransform<T extends Uint8Array | string> extends TransformStream<T, Uint8Array> {
+export class IndentTransform extends TransformStream<Uint8Array, Uint8Array> {
   private indent: string
   private wrapWidth: number
   private currentLineLength: number
@@ -12,12 +12,7 @@ export class IndentTransform<T extends Uint8Array | string> extends TransformStr
   constructor(indent: number = 2, wrapWidth: number = 80) {
     super({
       transform: async (chunk, controller) => {
-        const input = 
-          typeof chunk === "string" 
-            ? chunk
-            : this.#textDecoder.decode(chunk, { stream: true })
-
-        this.processText(controller, input)
+        this.processText(controller, this.#textDecoder.decode(chunk, { stream: false }))
       },
       flush: (controller: TransformStreamDefaultController<Uint8Array>) => {
         this.flushWordBuffer(controller)
@@ -41,6 +36,7 @@ export class IndentTransform<T extends Uint8Array | string> extends TransformStr
       const char = input[i]
       this.processChar(controller, char)
     }
+    this.flushWordBuffer(controller)
   }
 
   private processChar(controller: TransformStreamDefaultController<Uint8Array>, char: string): void {
@@ -73,32 +69,29 @@ export class IndentTransform<T extends Uint8Array | string> extends TransformStr
 
   private flushWordBuffer(controller: TransformStreamDefaultController<Uint8Array>): void {
     if (this.wordBuffer.length === 0) return
-
-    if (this.currentLineLength + this.wordBuffer.length <= this.wrapWidth) {
-      this.enqueue(controller, this.wordBuffer)
-      this.currentLineLength += this.wordBuffer.length
-    } else {
-      while (this.wordBuffer.length > 0) {
-        const availableSpace = this.wrapWidth - this.currentLineLength
-        if (availableSpace === 0) {
-          this.enqueue(controller, "\n" + this.indent)
-          this.currentLineLength = this.indent.length
-          continue
-        }
-
-        if (this.wordBuffer.length <= availableSpace) {
-          this.enqueue(controller, this.wordBuffer)
-          this.currentLineLength += this.wordBuffer.length
-          break
-        } else {
-          const splitIndex = availableSpace - 1
-          this.enqueue(controller, this.wordBuffer.slice(0, splitIndex) + "-")
-          this.enqueue(controller, "\n" + this.indent)
-          this.wordBuffer = this.wordBuffer.slice(splitIndex)
-          this.currentLineLength = this.indent.length
-        }
+  
+    while (this.wordBuffer.length > 0) {
+      const availableSpace = this.wrapWidth - this.currentLineLength
+      
+      if (availableSpace === 0) {
+        this.enqueue(controller, "\n" + this.indent)
+        this.currentLineLength = this.indent.length
+        continue
+      }
+  
+      if (this.wordBuffer.length <= availableSpace) {
+        this.enqueue(controller, this.wordBuffer)
+        this.currentLineLength += this.wordBuffer.length
+        break
+      } else {
+        const splitIndex = availableSpace - 1
+        this.enqueue(controller, this.wordBuffer.slice(0, splitIndex) + "-")
+        this.enqueue(controller, "\n" + this.indent)
+        this.wordBuffer = this.wordBuffer.slice(splitIndex)
+        this.currentLineLength = this.indent.length
       }
     }
+    
     this.wordBuffer = ""
   }
 }
