@@ -13,10 +13,8 @@ import { FileWriterStream, FileWriterTransform } from "@/internals/FileWriteStre
 
 import chalk from "chalk"
 import boxen from "boxen"
-import style from "ansi-styles"
 import { StringConsole } from "@/internals/stringConsole"
-import { StreamingLexer } from "@/internals/test"
-import { MarkdownANSIStream } from "/Users/lewis/Development/streaming-markdown/dist/index.js"
+import { MarkdownANSIStream } from "mdstream"
 
 const ENCODER = new TextEncoder()
 const DECODER = new TextDecoder()
