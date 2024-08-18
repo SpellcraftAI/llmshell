@@ -9,7 +9,7 @@ export class IndentTransform extends TransformStream<Uint8Array, Uint8Array> {
   #textEncoder = new TextEncoder()
   #textDecoder = new TextDecoder()
 
-  constructor(indent: number = 2, wrapWidth: number = 80) {
+  constructor(indent: number = 2, wrapWidth: number = 100) {
     super({
       transform: async (chunk, controller) => {
         this.processText(controller, this.#textDecoder.decode(chunk, { stream: false }))

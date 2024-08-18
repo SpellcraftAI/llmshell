@@ -1,0 +1,19 @@
+// Bun Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`MarkdownANSITransform converts Markdown to ANSI-styled text 1`] = `
+"
+[1mAn Apostraphe's Test[22mThis is a [1mbold[22m statement and [3mitalicized[23m text.
+
+Here's some [31minline code[39m.
+
+1. First item
+2. Second item
+
+[90m> This is a blockquote[39m
+
+[2mfunction hello() {[22m
+[2m  console.log('Hello, world!');[22m
+[2m}[22m
+
+Text that follows."
+`;
