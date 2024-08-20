@@ -1,5 +1,5 @@
 // JSONDecoderStream must be polyfilled at the top of the context.
-import "@/internals/shim"
+// import "@/internals/shim"
 import { IndentTransform } from "@/internals/Indent"
 import { JSONPropertyStream } from "@/internals/JSONPropertyStream"
 
@@ -297,7 +297,7 @@ export class Terminal {
     for (const toolResult of finishedResults) {
       if (!toolResult.result) continue
 
-      let firstChunk = true
+      const firstChunk = true
       const streamToStdout = toolResult.result.pipeThrough(
         new TransformStream({
           async transform(chunk, controller: TransformStreamDefaultController<Uint8Array>) {

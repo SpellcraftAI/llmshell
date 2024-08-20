@@ -1,12 +1,17 @@
 import { useEffect, useState } from "react"
 
-export const useTerminalWidth = (max?: number) => {
-  const [terminalWidth, setTerminalWidth] = useState<number>()
+interface UseTerminalSizeArgs {
+  maxHeight?: number
+  maxWidth?: number
+}
+
+export const useTerminalSize = ({ maxWidth = 0, maxHeight = 0 }: UseTerminalSizeArgs = { maxHeight: 0, maxWidth: 0 }) => {
+  const [terminalSize, setTerminalSize] = useState<[number, number] | null>(null)
 
   useEffect(
     () => {
       const handleResize = () => {
-        setTerminalWidth(process.stdout.columns || 0)
+        setTerminalSize([process.stdout.columns, process.stdout.rows])
       }
 
       process.stdout.on("resize", handleResize)
@@ -19,9 +24,10 @@ export const useTerminalWidth = (max?: number) => {
     []
   )
 
-  if (terminalWidth && max) {
-    return Math.min(terminalWidth, max)
+  if (!terminalSize) {
+    return null
   }
 
-  return terminalWidth
+  const [width, height] = terminalSize
+  return [Math.min(width, maxWidth), Math.min(height, maxHeight)]
 }

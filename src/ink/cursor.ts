@@ -1,18 +1,17 @@
 export type CursorPosition = { x: number; y: number };
 
 const clamp = (value: number, min: number, max: number) => Math.max(min, Math.min(value, max))
-
-export const splitIntoLines = (text: string) => text.split("\n")
+const getLines = (text: string) => text.split("\n")
 
 export const normalizeCursorPosition = (text: string, position: CursorPosition): CursorPosition => {
-  const lines = splitIntoLines(text)
+  const lines = getLines(text)
   const y = clamp(position.y, 0, lines.length - 1)
   const x = clamp(position.x, 0, lines[y].length)
   return { x, y }
 }
 
 export const getTextSegments = (text: string, position: CursorPosition) => {
-  const lines = splitIntoLines(text)
+  const lines = getLines(text)
   const { x, y } = normalizeCursorPosition(text, position)
   
   const before = lines.slice(0, y).join("\n") + (y > 0 ? "\n" : "") + lines[y].slice(0, x)
@@ -23,14 +22,15 @@ export const getTextSegments = (text: string, position: CursorPosition) => {
 }
 
 export const insertText = (text: string, position: CursorPosition, newText: string): string => {
-  const lines = splitIntoLines(text)
+  const lines = getLines(text)
   const { x, y } = normalizeCursorPosition(text, position)
+  
   lines[y] = lines[y].slice(0, x) + newText + lines[y].slice(x)
   return lines.join("\n")
 }
 
 export const removeTextBefore = (text: string, position: CursorPosition): { newText: string; newPosition: CursorPosition } => {
-  const lines = splitIntoLines(text)
+  const lines = getLines(text)
   const { x, y } = normalizeCursorPosition(text, position)
   
   if (x > 0) {

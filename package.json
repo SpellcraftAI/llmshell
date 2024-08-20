@@ -2,7 +2,12 @@
   "name": "llm-client",
   "module": "index.ts",
   "type": "module",
+  "platform": "node",
   "scripts": {
+    "bundle": "bun build --bundle src/ink/app.tsx --outfile dist/app.js --target node",
+    "bundle-replace": "bun shim.ts",
+    "compile": "bun build --minify --compile dist/app.js --outfile dist/app",
+    "postcompile": "cp node_modules/yoga-wasm-web/dist/yoga.wasm dist",
     "lint": "eslint . --fix"
   },
   "devDependencies": {
@@ -14,7 +19,8 @@
     "@typescript-eslint/parser": "^7.17.0",
     "eslint": "8.x",
     "eslint-plugin-react": "^7.35.0",
-    "eslint-plugin-typescript": "^0.14.0"
+    "eslint-plugin-typescript": "^0.14.0",
+    "react-devtools-core": "^5.3.1"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"
