@@ -1,6 +1,6 @@
 import "./src/internals/shim"
 import { FileWriterStream } from "@/internals/FileWriteStream"
-import { MarkdownANSIStream } from "/Users/lewis/Development/streaming-markdown/dist/index.js"
+import { MarkdownANSIStream } from "mdstream"
 
 const markdown = new MarkdownANSIStream(1)
 

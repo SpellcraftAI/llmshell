@@ -1,21 +1,29 @@
 import { Box, Text, render } from "ink"
 import { TextInput } from "./TextInput"
-import { useEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { useTerminalSize } from "./useTerminalWidth"
 import { clearTerminal } from "ansi-escapes"
-
+import { useMessages } from "./stream"
+import type { Server } from "bun"
+import { startServer } from "@/lib/api"
+import { useServer } from "./useServer"
+import { debug } from "@/lib/log"
 
 interface Message {
   from: "you" | string
   text: string
+  border?: boolean
 }
 
-const MessageBubble = ({ from, text }: Message) => {
+const MessageBubble = ({ from, text, border = false }: Message) => {
   const color = from === "you" ? "blue" : undefined
   const prefix = from === "you" ? "You" : from
 
+  const borderStyle = border ? "round" : undefined
+  const borderColor = border && from === "you" ? "blue" : undefined
+
   return (
-    <Box flexDirection={from === "you" ? "row-reverse" : "row"}>
+    <Box flexDirection={from === "you" ? "row-reverse" : "row"} paddingBottom={1}>
       <Box flexDirection="column">
         <Box paddingX={1}>
           <Text dimColor color={color}>
@@ -23,7 +31,11 @@ const MessageBubble = ({ from, text }: Message) => {
           </Text>
         </Box>
         
-        <Box borderStyle="round" borderColor={color} paddingX={1}>
+        <Box 
+          paddingX={1} 
+          borderStyle={borderStyle}
+          borderColor={borderColor}
+        >
           <Text color={color}>{text}</Text>
         </Box>
       </Box>
@@ -31,13 +43,18 @@ const MessageBubble = ({ from, text }: Message) => {
   )
 }
 
+
 const MessageView = () => {
+  const server = useServer()
   const terminalSize = useTerminalSize({ maxWidth: 100 })
-  const [result, setResult] = useState<Message[]>([])
+  const { formatted, pending, usage, send } = useMessages()
 
-  useEffect(() => { process.stdout.write(clearTerminal) }, [])
+  // Clear terminal on first render.
+  useEffect(() => { 
+    process.stdout.write(clearTerminal) 
+  }, [])
 
-  if (!terminalSize) {
+  if (!terminalSize || !server) {
     return null
   }
 
@@ -49,20 +66,51 @@ const MessageView = () => {
   }
 
   return (
-    <Box flexDirection="column" alignSelf="center">
-      <Box flexDirection="column" paddingTop={1} width={terminalWidth - 4}>
+    <Box 
+      width={terminalWidth - 4}
+      flexDirection="column" 
+      justifyContent="center"
+      alignSelf="center" 
+      paddingTop={1} 
+      // borderStyle="round"
+      // borderColor="red"
+    >
+      <Box 
+        flexDirection="column" 
+        alignSelf="center"
+        rowGap={1}
+        paddingX={4}
+        width={terminalWidth - 4}
+      >
+        {formatted.map(({ role, content }, index) => typeof content === "string" && (
+          <MessageBubble 
+            key={index} 
+            from={role === "assistant" ? "Claude" : "you"} 
+            text={content} 
+          />
+        ))}
 
-        <Box flexDirection="column" paddingX={4} width={terminalWidth - 4} rowGap={1}>
-          {result.map(({ from, text }, index) => (
-            <MessageBubble key={index} from={from} text={text.trim()} />
-          ))}
+        {pending && (
+          <MessageBubble from="Claude" text={pending.content} />
+        )}
+      </Box>
+
+      <Box flexDirection="row" alignItems="flex-start" gap={1}>
+        <Box 
+          flexDirection="column" 
+          alignItems="center" 
+          justifyContent="center" 
+          borderStyle="round" 
+          borderDimColor
+          marginTop={4}
+          paddingX={1}
+          flexShrink={0}
+        >
+          <Text bold>Usage</Text>
+          <Text>{usage?.totalTokens ?? 0}</Text>
         </Box>
-
-        <TextInput 
-          onSubmit={(text) => {
-            setResult((prev) => [...prev, { from: "you", text }, { from: "Claude", text: "Test response!" }])
-          }} 
-        />
+          
+        <TextInput onSubmit={send} />
       </Box>
     </Box>
   )

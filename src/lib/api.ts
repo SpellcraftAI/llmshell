@@ -3,9 +3,9 @@ import { spawn } from "child_process"
 import { Readable } from "stream"
 import { JSONPropertyStream, type JSONPropertyChunk } from "@/internals/JSONPropertyStream"
 import { parseContentStream } from "@/internals/parseContentStream"
-import { FileWriterStream, FileWriterTransform } from "@/internals/FileWriteStream"
+import { FileWriterStream } from "@/internals/FileWriteStream"
 
-const ENCODER = new TextEncoder()
+// const ENCODER = new TextEncoder()
 const DECODER = new TextDecoder()
 
 export type FileOperationType = "read" | "write" | "edit";
@@ -181,6 +181,7 @@ export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
   const apiHandler = new ApiHandler()
 
   return serve({
+    port: 3000,
     async fetch(request: Request): Promise<Response> {
       const url = new URL(request.url)
       // console.log(`${req.method} ${url.pathname} ${req.body ? "with body" : ""}`)

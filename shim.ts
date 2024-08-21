@@ -12,9 +12,9 @@ if (!matches?.length) {
   throw new Error("No matches found")
 }
 
-console.log(matches)
 for (const match of matches) {
-  content = content.replaceAll(new RegExp(`${match}(import.meta.url)`, "g"), "require")
+  const pattern = `${match}(import.meta.url)`
+  content = content.replaceAll(pattern, "require")
 }
 
 await Bun.write("dist/app.js", content)
