@@ -1,9 +1,9 @@
 import { tools } from "@/lib/tools"
 import { anthropic } from "@ai-sdk/anthropic"
 import { streamText, type CompletionTokenUsage, type CoreMessage, type ToolResultPart } from "ai"
-import { createANSIRenderer, createParser, finish, MarkdownANSIStream, parse } from "/Users/lewis/Development/streaming-markdown/dist/index.js"
+import { createANSIRenderer, createParser, finish, MarkdownANSIStream, parse } from "mdstream"
 import { useCallback, useState } from "react"
-import { debug, sessionLog } from "@/lib/log"
+import { log, sessionLog } from "@/lib/log"
 
 const SYSTEM_PROMPT = `
 You interface with the user's computer system. 
@@ -73,7 +73,7 @@ export const useMessages = () => {
       // Initialize assistant message
       setPending({ role: "assistant", content: " " })
 
-      await debug("STREAM STARTED")
+      await log("STREAM STARTED")
       try {
         const { textStream, usage, toolCalls, toolResults } = await streamText({
           model,
@@ -143,7 +143,7 @@ export const useMessages = () => {
           await send()
           setUsedTools(true)
           setRoundtrips((prev) => prev + 1)
-          await debug("ROUNDTRIP", `${roundtrips}`)
+          await log("ROUNDTRIP", `${roundtrips}`)
         } else {
           setUsedTools(false)
         }
@@ -156,7 +156,7 @@ export const useMessages = () => {
         //   // setFormatted((prev) => [...prev, ...toolMessages])
         // }
       } catch (e) {
-        await debug("STREAM ERROR", JSON.stringify(e))
+        await log("STREAM ERROR", JSON.stringify(e))
       }
     },
     [messages, roundtrips]

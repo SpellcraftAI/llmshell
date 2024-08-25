@@ -100,7 +100,7 @@ describe("Server API", () => {
     await Bun.write(testFilePath, "") // Clear file content
   })
 
-  test("POST /terminal - tree command", async () => {
+  test.skipIf(process.platform === "win32")("POST /terminal - tree command", async () => {
     const response = await fetch(`${BASE_URL}/terminal`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -159,7 +159,7 @@ describe("Server API", () => {
     }
   
     const decoder = new TextDecoder()
-    let receivedParts = []
+    const receivedParts = []
     let fullOutput = ""
   
     while (true) {

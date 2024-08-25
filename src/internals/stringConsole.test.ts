@@ -7,6 +7,7 @@ const hasColorCodes = (str: string) => /\u001b\[\d+m/.test(str)
 describe("StringConsole", () => {
   describe("with colors enabled", () => {
     const colorConsole = new StringConsole({ colorMode: true })
+    chalk.level = 3
 
     test("captures console.log output with colors", () => {
       const output = colorConsole.log(chalk.dim("Hello, world!"))
@@ -50,7 +51,8 @@ describe("StringConsole", () => {
     const noColorConsole = new StringConsole({ colorMode: false })
 
     test("captures console.log output without colors", () => {
-      const output = noColorConsole.log("Hello, world!")
+      chalk.level = 0
+      const output = noColorConsole.log(chalk.dim("Hello, world!"))
       expect(hasColorCodes(output)).toBe(false)
       expect(output).toBe("Hello, world!")
     })

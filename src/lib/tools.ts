@@ -1,6 +1,5 @@
 import { getShellCommand } from "@/internals/getShellCommand"
-import { JSONPropertyStream, type JSONPropertyChunk } from "@/internals/JSONPropertyStream"
-import { streamText, tool, type CoreMessage, type LanguageModel } from "ai"
+import { tool } from "ai"
 import { z } from "zod"
 
 

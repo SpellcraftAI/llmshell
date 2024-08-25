@@ -4,7 +4,7 @@ import { Console } from "node:console"
 export class StringConsole extends Console {
   private output: string[] = []
 
-  constructor({ colorMode = true } = { colorMode: true }) {
+  constructor({ colorMode = true } = {}) {
     const stream = new Writable({
       write: (chunk, encoding, callback) => {
         this.output.push(chunk.toString())
@@ -17,7 +17,7 @@ export class StringConsole extends Console {
 
   private captureOutput(method: keyof Console, ...args: any[]): string {
     this.output = []
-    // @ts-ignore
+    // @ts-expect-error will always eist
     super[method](...args)
     return this.output.join(" ").trim()
   }

@@ -1,9 +1,9 @@
 
 import { useEffect, useState } from "react"
 import { useApp, useInput } from "ink"
-import { cursorHide } from "ansi-escapes"
+import { cursorHide, cursorShow } from "ansi-escapes"
 import { getTextSegments, insertText, moveCursor, removeTextBefore, type CursorPosition } from "./cursor"
-import { debug } from "@/lib/log"
+import { log } from "@/lib/log"
 
 export const useKeyboard = (onSubmit?: (input: string) => void | Promise<void>) => {
   const { exit } = useApp()
@@ -12,6 +12,10 @@ export const useKeyboard = (onSubmit?: (input: string) => void | Promise<void>) 
 
   useEffect(() => {
     process.stdout.write(cursorHide)
+
+    return () => {
+      process.stdout.write(cursorShow)
+    }
   }, [])
 
   const handleEnter = () => {
@@ -63,7 +67,7 @@ export const useKeyboard = (onSubmit?: (input: string) => void | Promise<void>) 
           setCursorPosition({ x: cursorPosition.x + input.length, y: cursorPosition.y })
         } else {
           const lines = input.split("\n")
-          await debug("input", JSON.stringify(input))
+          await log("input", JSON.stringify(input))
           let editedText = text
           for (const line of lines) {
             editedText = insertText(editedText, cursorPosition, line + "\n")
@@ -77,6 +81,8 @@ export const useKeyboard = (onSubmit?: (input: string) => void | Promise<void>) 
         }
       }
     }
+  }, {
+    isActive: true
   })
 
   const { before, at, after } = getTextSegments(text, cursorPosition)

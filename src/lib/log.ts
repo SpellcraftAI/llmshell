@@ -4,7 +4,7 @@ import { mkdir, appendFile } from "fs/promises"
 import type { CoreMessage } from "ai"
 
 // date-time file compatible
-const SESSION_ID = 
+const SESSION_ID =
   new Date()
     .toLocaleString("en-US", {
       year: "numeric",
@@ -38,9 +38,9 @@ const ensureLogsExist = async () => {
   }
 }
 
-export const debug = async (...messages: string[]) => {
+export const log = async (...messages: unknown[]) => {
   await ensureLogsExist()
-  await appendFile(DEBUG_PATH, `${new Date().toISOString()}\n${messages.join("\n")}\n\n`)
+  await appendFile(DEBUG_PATH, `${new Date().toISOString()}\n${messages.map((msg) => JSON.stringify(msg)).join("\n")}\n\n`)
 }
 
 export const sessionLog = async (...messages: CoreMessage[]) => {

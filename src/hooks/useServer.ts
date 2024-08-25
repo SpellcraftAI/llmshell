@@ -1,45 +1,50 @@
-import { startServer } from "@/lib/api"
-import { debug } from "@/lib/log"
+import { useEffect } from "react"
 import type { Server } from "bun"
-import { useCallback, useEffect, useState } from "react"
+
+import { startServer } from "@/lib/api"
+import { log } from "@/lib/log"
+
+let server: Server
+let stopped = false
+
+export const stopServer = () => {
+  if (stopped) {
+    return
+  }
+  
+  if (!server) {
+    log("Tried to stop server, but not started")
+  }
+
+  server.stop()
+  stopped = true
+  log("Server stopped")
+}
 
 export const useServer = () => {
-  const [server, setServer] = useState<Server | null>(null)
+  useEffect(
+    () => {
+      server = startServer()
+      log("Server started")
+      return stopServer
+    }, 
+    []
+  )
 
-  const createServer = useCallback(() => {
-    return startServer()
-  }, [])
+  useEffect(
+    () => {
+      process.on("exit", stopServer)
+      process.on("SIGINT", stopServer)
+      process.on("SIGTERM", stopServer)
 
-  useEffect(() => {
-    const newServer = createServer()
-    setServer(newServer)
-
-    return () => {
-      if (newServer) {
-        newServer.stop()
-        debug("Server stopped")
+      return () => {
+        process.off("exit", stopServer)
+        process.off("SIGINT", stopServer)
+        process.off("SIGTERM", stopServer)
       }
-    }
-  }, [createServer])
-
-  useEffect(() => {
-    const handleExit = () => {
-      if (server) {
-        server.stop()
-        debug("Server stopped due to process exit")
-      }
-    }
-
-    process.on("exit", handleExit)
-    process.on("SIGINT", handleExit)
-    process.on("SIGTERM", handleExit)
-
-    return () => {
-      process.off("exit", handleExit)
-      process.off("SIGINT", handleExit)
-      process.off("SIGTERM", handleExit)
-    }
-  }, [server])
+    }, 
+    []
+  )
 
   return server
 }

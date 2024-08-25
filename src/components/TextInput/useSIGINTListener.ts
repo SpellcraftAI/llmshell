@@ -1,10 +1,6 @@
 import { useApp, useStdin } from "ink"
 import { useCallback, useEffect } from "react"
 
-const SIGINT = () => {
-  process.exit(130)
-}
-
 export const useSIGINTListener = () => {
   const { exit } = useApp()
   const { stdin } = useStdin()
@@ -16,7 +12,6 @@ export const useSIGINTListener = () => {
       // Ctrl+C, Ctrl+D
       if (key === "\x03" || key === "\x04") {
         exit()
-        SIGINT()
       }
     },
     [exit]
