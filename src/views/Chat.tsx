@@ -1,50 +1,15 @@
-import { Box, Text, render } from "ink"
-import { TextInput } from "./TextInput"
-import { useCallback, useEffect, useState } from "react"
-import { useTerminalSize } from "./useTerminalWidth"
+import { Box, Text } from "ink"
+import { useEffect } from "react"
 import { clearTerminal } from "ansi-escapes"
-import { useMessages } from "./stream"
-import type { Server } from "bun"
-import { startServer } from "@/lib/api"
-import { useServer } from "./useServer"
-import { debug } from "@/lib/log"
 
-interface Message {
-  from: "you" | string
-  text: string
-  border?: boolean
-}
-
-const MessageBubble = ({ from, text, border = false }: Message) => {
-  const color = from === "you" ? "blue" : undefined
-  const prefix = from === "you" ? "You" : from
-
-  const borderStyle = border ? "round" : undefined
-  const borderColor = border && from === "you" ? "blue" : undefined
-
-  return (
-    <Box flexDirection={from === "you" ? "row-reverse" : "row"} paddingBottom={1}>
-      <Box flexDirection="column">
-        <Box paddingX={1}>
-          <Text dimColor color={color}>
-            {prefix}
-          </Text>
-        </Box>
-        
-        <Box 
-          paddingX={1} 
-          borderStyle={borderStyle}
-          borderColor={borderColor}
-        >
-          <Text color={color}>{text}</Text>
-        </Box>
-      </Box>
-    </Box>
-  )
-}
+import { TextInput } from "@/components/TextInput"
+import { MessageBubble } from "@/components/MessageBubble"
+import { useTerminalSize } from "@/hooks/useTerminalWidth"
+import { useMessages } from "@/hooks/useMessages"
+import { useServer } from "@/hooks/useServer"
 
 
-export const App = () => {
+export const Chat = () => {
   const server = useServer()
   const terminalSize = useTerminalSize({ maxWidth: 100 })
   const { formatted, pending, usage, send } = useMessages()

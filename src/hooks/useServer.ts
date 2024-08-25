@@ -1,4 +1,5 @@
 import { startServer } from "@/lib/api"
+import { debug } from "@/lib/log"
 import type { Server } from "bun"
 import { useCallback, useEffect, useState } from "react"
 
@@ -13,21 +14,19 @@ export const useServer = () => {
     const newServer = createServer()
     setServer(newServer)
 
-    const cleanup = () => {
+    return () => {
       if (newServer) {
         newServer.stop()
-        console.log("Server stopped")
+        debug("Server stopped")
       }
     }
-
-    return cleanup
   }, [createServer])
 
   useEffect(() => {
     const handleExit = () => {
       if (server) {
         server.stop()
-        console.log("Server stopped due to process exit")
+        debug("Server stopped due to process exit")
       }
     }
 

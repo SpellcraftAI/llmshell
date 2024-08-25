@@ -1,4 +1,4 @@
 import { render } from "ink"
-import { App } from "./ink/app"
+import App from "./app"
 
 render(<App />)
