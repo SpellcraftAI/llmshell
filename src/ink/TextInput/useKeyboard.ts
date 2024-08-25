@@ -2,7 +2,8 @@
 import { useEffect, useState } from "react"
 import { useApp, useInput } from "ink"
 import { cursorHide } from "ansi-escapes"
-import { getTextSegments, insertText, moveCursor, removeTextBefore, type CursorPosition } from "../cursor"
+import { getTextSegments, insertText, moveCursor, removeTextBefore, type CursorPosition } from "./cursor"
+import { debug } from "@/lib/log"
 
 export const useKeyboard = (onSubmit?: (input: string) => void | Promise<void>) => {
   const { exit } = useApp()
@@ -40,7 +41,7 @@ export const useKeyboard = (onSubmit?: (input: string) => void | Promise<void>) 
     else if (key.downArrow) setCursorPosition(moveCursor("down", text, cursorPosition))
   }
 
-  useInput((input, key) => {
+  useInput(async (input, key) => {
     if (key.escape) {
       exit()
     } else if (key.return) {
@@ -50,9 +51,31 @@ export const useKeyboard = (onSubmit?: (input: string) => void | Promise<void>) 
     } else if (key.leftArrow || key.rightArrow || key.upArrow || key.downArrow) {
       handleArrowKeys(key)
     } else {
-      const newText = insertText(text, cursorPosition, input)
-      setText(newText)
-      setCursorPosition({ ...cursorPosition, x: cursorPosition.x + input.length })
+      if (input.length === 1) {
+        const newText = insertText(text, cursorPosition, input)
+        setText(newText)
+        setCursorPosition({ x: cursorPosition.x + 1, y: cursorPosition.y })
+      } else {
+        input = input.replaceAll("\r", "\n")
+        if (!input.includes("\n")) {
+          const newText = insertText(text, cursorPosition, input)
+          setText(newText)
+          setCursorPosition({ x: cursorPosition.x + input.length, y: cursorPosition.y })
+        } else {
+          const lines = input.split("\n")
+          await debug("input", JSON.stringify(input))
+          let editedText = text
+          for (const line of lines) {
+            editedText = insertText(editedText, cursorPosition, line + "\n")
+
+            cursorPosition.x = 0
+            cursorPosition.y += 1
+          }
+        
+          setText(editedText)
+          setCursorPosition(cursorPosition)
+        }
+      }
     }
   })
 

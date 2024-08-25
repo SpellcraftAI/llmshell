@@ -44,7 +44,7 @@ const MessageBubble = ({ from, text, border = false }: Message) => {
 }
 
 
-const MessageView = () => {
+export const App = () => {
   const server = useServer()
   const terminalSize = useTerminalSize({ maxWidth: 100 })
   const { formatted, pending, usage, send } = useMessages()
@@ -115,5 +115,3 @@ const MessageView = () => {
     </Box>
   )
 }
-
-render(<MessageView />)
