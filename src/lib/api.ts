@@ -1,4 +1,3 @@
-import { serve } from "bun"
 import { spawn } from "child_process"
 import { Readable } from "stream"
 import { JSONPropertyStream, type JSONPropertyChunk } from "@/internals/JSONPropertyStream"
@@ -180,7 +179,7 @@ export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
 
   const apiHandler = new ApiHandler()
 
-  return serve({
+  return Bun.serve({
     port: 3000,
     async fetch(request: Request): Promise<Response> {
       const url = new URL(request.url)

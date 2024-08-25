@@ -4,10 +4,9 @@
   "type": "module",
   "platform": "node",
   "scripts": {
-    "bundle": "bun build --bundle src/ink/app.tsx --outfile dist/app.js --target node",
-    "bundle-replace": "bun shim.ts",
-    "compile": "bun build --minify --compile dist/app.js --outfile dist/app",
-    "postcompile": "cp node_modules/yoga-wasm-web/dist/yoga.wasm dist",
+    "bundle": "bun build --bundle --minify src/bin.tsx --outfile dist/bin.js --target node",
+    "postbundle": "bun shim.ts && cp node_modules/yoga-wasm-web/dist/yoga.wasm dist",
+    "compile": "bun build --compile dist/bin.js --outfile dist/bin",
     "lint": "eslint . --fix"
   },
   "devDependencies": {
@@ -37,6 +36,7 @@
     "mdstream": "^0.1.1",
     "ora": "^8.0.1",
     "partial-json": "^0.1.7",
+    "pastel": "^3.0.0",
     "react": "^18.3.1",
     "screenshot-desktop": "^1.15.0",
     "streaming-markdown": "^0.0.14",

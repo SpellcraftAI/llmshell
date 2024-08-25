@@ -1,4 +1,4 @@
 import { render } from "ink"
-import App from "./app"
+import { Chat } from "@/views/Chat"
 
-render(<App />)
+render(<Chat />)

@@ -1,5 +1,5 @@
-const appBundle = Bun.file("dist/app.js")
-let content = await new Response(appBundle).text()
+const bin = Bun.file("dist/bin.js")
+let content = await new Response(bin).text()
 
 // Replace createRequire(import.meta.url) with require
 content = content.replace(/createRequire\(import\.meta\.url\)/g, "require")
@@ -17,5 +17,5 @@ for (const match of matches) {
   content = content.replaceAll(pattern, "require")
 }
 
-await Bun.write("dist/app.js", content)
-console.log("Successfully shimmed dist/app.js")
+await Bun.write("dist/bin.js", content)
+console.log("Successfully shimmed dist/bin.js")
