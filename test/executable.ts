@@ -9,8 +9,17 @@ import { ReadStream } from "tty"
 import os from "os"
 
 class MockedStdin extends ReadStream {
+  fd = 0 as const
+  isTTY = true
+  isRaw = false
+
   constructor() {
     super(0, { readable: true, writable: true, allowHalfOpen: true, fd: 0 })
+  }
+
+  setRawMode(raw: boolean) {
+    this.isRaw = raw
+    return this
   }
 
   write(data: Uint8Array) {
@@ -20,6 +29,9 @@ class MockedStdin extends ReadStream {
 }
 
 const stdin = new MockedStdin()
+process.stdin = stdin
+process.stdin.setRawMode(true)
+
 const stdoutBuffer: number[] = []
 const stderrBuffer: number[] = []
 
