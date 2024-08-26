@@ -10,7 +10,7 @@ process.on("message", (ipc) => {
   }
 })
 
-const { waitUntilExit } = render(<Chat />)
+const { waitUntilExit } = render(<Chat />, { stdin: process.stdin })
 await waitUntilExit()
 
 stopServer()
