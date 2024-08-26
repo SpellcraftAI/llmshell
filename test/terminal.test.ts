@@ -3,7 +3,7 @@ import { expect, test } from "bun:test"
 import { spawn } from "child_process"
 import os from "os"
 
-test("terminal", async () => {
+test.skip("terminal", async () => {
   const stdoutBuffer: number[] = []
   const stderrBuffer: number[] = []
 

@@ -8,7 +8,8 @@
     "postbundle": "bun shim.ts && cp node_modules/yoga-wasm-web/dist/yoga.wasm dist",
     "compile": "bun build --compile dist/bin.js --outfile dist/bin",
     "build": "bun run bundle && bun run compile",
-    "lint": "eslint src --fix"
+    "lint": "eslint src --fix",
+    "test": "bun test && bun test/executable.ts"
   },
   "devDependencies": {
     "@types/bun": "^1.1.6",
