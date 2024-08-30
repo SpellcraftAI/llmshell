@@ -55,11 +55,13 @@ await new Promise((resolve) => setTimeout(resolve, 1000))
 // await new Promise((resolve) => setTimeout(resolve, 3000))
 
 try {
-  console.log("Sending STOP_CLAUDE_SERVER message")
-  subprocess.send("STOP_CLAUDE_SERVER")
-  await new Promise((resolve) => setTimeout(resolve, 500))
-  console.log("Sending SIGINT")
-  subprocess.kill("SIGINT")
+  if (subprocess.exitCode !== null) {
+    console.log("Sending STOP_CLAUDE_SERVER message")
+    subprocess.send("STOP_CLAUDE_SERVER")
+    await new Promise((resolve) => setTimeout(resolve, 500))
+    console.log("Sending SIGINT")
+    subprocess.kill("SIGINT")
+  }
 } catch (e) {
   console.error("Error occurred:", e)
 }
