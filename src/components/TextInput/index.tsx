@@ -37,8 +37,8 @@ export const TextInput = ({ onSubmit, ...props }: TextInputProps) => {
 
       <Box paddingLeft={1} flexDirection="row" justifyContent="space-between">
         <Box flexDirection="column">
-          <Text dimColor>Hit [ENTER ⏎] 3x to send.</Text>
-          <Text dimColor>Use [ESC] or Ctrl+C/Ctrl+D to exit.</Text>
+          <Text>Press <Text bold dimColor>ENTER ⏎</Text> 3x to send.</Text>
+          <Text>Press <Text bold dimColor>ESC</Text>, <Text bold dimColor>Ctrl+C</Text>, or <Text bold dimColor>Ctrl+D</Text> to exit.</Text>
         </Box>
 
         <Box flexDirection="column">

@@ -64,10 +64,11 @@ export const Chat = () => {
         <Box 
           flexDirection="column" 
           alignItems="center" 
+          alignSelf="flex-start"
           justifyContent="center" 
           borderStyle="round" 
           borderDimColor
-          marginTop={4}
+          marginTop={2}
           paddingX={1}
           flexShrink={0}
         >

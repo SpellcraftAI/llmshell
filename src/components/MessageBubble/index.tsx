@@ -16,7 +16,7 @@ export const MessageBubble = ({ from, text, border = false }: Message) => {
   return (
     <Box flexDirection={from === "you" ? "row-reverse" : "row"} paddingBottom={1}>
       <Box flexDirection="column">
-        <Box paddingX={1}>
+        <Box paddingX={1} marginBottom={1}>
           <Text dimColor color={color}>
             {prefix}
           </Text>
