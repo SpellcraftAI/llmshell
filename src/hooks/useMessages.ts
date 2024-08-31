@@ -3,7 +3,7 @@ import { anthropic } from "@ai-sdk/anthropic"
 import { streamText, type CompletionTokenUsage, type CoreMessage, type ToolResultPart } from "ai"
 import { createANSIRenderer, createParser, finish, MarkdownANSIStream, parse } from "mdstream"
 import { useCallback, useState } from "react"
-import { log, sessionLog } from "@/lib/log"
+import { addMessage, log, sessionLog } from "@/lib/log"
 
 const SYSTEM_PROMPT = `
 You interface with the user's computer system. 
@@ -35,9 +35,47 @@ const model = anthropic("claude-3-5-sonnet-20240620")
 
 const MAX_ROUND_TRIPS = 5
 
-export const useMessages = () => {
-  const [messages, setMessages] = useState<CoreMessage[]>([])
-  const [formatted, setFormatted] = useState<CoreMessage[]>([])
+const parseSync = (text: string) => {
+  let parsed = ""
+
+  const ansiRenderer = createANSIRenderer({
+    level: 1,
+    render: (chunk) => parsed += chunk
+  })
+
+  const ansiParser = createParser(ansiRenderer)
+  parse(ansiParser, text)
+  finish(ansiParser)
+  return parsed
+}
+
+const parseMessages = (messages: CoreMessage[]): CoreMessage[] => {
+  return messages.map((message) => {
+    if (message.role !== "assistant" && message.role !== "user") {
+      return message
+    }
+
+    if (typeof message.content === "string") {
+      return { ...message, content: parseSync(message.content) }
+    } else if (Array.isArray(message.content)) {
+      const formattedContentArray = message.content.map((content) => {
+        if (content.type === "text") {
+          return ({ ...content, text: parseSync(content.text) })
+        }
+
+        return content
+      })
+
+      return { ...message, content: formattedContentArray }
+    }
+
+    return message
+  }) as CoreMessage[]
+}
+
+export const useMessages = (initialMessages: CoreMessage[] = []) => {
+  const [messages, setMessages] = useState<CoreMessage[]>(initialMessages)
+  const [formatted, setFormatted] = useState<CoreMessage[]>(parseMessages(initialMessages))
   const [pending, setPending] = useState<{ role: "assistant", content: string } | null>(null)
   const [usage, setUsage] = useState<CompletionTokenUsage>()
 
@@ -48,21 +86,12 @@ export const useMessages = () => {
     async (text?: string) => {
       const messageText = text?.trimEnd()
       if (messageText) {
-        let messageFormatted = ""
-
-        const ansiRenderer = createANSIRenderer({
-          level: 1,
-          render: (chunk) => messageFormatted += chunk
-        })
-
-        const ansiParser = createParser(ansiRenderer)
-        parse(ansiParser, messageText)
-        finish(ansiParser)
        
         const userMessage: CoreMessage = { role: "user", content: messageText }
-        const userMessageFormatted: CoreMessage = { role: "user", content: messageFormatted }
+        const userMessageFormatted: CoreMessage = { role: "user", content: parseSync(messageText) }
 
         messages.push(userMessage)
+        await addMessage(userMessage)
         await sessionLog(userMessage)
       
         // Add user message to raw & formatted
@@ -124,7 +153,7 @@ export const useMessages = () => {
           { 
             role: "assistant", 
             content: [ 
-              { type: "text", text: rawText },
+              { type: "text", text: rawText.trim() },
               ...finishedToolCalls
             ]
           },
@@ -136,6 +165,7 @@ export const useMessages = () => {
 
         messages.push(...assistantMessages)
         await sessionLog(...assistantMessages)
+        await addMessage(...assistantMessages)
 
         setMessages(messages)
 

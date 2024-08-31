@@ -1,5 +1,5 @@
 import { Box, Text } from "ink"
-import { useEffect } from "react"
+import { useLayoutEffect } from "react"
 import { clearTerminal } from "ansi-escapes"
 
 import { TextInput } from "@/components/TextInput"
@@ -7,17 +7,41 @@ import { MessageBubble } from "@/components/MessageBubble"
 import { useTerminalSize } from "@/hooks/useTerminalWidth"
 import { useMessages } from "@/hooks/useMessages"
 import { useServer } from "@/hooks/useServer"
+import { compactNumber } from "@/lib/number"
+import type { Conversation } from "@/lib/log"
+import type { CoreMessage } from "ai"
 
+const CoreMessageBubble = ({ message }: { message: CoreMessage }) => {
+  const from = message.role === "assistant" ? "Claude" : "you"
 
-export const Chat = () => {
+  if (Array.isArray(message.content)) {
+    return message.content.map(
+      (message, index) => (
+        message.type === "text" && <MessageBubble key={index} from={from} text={message.text} />
+      )
+    )
+  }
+
+  return (
+    <MessageBubble from={from} text={message.content} />
+  )
+}
+
+export interface ChatProps {
+  conversation?: Conversation
+}
+
+export const Chat = ({ conversation }: ChatProps) => {
   const server = useServer()
   const terminalSize = useTerminalSize({ maxWidth: 100 })
-  const { formatted, pending, usage, send } = useMessages()
+  const { formatted, pending, usage, send } = useMessages(conversation?.messages)
 
-  // Clear terminal on first render.
-  useEffect(() => { 
-    process.stdout.write(clearTerminal) 
-  }, [])
+  useLayoutEffect(() => {
+    // Clear terminal on first render.
+    process.stdout.write(clearTerminal)
+    // Stop server on exit.
+    process.on("exit", () => server?.stop())
+  }, [server])
 
   if (!terminalSize || !server) {
     return null
@@ -47,12 +71,8 @@ export const Chat = () => {
         paddingX={4}
         width={terminalWidth - 4}
       >
-        {formatted.map(({ role, content }, index) => typeof content === "string" && (
-          <MessageBubble 
-            key={index} 
-            from={role === "assistant" ? "Claude" : "you"} 
-            text={content} 
-          />
+        {formatted.map((message, index) => (
+          <CoreMessageBubble key={index} message={message} />
         ))}
 
         {pending && (
@@ -72,8 +92,8 @@ export const Chat = () => {
           paddingX={1}
           flexShrink={0}
         >
-          <Text bold>Usage</Text>
-          <Text>{usage?.totalTokens ?? 0}</Text>
+          <Text bold>Tokens</Text>
+          <Text>{compactNumber(usage?.totalTokens ?? 0)}</Text>
         </Box>
           
         <TextInput onSubmit={send} />

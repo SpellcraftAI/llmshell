@@ -1,10 +1,10 @@
-import { useEffect } from "react"
+import { useLayoutEffect } from "react"
 import type { Server } from "bun"
 
 import { startServer } from "@/lib/api"
 import { log } from "@/lib/log"
 
-let server: Server
+let server: Server | undefined
 let stopped = false
 
 export const stopServer = () => {
@@ -16,13 +16,13 @@ export const stopServer = () => {
     log("Tried to stop server, but not started")
   }
 
-  server.stop()
+  server?.stop()
   stopped = true
   log("Server stopped")
 }
 
 export const useServer = () => {
-  useEffect(
+  useLayoutEffect(
     () => {
       server = startServer()
       log("Server started")
@@ -31,7 +31,7 @@ export const useServer = () => {
     []
   )
 
-  useEffect(
+  useLayoutEffect(
     () => {
       process.on("exit", stopServer)
       process.on("SIGINT", stopServer)

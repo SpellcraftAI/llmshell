@@ -1,5 +1,5 @@
 import { useApp, useStdin } from "ink"
-import { useCallback, useEffect } from "react"
+import { useCallback, useLayoutEffect } from "react"
 
 export const useSIGINTListener = () => {
   const { exit } = useApp()
@@ -17,7 +17,7 @@ export const useSIGINTListener = () => {
     [exit]
   )
 
-  useEffect(
+  useLayoutEffect(
     () => {
       process.stdin.resume()
       stdin.on("data", close)

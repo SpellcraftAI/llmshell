@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react"
+import { useLayoutEffect, useState } from "react"
 import { useApp, useInput } from "ink"
 import { cursorHide, cursorShow } from "ansi-escapes"
 import { getTextSegments, insertText, moveCursor, removeTextBefore, type CursorPosition } from "./cursor"
@@ -10,7 +10,7 @@ export const useKeyboard = (onSubmit?: (input: string) => void | Promise<void>) 
   const [text, setText] = useState("")
   const [cursorPosition, setCursorPosition] = useState<CursorPosition>({ x: 0, y: 0 })
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     process.stdout.write(cursorHide)
 
     return () => {

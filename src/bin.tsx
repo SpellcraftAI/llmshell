@@ -2,15 +2,9 @@ import { render } from "ink"
 import { Chat } from "@/views/Chat"
 import { stopServer } from "./hooks/useServer"
 import { log } from "./lib/log"
+import { Home } from "./views/Home"
 
-process.on("message", (ipc) => {
-  log({ ipc })
-  if (ipc === "STOP_CLAUDE_SERVER") {
-    stopServer()
-  }
-})
-
-const { waitUntilExit } = render(<Chat />, { stdin: process.stdin })
+const { waitUntilExit } = render(<Home />, { stdin: process.stdin })
 await waitUntilExit()
 
 stopServer()
