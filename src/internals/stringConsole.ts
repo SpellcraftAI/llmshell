@@ -48,3 +48,5 @@ export class StringConsole extends Console {
 
   // Override other Console methods as needed
 }
+
+export const stringConsole = new StringConsole()

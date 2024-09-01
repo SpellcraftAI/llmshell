@@ -46,7 +46,7 @@ export const useKeyboard = (onSubmit?: (input: string) => void | Promise<void>) 
   }
 
   useInput(async (input, key) => {
-    log("input", { input }, { key })
+    // log("input", { input }, { key })
     if (key.meta) return
     if (key.escape) {
       exit()

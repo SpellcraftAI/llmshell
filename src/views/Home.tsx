@@ -2,11 +2,12 @@ import React, { useCallback, useLayoutEffect, useMemo, useState } from "react"
 import { sep } from "path"
 import { Box, Text } from "ink"
 import { useSIGINTListener } from "@/components/TextInput/useSIGINTListener"
-import { getConversations, log, type Conversation } from "@/lib/log"
+import { getConversations, log, setSessionId, type Conversation } from "@/lib/log"
 import { Scrollable } from "@/components/Scrollable"
 import { parseJsonl } from "@/lib/jsonl"
 import { CenterView } from "./Center"
 import { Chat } from "./Chat"
+import { useClearScreen } from "@/hooks/useClearScreen"
 interface ConversationPreview {
   path: string
   title: string
@@ -17,14 +18,17 @@ interface ConversationPreview {
 export const Home = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
+  
   useSIGINTListener()
+  useClearScreen()
   
   useLayoutEffect(() => {
     getConversations().then(setConversations)
   }, [])
   
   const handleSelect = (item: Conversation) => {
-    log("Selected conversation", item)
+    setSessionId(`${item.timestamp}`)
+    // log("Selected conversation", item)
     // Here you can add logic to open or display the selected conversation
   }
 
@@ -53,23 +57,24 @@ export const Home = () => {
 
   const introView = (
     <CenterView>
-      <Box flexDirection="row" paddingTop={2}>
-        <Box flexDirection="column">
-          <Box paddingLeft={2}>
-            <Text bold>Conversations</Text>
+      <Box flexDirection="column" paddingTop={2}>
+        <Box flexDirection="column" gap={1}>
+    
+          <Box flexDirection="column" justifyContent="center" alignItems="center" alignSelf="center">
+            <Text bold>Welcome to GSH v2024.1.</Text>
+            <Text dimColor>Now running on Claude Sonnet 3.5.</Text>
           </Box>
+    
           <Scrollable 
             items={conversations}
             renderItem={renderConversationItem}
             itemHeight={4}
             visibleItems={5}
-            onSelect={(item, index) => setSelectedConversation(item)}
+            onSelect={(item, index) => {
+              setSelectedConversation(item)
+              setSessionId(`${item.timestamp}`)
+            }}
           />
-        </Box>
-    
-        <Box flexDirection="column" justifyContent="center" alignItems="center" alignSelf="center" width={40}>
-          <Text bold>Welcome to GSH v2024.1.</Text>
-          <Text dimColor>Now built with Claude Sonnet 3.5.</Text>
         </Box>
       </Box>
     </CenterView>

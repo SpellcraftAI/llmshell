@@ -1,3 +1,4 @@
+import type { ForegroundColorName } from "ansi-styles"
 import { Box, Text } from "ink"
 
 interface Message {
@@ -7,17 +8,18 @@ interface Message {
 }
 
 export const MessageBubble = ({ from, text, border = false }: Message) => {
-  const color = from === "you" ? "blue" : undefined
+  const prefixColor: ForegroundColorName | undefined = from === "you" ? "blue" : "yellow"
+  const textColor: ForegroundColorName | undefined = from === "you" ? "blue" : undefined
   const prefix = from === "you" ? "You" : from
 
   const borderStyle = border ? "round" : undefined
   const borderColor = border && from === "you" ? "blue" : undefined
 
   return (
-    <Box flexDirection={from === "you" ? "row-reverse" : "row"} paddingBottom={1}>
+    <Box flexDirection={from === "you" ? "row-reverse" : "row"}>
       <Box flexDirection="column">
         <Box paddingX={1} marginBottom={1}>
-          <Text dimColor color={color}>
+          <Text dimColor color={prefixColor}>
             {prefix}
           </Text>
         </Box>
@@ -27,7 +29,7 @@ export const MessageBubble = ({ from, text, border = false }: Message) => {
           borderStyle={borderStyle}
           borderColor={borderColor}
         >
-          <Text color={color}>{text}</Text>
+          <Text color={textColor}>{text}</Text>
         </Box>
       </Box>
     </Box>

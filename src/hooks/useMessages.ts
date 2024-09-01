@@ -1,7 +1,7 @@
 import { tools } from "@/lib/tools"
 import { anthropic } from "@ai-sdk/anthropic"
 import { streamText, type CompletionTokenUsage, type CoreMessage, type ToolResultPart } from "ai"
-import { createANSIRenderer, createParser, finish, MarkdownANSIStream, parse } from "mdstream"
+import { MarkdownANSIStream } from "mdstream"
 import { useCallback, useState } from "react"
 import { addMessage, log, sessionLog } from "@/lib/log"
 
@@ -35,48 +35,9 @@ const model = anthropic("claude-3-5-sonnet-20240620")
 
 const MAX_ROUND_TRIPS = 5
 
-const parseSync = (text: string) => {
-  let parsed = ""
-
-  const ansiRenderer = createANSIRenderer({
-    level: 1,
-    render: (chunk) => parsed += chunk
-  })
-
-  const ansiParser = createParser(ansiRenderer)
-  parse(ansiParser, text)
-  finish(ansiParser)
-  return parsed
-}
-
-const parseMessages = (messages: CoreMessage[]): CoreMessage[] => {
-  return messages.map((message) => {
-    if (message.role !== "assistant" && message.role !== "user") {
-      return message
-    }
-
-    if (typeof message.content === "string") {
-      return { ...message, content: parseSync(message.content) }
-    } else if (Array.isArray(message.content)) {
-      const formattedContentArray = message.content.map((content) => {
-        if (content.type === "text") {
-          return ({ ...content, text: parseSync(content.text) })
-        }
-
-        return content
-      })
-
-      return { ...message, content: formattedContentArray }
-    }
-
-    return message
-  }) as CoreMessage[]
-}
-
 export const useMessages = (initialMessages: CoreMessage[] = []) => {
+  const [pending, setPending] = useState(false)
   const [messages, setMessages] = useState<CoreMessage[]>(initialMessages)
-  const [formatted, setFormatted] = useState<CoreMessage[]>(parseMessages(initialMessages))
-  const [pending, setPending] = useState<{ role: "assistant", content: string } | null>(null)
   const [usage, setUsage] = useState<CompletionTokenUsage>()
 
   const [usedTools, setUsedTools] = useState(false)
@@ -84,60 +45,100 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
   
   const send = useCallback(
     async (text?: string) => {
-      const messageText = text?.trimEnd()
-      if (messageText) {
-       
-        const userMessage: CoreMessage = { role: "user", content: messageText }
-        const userMessageFormatted: CoreMessage = { role: "user", content: parseSync(messageText) }
-
-        messages.push(userMessage)
-        await addMessage(userMessage)
-        await sessionLog(userMessage)
-      
-        // Add user message to raw & formatted
-        setMessages(messages)
-        setFormatted((prev) => [...prev, userMessageFormatted])
-      }
-      
-      // Initialize assistant message
-      setPending({ role: "assistant", content: " " })
-
+      // const userMessage: CoreMessage | null = null
       await log("STREAM STARTED")
       try {
-        const { textStream, usage, toolCalls, toolResults } = await streamText({
+        const messageText = text?.trimEnd()
+        const userMessage: CoreMessage | null = messageText ? { role: "user", content: messageText } : null
+
+        if (userMessage) {
+          await log("SENDING", messageText)
+          // userMessage = message
+
+          // setMessages(messages)
+          setMessages([...messages, userMessage])
+          messages.push(userMessage)
+          // setMessages((prev) => [...prev, message])
+
+          await addMessage(userMessage)
+          await sessionLog(userMessage)
+        }
+
+        // const assistantMessage: CoreMessage = { role: "assistant", content: [{ type: "text", text: "..." }] }
+        // setMessages([...messages, assistantMessage])
+
+        const abortController = new AbortController()
+        const stream = streamText({
           model,
           system: SYSTEM_PROMPT,
-          messages,
+          messages: messages,
           tools,
           experimental_toolCallStreaming: true,
-          maxTokens: 4096
+          maxTokens: 4096,
+          abortSignal: abortController.signal
         })
 
-        const [rawStream, formattedStream] = textStream.tee()
-        const markdownStream = 
-        formattedStream
-          .pipeThrough(new TextEncoderStream())
-          .pipeThrough(new MarkdownANSIStream(3))
-          .pipeThrough(new TextDecoderStream())
+        const streamStartedOrAborted = await Promise.race([
+          stream,
+          new Promise<null>((resolve) => {
+            setTimeout(() => resolve(null), 3000)
+          })
+        ])
+
+        if (!streamStartedOrAborted) {
+          abortController.abort()
+          throw new Error("Stream timed out")
+        }
+
+        const { textStream, usage, toolCalls, toolResults } = streamStartedOrAborted 
+      
+        // Initialize assistant message
+        // messages.push()
+        // setMessages(messages)
+        setPending(true)
+
+        // const [rawStream, formattedStream] = textStream.tee()
+        // const markdownStream = 
+        // formattedStream
+        //   .pipeThrough(new TextEncoderStream())
+        //   .pipeThrough(new MarkdownANSIStream(3))
+        //   .pipeThrough(new TextDecoderStream())
   
-        let buffer = ""
-        await markdownStream.pipeTo(new WritableStream({
-          write(chunk) {
-            buffer += chunk
-            setPending({ role: "assistant", content: buffer })
-          }
-        }))
+        // let formattedBuffer = ""
+        // await markdownStream.pipeTo(new WritableStream({
+        //   write(chunk) {
+        //     // formattedBuffer += chunk
+        //     setMessages((prev) => [...prev.slice(0, -1), { role: "assistant", content: formattedBuffer }])
+        //     // setPending({ role: "assistant", content: formattedBuffer })
+        //   }
+        // }))
 
-        // update usage
+        let rawText = ""
+        await textStream.pipeTo(
+          new WritableStream({
+            start() {
+              const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: "" }] }
+              // messages[messages.length - 1] = message
+              messages.push(message)
+              setMessages((prev) => [...prev, message])
+            },
+            write(chunk) {
+              rawText += chunk
+              const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: rawText }] }
+              messages[messages.length - 1] = message
+              setMessages((prev) => [...prev.slice(0, -1), message])
+            },
+            async close() {
+              setMessages((prev) => [...prev.slice(0, -1), { role: "assistant", content: [{ type: "text", text: rawText }] }])
+              await addMessage({ role: "assistant", content: [{ type: "text", text: rawText }] })
+            }
+          })
+        )
+
         setUsage(await usage)
+        setPending(false)
 
-        // Add finished assistant message to raw & formatted
-        setPending(null)
-        setFormatted((prev) => [...prev, { role: "assistant", content: buffer }])
-
-        const rawText = await new Response(rawStream).text()
-        // setMessages((prev) => [...prev, { role: "assistant", content: rawText
-        // }])
+        // const rawText = await new Response(textStream).text()
 
         // Tool results
         const [finishedToolCalls, finishedToolResults] = await Promise.all([toolCalls, toolResults])
@@ -153,7 +154,6 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
           { 
             role: "assistant", 
             content: [ 
-              { type: "text", text: rawText.trim() },
               ...finishedToolCalls
             ]
           },
@@ -163,11 +163,26 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
           }
         ]
 
-        messages.push(...assistantMessages)
-        await sessionLog(...assistantMessages)
-        await addMessage(...assistantMessages)
+        // messages.push(...assistantMessages)
+        if (finishedToolCalls.length) {
+          messages.push(...assistantMessages)
+          setMessages(messages)
 
-        setMessages(messages)
+          await sessionLog(...assistantMessages)
+          await addMessage(...assistantMessages)
+          // setMessages((prev) => {
+          //   prev.at(-1)?.content.push(...finishedToolCalls)
+          //   prev.push({
+          //     role: "tool",
+          //     content: bufferedResults
+          //   })
+  
+          //   return [...prev]
+          // })
+
+          // await sessionLog(...assistantMessages)
+          // await addMessage(...assistantMessages)
+        }
 
         if (finishedToolCalls.length && roundtrips < MAX_ROUND_TRIPS) {
           await send()
@@ -177,20 +192,14 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
         } else {
           setUsedTools(false)
         }
-        // if (finishedToolResults.length) {
-        //   const toolMessages: CoreMessage[] = finishedToolResults.map((toolResult) => ({
-        //     role: "assistant",
-        //     content: toolResult
-        //   }))
-        //   setMessages((prev) => [...prev, ...toolMessages])
-        //   // setFormatted((prev) => [...prev, ...toolMessages])
-        // }
-      } catch (e) {
-        await log("STREAM ERROR", JSON.stringify(e))
+      } catch (error) {
+        await log("STREAM ERROR", { error })
+        await log({ messages })
+        throw error
       }
     },
     [messages, roundtrips]
   )
 
-  return { messages, formatted, pending, usage, usedTools, send }
+  return { messages, pending, usage, usedTools, send }
 }

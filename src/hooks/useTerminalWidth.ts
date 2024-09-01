@@ -5,8 +5,8 @@ interface UseTerminalSizeArgs {
   maxWidth?: number
 }
 
-export const useTerminalSize = ({ maxWidth = 0, maxHeight = 0 }: UseTerminalSizeArgs = { maxHeight: 0, maxWidth: 0 }) => {
-  const [terminalSize, setTerminalSize] = useState<[number, number] | null>(null)
+export const useTerminalSize = ({ maxWidth = 0, maxHeight = 0 }: UseTerminalSizeArgs = { maxHeight: 0, maxWidth: 0 }): [number, number] => {
+  const [terminalSize, setTerminalSize] = useState([process.stdout.columns, process.stdout.rows])
 
   useLayoutEffect(
     () => {
@@ -23,10 +23,6 @@ export const useTerminalSize = ({ maxWidth = 0, maxHeight = 0 }: UseTerminalSize
     },
     []
   )
-
-  if (!terminalSize) {
-    return null
-  }
 
   const [width, height] = terminalSize
   return [Math.min(width, maxWidth), Math.min(height, maxHeight)]

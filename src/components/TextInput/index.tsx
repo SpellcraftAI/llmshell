@@ -20,9 +20,9 @@ export const TextInput = ({ onSubmit, ...props }: TextInputProps) => {
 
   return (
     <Box paddingX={1} paddingY={1} flexDirection="column" flexGrow={1}>
-      <Box paddingLeft={1}>
+      {/* <Box paddingLeft={1}>
         <Text dimColor>Enter your message below.</Text>
-      </Box>
+      </Box> */}
 
       <Box
         padding={1}
