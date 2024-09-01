@@ -4,11 +4,19 @@ import { useApp, useInput } from "ink"
 import { cursorHide, cursorShow } from "ansi-escapes"
 import { getTextSegments, insertText, moveCursor, removeTextBefore, type CursorPosition } from "./cursor"
 import { log } from "@/lib/log"
+import { useSIGINTListener } from "./useSIGINTListener"
 
-export const useKeyboard = (onSubmit?: (input: string) => void | Promise<void>) => {
+export interface UseKeyboardArgs {
+  onSubmit?: (input: string) => void | Promise<void>
+  active?: boolean
+} 
+
+export const useKeyboard = ({ onSubmit, active }: UseKeyboardArgs) => {
   const { exit } = useApp()
   const [text, setText] = useState("")
   const [cursorPosition, setCursorPosition] = useState<CursorPosition>({ x: 0, y: 0 })
+
+  useSIGINTListener(active)
 
   useLayoutEffect(() => {
     process.stdout.write(cursorHide)

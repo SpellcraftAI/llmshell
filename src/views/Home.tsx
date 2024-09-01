@@ -19,7 +19,7 @@ export const Home = () => {
   const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
   const [conversations, setConversations] = useState<Conversation[]>([])
   
-  useSIGINTListener()
+  // useSIGINTListener()
   useClearScreen()
   
   useLayoutEffect(() => {

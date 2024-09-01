@@ -1,19 +1,18 @@
 "use server"
 
-import { Box, Text } from "ink"
+import { Box, Text, useFocus } from "ink"
 import chalk from "chalk"
-import { useSIGINTListener } from "./useSIGINTListener"
 import { useKeyboard } from "./useKeyboard"
 
 export interface TextInputProps extends React.ComponentProps<typeof Box> {
+  id?: string
   onSubmit?: (input: string) => void | Promise<void>
 }
 
 
-export const TextInput = ({ onSubmit, ...props }: TextInputProps) => {
-  useSIGINTListener()
-
-  const { text, cursorPosition, before, at, after } = useKeyboard(onSubmit)
+export const TextInput = ({ onSubmit, id, ...props }: TextInputProps) => {
+  const { isFocused } = useFocus({ autoFocus: true, id })
+  const { text, cursorPosition, before, at, after } = useKeyboard({ onSubmit, active: isFocused })
   
   // const showCursor = useBlinkingCursor()
   // const characterAtCursor = input[cursorPosition] || " "

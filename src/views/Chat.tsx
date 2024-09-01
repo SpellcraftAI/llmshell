@@ -1,5 +1,5 @@
-import { Box, Text } from "ink"
-import { useLayoutEffect } from "react"
+import { Box, Text, useFocusManager } from "ink"
+import { useEffect, useLayoutEffect } from "react"
 
 import { TextInput } from "@/components/TextInput"
 import { MessageBubble } from "@/components/MessageBubble"
@@ -52,6 +52,16 @@ const CoreMessageBubble = ({ message }: { message: CoreMessage }) => {
               ))}
             </Box>
           )
+
+        case "tool-result":
+          return (
+            <Box key={index} flexDirection="column" paddingLeft={1} alignItems="flex-start">
+              <Box borderStyle="round" borderDimColor flexShrink={1}>
+                <Text bold>{message.toolName}</Text>
+              </Box>
+              <Text>{message.result as string}</Text>
+            </Box>
+          )
         }
       }
     )
@@ -70,6 +80,7 @@ export const Chat = ({ conversation }: ChatProps) => {
   const server = useServer()
   const [width] = useTerminalSize({ maxWidth: 100 })
   const { messages, pending, usage, send } = useMessages(conversation?.messages)
+  const { focus } = useFocusManager()
 
   // Clear terminal on first render.
   useClearScreen()
@@ -78,6 +89,10 @@ export const Chat = ({ conversation }: ChatProps) => {
   useLayoutEffect(() => {
     process.on("exit", () => server?.stop())
   }, [server])
+
+  useEffect(() => {
+    focus("CHAT_INPUT")
+  }, [messages, focus])
 
   if (!server) {
     return null
@@ -108,7 +123,7 @@ export const Chat = ({ conversation }: ChatProps) => {
         {messages.map((message, index) => (
           message && <CoreMessageBubble key={index} message={message} />
         ))}
-        {/* {pending && <MessageBubble from="Claude" text={pending.content} />} */}
+        {pending && <CoreMessageBubble message={pending} />}
       </Box>
 
       <Box flexDirection="row" alignItems="flex-start" gap={1}>
@@ -136,7 +151,7 @@ export const Chat = ({ conversation }: ChatProps) => {
           </Box>
         </Box>
           
-        <TextInput onSubmit={send} />
+        <TextInput id="CHAT_INPUT" onSubmit={send} />
       </Box>
     </Box>
   )

@@ -1,7 +1,7 @@
 import { useApp, useStdin } from "ink"
 import { useCallback, useLayoutEffect } from "react"
 
-export const useSIGINTListener = () => {
+export const useSIGINTListener = (active = true) => {
   const { exit } = useApp()
   const { stdin } = useStdin()
 
@@ -19,13 +19,15 @@ export const useSIGINTListener = () => {
 
   useLayoutEffect(
     () => {
-      process.stdin.resume()
-      stdin.on("data", close)
-      return () => {
-        process.stdin.pause()
-        stdin.removeListener("data", close)
+      if (active) {
+        process.stdin.resume()
+        stdin.on("data", close)
+        return () => {
+          process.stdin.pause()
+          stdin.removeListener("data", close)
+        }
       }
     },
-    [close, exit, stdin]
+    [active, stdin, close, exit]
   )
 }
