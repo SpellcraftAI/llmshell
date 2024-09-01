@@ -42,7 +42,7 @@ export const Home = () => {
         <Box flexDirection="column">
           <Box flexDirection="row">
             <Box width={40}>
-              <Text wrap="truncate-end">{title}</Text>
+              <Text wrap="truncate-end">{title.trim()}</Text>
             </Box>
 
             <Text dimColor> | {count} messages</Text>

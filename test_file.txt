@@ -1,3 +1,0 @@
-Hello, this is a test file.
-We're testing file operations.
-This file was created using the write function.
