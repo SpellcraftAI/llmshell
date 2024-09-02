@@ -8,15 +8,15 @@ import { useSIGINTListener } from "./useSIGINTListener"
 
 export interface UseKeyboardArgs {
   onSubmit?: (input: string) => void | Promise<void>
-  active?: boolean
+  isActive?: boolean
 } 
 
-export const useKeyboard = ({ onSubmit, active }: UseKeyboardArgs) => {
+export const useKeyboard = ({ onSubmit, isActive }: UseKeyboardArgs) => {
   const { exit } = useApp()
   const [text, setText] = useState("")
   const [cursorPosition, setCursorPosition] = useState<CursorPosition>({ x: 0, y: 0 })
 
-  useSIGINTListener(active)
+  useSIGINTListener(isActive)
 
   useLayoutEffect(() => {
     process.stdout.write(cursorHide)
@@ -53,47 +53,50 @@ export const useKeyboard = ({ onSubmit, active }: UseKeyboardArgs) => {
     else if (key.downArrow) setCursorPosition(moveCursor("down", text, cursorPosition))
   }
 
-  useInput(async (input, key) => {
+  useInput(
+    async (input, key) => {
     // log("input", { input }, { key })
-    if (key.meta) return
-    if (key.escape) {
-      exit()
-    } else if (key.return) {
-      handleEnter()
-    } else if (key.backspace || key.delete) {
-      handleBackspace()
-    } else if (key.leftArrow || key.rightArrow || key.upArrow || key.downArrow) {
-      handleArrowKeys(key)
-    } else {
-      if (input.length === 1) {
-        const newText = insertText(text, cursorPosition, input)
-        setText(newText)
-        setCursorPosition({ x: cursorPosition.x + 1, y: cursorPosition.y })
+      if (key.meta) return
+      if (key.escape) {
+        exit()
+      } else if (key.return) {
+        handleEnter()
+      } else if (key.backspace || key.delete) {
+        handleBackspace()
+      } else if (key.leftArrow || key.rightArrow || key.upArrow || key.downArrow) {
+        handleArrowKeys(key)
       } else {
-        input = input.replaceAll("\r", "\n")
-        if (!input.includes("\n")) {
+        if (input.length === 1) {
           const newText = insertText(text, cursorPosition, input)
           setText(newText)
-          setCursorPosition({ x: cursorPosition.x + input.length, y: cursorPosition.y })
+          setCursorPosition({ x: cursorPosition.x + 1, y: cursorPosition.y })
         } else {
-          const lines = input.split("\n")
-          await log("input", JSON.stringify(input))
-          let editedText = text
-          for (const line of lines) {
-            editedText = insertText(editedText, cursorPosition, line + "\n")
+          input = input.replaceAll("\r", "\n")
+          if (!input.includes("\n")) {
+            const newText = insertText(text, cursorPosition, input)
+            setText(newText)
+            setCursorPosition({ x: cursorPosition.x + input.length, y: cursorPosition.y })
+          } else {
+            const lines = input.split("\n")
+            await log("input", JSON.stringify(input))
+            let editedText = text
+            for (const line of lines) {
+              editedText = insertText(editedText, cursorPosition, line + "\n")
 
-            cursorPosition.x = 0
-            cursorPosition.y += 1
-          }
+              cursorPosition.x = 0
+              cursorPosition.y += 1
+            }
         
-          setText(editedText)
-          setCursorPosition(cursorPosition)
+            setText(editedText)
+            setCursorPosition(cursorPosition)
+          }
         }
       }
+    }, 
+    {
+      isActive: isActive
     }
-  }, {
-    isActive: true
-  })
+  )
 
   const { before, at, after } = getTextSegments(text, cursorPosition)
   return { text, before, at, after, cursorPosition }

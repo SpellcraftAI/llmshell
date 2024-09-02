@@ -1,13 +1,15 @@
 import type { ForegroundColorName } from "ansi-styles"
 import { Box, Text } from "ink"
+import { LoadingDots } from "../LoadingDots"
 
 interface Message {
   from: "you" | string
   text: string
   border?: boolean
+  loading?: boolean
 }
 
-export const MessageBubble = ({ from, text, border = false }: Message) => {
+export const MessageBubble = ({ from, text, border = false, loading = false }: Message) => {
   const prefixColor: ForegroundColorName | undefined = from === "you" ? "blue" : "yellow"
   const textColor: ForegroundColorName | undefined = from === "you" ? "blue" : undefined
   const prefix = from === "you" ? "You" : from
@@ -29,7 +31,7 @@ export const MessageBubble = ({ from, text, border = false }: Message) => {
           borderStyle={borderStyle}
           borderColor={borderColor}
         >
-          <Text color={textColor}>{text}</Text>
+          {loading ? <LoadingDots /> : <Text color={textColor}>{text}</Text>}
         </Box>
       </Box>
     </Box>

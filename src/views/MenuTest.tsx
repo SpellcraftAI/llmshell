@@ -15,7 +15,7 @@ const App = () => {
   return (
     <Box flexDirection="column">
       <Menu
-        flexDirection="row"
+        flexDirection="column"
         items={items}
         renderItem={(item, isSelected) => (
           <Text color={isSelected ? "green" : "white"}>{item}</Text>

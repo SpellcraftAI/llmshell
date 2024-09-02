@@ -1,76 +1,14 @@
 import { Box, Text, useFocusManager } from "ink"
-import { useEffect, useLayoutEffect, useMemo } from "react"
+import { useEffect, useLayoutEffect } from "react"
 
 import { TextInput } from "@/components/TextInput"
-import { MessageBubble } from "@/components/MessageBubble"
 import { useTerminalSize } from "@/hooks/useTerminalWidth"
 import { useMessages } from "@/hooks/useMessages"
 import { useServer } from "@/hooks/useServer"
 import { compactNumber } from "@/lib/number"
 import { SESSION_ID, type Conversation } from "@/lib/log"
-import type { CoreMessage } from "ai"
-import { createANSIRenderer, createParser, finish, parse } from "mdstream"
 import { useClearScreen } from "@/hooks/useClearScreen"
-
-export const parseSync = (text: string) => {
-  let parsed = ""
-
-  const ansiRenderer = createANSIRenderer({
-    level: 1,
-    render: (chunk) => parsed += chunk
-  })
-
-  const ansiParser = createParser(ansiRenderer)
-  parse(ansiParser, text)
-  finish(ansiParser)
-  return parsed
-}
-
-const CoreMessageBubble = ({ message }: { message: CoreMessage }) => {
-  const from = message.role === "assistant" ? "Claude" : "you"
-
-  if (Array.isArray(message.content)) {
-    return message.content.map(
-      (message, index) => {
-        switch (message.type) {
-        case "text":
-          return <MessageBubble key={index} from={from} text={parseSync(message.text)} />
-
-        case "tool-call":
-          // const argsTable = stringConsole.table(message.args)
-          return (
-            <Box key={index} flexDirection="column" paddingLeft={1} alignItems="flex-start">
-              {/* <Text bold>Tool</Text> */}
-              <Box borderStyle="round" borderDimColor flexShrink={1}>
-                <Text bold>{message.toolName}</Text>
-              </Box>
-              {Object.entries(message.args as object).map(([key, value]) => (
-                <Box key={key} flexDirection="row" paddingLeft={1} gap={1} justifyContent="space-around">
-                  <Box width={10}><Text bold>{key}</Text></Box>
-                  <Text dimColor>{value}</Text>
-                </Box>
-              ))}
-            </Box>
-          )
-
-        case "tool-result":
-          return (
-            <Box key={index} flexDirection="column" paddingLeft={1} alignItems="flex-start">
-              <Box borderStyle="round" borderDimColor flexShrink={1}>
-                <Text bold>{message.toolName}</Text>
-              </Box>
-              <Text>{message.result as string}</Text>
-            </Box>
-          )
-        }
-      }
-    )
-  }
-
-  return (
-    <MessageBubble from={from} text={parseSync(message.content)} />
-  )
-}
+import { CoreMessageBubble } from "@/components/MessageBubble/CoreMessage"
 
 export interface ChatProps {
   conversation?: Conversation
@@ -97,11 +35,6 @@ export const Chat = ({ conversation }: ChatProps) => {
   if (!server) {
     return null
   }
-
-  // const pendingMessage: CoreMessage | null = 
-  //   pending
-  //     ? { role: "assistant", content: pending.content }
-  //     : null
 
   return (
     <Box 

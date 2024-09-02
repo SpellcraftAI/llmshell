@@ -47,6 +47,20 @@ export interface Conversation {
   messages: CoreMessage[]
 }
 
+export const getCurrentConversation = async (): Promise<Conversation> => {
+  await ensureLogsExist()
+
+  const path = getMessagesPath()
+  const timestamp = Number(path.split(sep).at(-2))
+  const messages = await parseJsonl(path) ?? []
+
+  return {
+    path,
+    timestamp,
+    messages
+  }
+}
+
 export const getConversations = async () => {
   const glob = new Bun.Glob("./*/messages.jsonl")
   const scanner = glob.scan({ cwd: getConfigDir(), absolute: true, onlyFiles: true })

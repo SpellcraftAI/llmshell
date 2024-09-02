@@ -12,7 +12,7 @@ export interface TextInputProps extends React.ComponentProps<typeof Box> {
 
 export const TextInput = ({ onSubmit, id, ...props }: TextInputProps) => {
   const { isFocused } = useFocus({ autoFocus: true, id })
-  const { text, cursorPosition, before, at, after } = useKeyboard({ onSubmit, active: isFocused })
+  const { text, cursorPosition, before, at, after } = useKeyboard({ onSubmit, isActive: isFocused })
   
   // const showCursor = useBlinkingCursor()
   // const characterAtCursor = input[cursorPosition] || " "

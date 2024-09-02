@@ -4,11 +4,12 @@ import { useSIGINTListener } from "@/components/TextInput/useSIGINTListener"
 
 interface ScrollableProps<T> {
   items: T[];
-  renderItem: (item: T, isSelected: boolean) => React.ReactNode;
   itemHeight?: number;
   visibleItems: number;
-  highlightColor?: string;
-  onSelect?: (item: T, index: number) => void;
+  // highlightColor?: string;
+  isActive?: boolean;
+  renderItem: (item: T, isSelected: boolean) => React.ReactNode;
+  onSelect?: (item: T, index: number) => void | Promise<void>;
 }
 
 const VERTICAL_BAR = "│"
@@ -30,16 +31,17 @@ const ScrollThumb: React.FC<{ show: boolean; position: number; height: number; t
 
 export function Scrollable<T>({ 
   items,
-  renderItem,
   itemHeight = 3,
   visibleItems, 
-  highlightColor,
+  // highlightColor,
+  isActive = true,
+  renderItem,
   onSelect
 }: ScrollableProps<T>) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [viewportStart, setViewportStart] = useState(0)
 
-  useSIGINTListener()
+  useSIGINTListener(isActive)
 
   useEffect(() => {
     if (currentIndex < viewportStart) {
@@ -49,28 +51,31 @@ export function Scrollable<T>({
     }
   }, [currentIndex, viewportStart, visibleItems])
 
-  useInput((input, key) => {
-    if (key.upArrow) {
-      setCurrentIndex(prev => Math.max(0, prev - 1))
-    } else if (key.downArrow) {
-      setCurrentIndex(prev => Math.min(items.length - 1, prev + 1))
-    } else if (key.return) {
-      onSelect && onSelect(items[currentIndex], currentIndex)
-    }
-  })
+  useInput(
+    (input, key) => {
+      if (key.upArrow) {
+        setCurrentIndex(prev => Math.max(0, prev - 1))
+      } else if (key.downArrow) {
+        setCurrentIndex(prev => Math.min(items.length - 1, prev + 1))
+      } else if (key.return) {
+        onSelect && onSelect(items[currentIndex], currentIndex)
+      }
+    },
+    { isActive: isActive }
+  )
 
   const listItems = useMemo(
     () => {
       return items.slice(viewportStart, viewportStart + visibleItems).map((item, index) => {
         const isSelected = viewportStart + index === currentIndex
         return (
-          <Box key={index} borderStyle="round" borderDimColor={!isSelected} borderColor={isSelected ? highlightColor : undefined} paddingX={1}>
+          <Box key={index}>
             {renderItem(item, isSelected)}
           </Box>
         )
       })
     }, 
-    [currentIndex, highlightColor, items, viewportStart, visibleItems, renderItem]
+    [currentIndex, items, viewportStart, visibleItems, renderItem]
   )
 
   const totalVisibleHeight = visibleItems * itemHeight

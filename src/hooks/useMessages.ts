@@ -3,38 +3,14 @@ import { anthropic } from "@ai-sdk/anthropic"
 import { streamText, type CompletionTokenUsage, type CoreMessage } from "ai"
 import { useCallback, useState } from "react"
 import { addMessage, log, sessionLog } from "@/lib/log"
-
-const SYSTEM_PROMPT = `
-You interface with the user's computer system. 
-Use Markdown formatting for your text responses.
-You don't need to use tools to write Markdown.
-
-USER: ...
-
-ASSISTANT:
-
-# Heading 1
-## Heading 2
-### Heading 3
-#### Heading 4
-
-**Bold Text**
-*Italic Text*
-
-\`\`\`
-code block
-\`\`\`
-
-To write ticks without parsing a code block, use a backslash: \\\`
-Escaped triple: \\\`\\\`\\\`
-...
-`.trim()
+import { SYSTEM_PROMPT } from "@/lib/system"
+import { useApp } from "ink"
 
 const model = anthropic("claude-3-5-sonnet-20240620")
-
 const MAX_ROUND_TRIPS = 5
 
 export const useMessages = (initialMessages: CoreMessage[] = []) => {
+  const { exit } = useApp()
   const [pending, setPending] = useState<boolean>(false)
   const [messages, setMessages] = useState<CoreMessage[]>(initialMessages)
   const [usage, setUsage] = useState<CompletionTokenUsage>()
@@ -164,13 +140,14 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
         } else {
           setUsedTools(false)
         }
-      } catch (error) {
+      } catch (error: unknown) {
         await log("STREAM ERROR", { error })
         await log({ messages })
-        throw error
+        exit(error as Error)
+        // throw error
       }
     },
-    [messages, roundtrips]
+    [exit, messages, roundtrips]
   )
 
   return { messages, pending, usage, usedTools, send }

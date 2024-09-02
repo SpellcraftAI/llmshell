@@ -5,7 +5,7 @@ interface UseTerminalSizeArgs {
   maxWidth?: number
 }
 
-export const useTerminalSize = ({ maxWidth = 0, maxHeight = 0 }: UseTerminalSizeArgs = { maxHeight: 0, maxWidth: 0 }): [number, number] => {
+export const useTerminalSize = ({ maxWidth = Infinity, maxHeight = Infinity }: UseTerminalSizeArgs = { maxWidth: Infinity, maxHeight: Infinity }): [number, number] => {
   const [terminalSize, setTerminalSize] = useState([process.stdout.columns, process.stdout.rows])
 
   useLayoutEffect(
