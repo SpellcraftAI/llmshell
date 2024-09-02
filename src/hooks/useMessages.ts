@@ -35,7 +35,7 @@ const model = anthropic("claude-3-5-sonnet-20240620")
 const MAX_ROUND_TRIPS = 5
 
 export const useMessages = (initialMessages: CoreMessage[] = []) => {
-  const [pending, setPending] = useState<CoreMessage | null>(null)
+  const [pending, setPending] = useState<boolean>(false)
   const [messages, setMessages] = useState<CoreMessage[]>(initialMessages)
   const [usage, setUsage] = useState<CompletionTokenUsage>()
 
@@ -52,16 +52,15 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
         if (userMessage) {
           await log("SENDING", messageText)
 
-          setMessages([...messages, userMessage])
           messages.push(userMessage)
+          setMessages([...messages])
 
           await addMessage(userMessage)
           await sessionLog(userMessage)
         }
 
         const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: "..." }] }
-        setPending(message)
-        // setMessages((prev) => [...prev, message])
+        setMessages((prev) => [...prev, message])
 
         const abortController = new AbortController()
         const stream = streamText({
@@ -92,40 +91,27 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
         await textStream.pipeTo(
           new WritableStream({
             start() {
+              setPending(true)
               const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: "" }] }
-              setPending(message)
-              // messages.push(message)
-              // setMessages((prev) => [...prev.slice(0, -1), message])
+              messages.push(message)
+              setMessages((prev) => [...prev.slice(0, -1), message])
             },
             write(chunk) {
               textBuffer += chunk
               const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }] }
-              setPending(message)
-              // messages[messages.length - 1] = message
-              // setMessages((prev) => [...prev.slice(0, -1), message])
+              messages[messages.length - 1] = message
+              setMessages((prev) => [...prev.slice(0, -1), message])
             },
             async close() {
+              setPending(false)
               const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }] }
-              messages.push(message)
-              setMessages(messages)
               await addMessage(message)
               await sessionLog(message)
             }
           })
         )
-
-        // await fullStream.pipeTo(
-        //   new WritableStream({
-        //     write(chunk) {
-        //       switch (chunk.type) {
-        //         case "tool-call-delta":
-        //       }
-        //     }
-        //   })
-        // )
         
         setUsage(await usage)
-        setPending(null)
                 
         // If no tool calls - we're done.
         const [finishedToolCalls, finishedToolResults] = await Promise.all([toolCalls, toolResults])
@@ -135,8 +121,9 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
         }
 
         // Add tool calls to messages context.
-        messages.push({ role: "assistant", content: finishedToolCalls })
-        setMessages(messages)
+        const toolCallsMessage: CoreMessage = { role: "assistant", content: finishedToolCalls }
+        messages.push(toolCallsMessage)
+        setMessages([...messages])
 
         // const bufferedResults: ToolResultPart[] = []
         for (const toolResult of finishedToolResults) {
@@ -147,45 +134,27 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
             new WritableStream({
               start() {
                 const message: CoreMessage = { role: "tool", content: [] }
-                setPending(message)
-                // setMessages((prev) => [...prev, message])
+                setPending(true)
+                messages.push(message)
+                setMessages([...messages])
               },
               write(chunk) {
                 textBuffer += chunk
                 const message: CoreMessage = { role: "tool", content: [{...toolResult, result: textBuffer }] }
-                setPending(message)
-                // messages[messages.length - 1] = message
-                // setMessages((prev) => [...prev.slice(0, -1), message])
+                messages[messages.length - 1] = message
+                setMessages([...messages])
               },
               async close() {
+                setPending(false)
                 const message: CoreMessage = { role: "tool", content: [{...toolResult, result: textBuffer }] }
-                // messages[messages.length - 1] = message
-                messages.push(message)
-                setMessages(messages)
+                messages[messages.length - 1] = message
+                setMessages([...messages])
                 await addMessage(message)
                 await sessionLog(message)
               }
             })
           )
-
-          // const text = await new Response(toolResult.result).text()
-          // bufferedResults.push({ ...toolResult, result: text })
         }
-
-        // const assistantMessages: CoreMessage[] = [
-        //   { 
-        //     role: "assistant", 
-        //     content: [ 
-        //       ...finishedToolCalls
-        //     ]
-        //   },
-        //   {
-        //     role: "tool",
-        //     content: bufferedResults
-        //   }
-        // ]
-        // messages.push(...assistantMessages)
-        // setMessages(messages)
 
         if (roundtrips < MAX_ROUND_TRIPS) {
           await send()

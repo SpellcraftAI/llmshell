@@ -1,5 +1,5 @@
 import { Box, Text, useFocusManager } from "ink"
-import { useEffect, useLayoutEffect } from "react"
+import { useEffect, useLayoutEffect, useMemo } from "react"
 
 import { TextInput } from "@/components/TextInput"
 import { MessageBubble } from "@/components/MessageBubble"
@@ -46,7 +46,7 @@ const CoreMessageBubble = ({ message }: { message: CoreMessage }) => {
               </Box>
               {Object.entries(message.args as object).map(([key, value]) => (
                 <Box key={key} flexDirection="row" paddingLeft={1} gap={1} justifyContent="space-around">
-                  <Text bold>{key}</Text>
+                  <Box width={10}><Text bold>{key}</Text></Box>
                   <Text dimColor>{value}</Text>
                 </Box>
               ))}
@@ -121,9 +121,8 @@ export const Chat = ({ conversation }: ChatProps) => {
         width={width - 4}
       >
         {messages.map((message, index) => (
-          message && <CoreMessageBubble key={index} message={message} />
+          <CoreMessageBubble key={index} message={message} />
         ))}
-        {pending && <CoreMessageBubble message={pending} />}
       </Box>
 
       <Box flexDirection="row" alignItems="flex-start" gap={1}>
