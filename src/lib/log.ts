@@ -61,6 +61,12 @@ export const getCurrentConversation = async (): Promise<Conversation> => {
   }
 }
 
+export const getNewConversation = async (): Promise<Conversation> => {
+  // New session ID.
+  setSessionId(new Date().getTime().toString())
+  return await getCurrentConversation()
+}
+
 export const getConversations = async () => {
   const glob = new Bun.Glob("./*/messages.jsonl")
   const scanner = glob.scan({ cwd: getConfigDir(), absolute: true, onlyFiles: true })

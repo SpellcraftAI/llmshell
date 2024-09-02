@@ -5,7 +5,7 @@ export const useSIGINTListener = (active = true) => {
   const { exit } = useApp()
   const { stdin } = useStdin()
 
-  const close = useCallback(
+  const closeOnCtrlCD = useCallback(
     (data: Buffer) => {
       const key = data.toString()
   
@@ -21,13 +21,16 @@ export const useSIGINTListener = (active = true) => {
     () => {
       if (active) {
         process.stdin.resume()
-        stdin.on("data", close)
+        stdin.on("data", closeOnCtrlCD)
         return () => {
           process.stdin.pause()
-          stdin.removeListener("data", close)
+          stdin.removeListener("data", closeOnCtrlCD)
         }
+      } else {
+        process.stdin.pause()
+        stdin.removeListener("data", closeOnCtrlCD)
       }
     },
-    [active, stdin, close, exit]
+    [active, stdin, closeOnCtrlCD, exit]
   )
 }

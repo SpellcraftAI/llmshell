@@ -1,10 +1,12 @@
 import { render } from "ink"
-import { Chat } from "@/views/Chat"
-import { stopServer } from "./hooks/useServer"
-import { log } from "./lib/log"
-import { Home } from "./views/Home"
+import { cursorShow } from "ansi-escapes"
+import { App } from "./views/App"
 
-const { waitUntilExit } = render(<Home />, { stdin: process.stdin })
+const { waitUntilExit } = render(<App />, { exitOnCtrlC: true })
 await waitUntilExit()
 
-stopServer()
+// Padding on exit.
+console.log("\n")
+
+// Ensure terminal cursor is visible. Likely disabled by app.
+process.stdout.write(cursorShow)

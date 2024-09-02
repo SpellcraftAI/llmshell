@@ -1,8 +1,8 @@
-import { Box, Text, useFocusManager } from "ink"
-import { useEffect, useLayoutEffect } from "react"
+import { Box, Text } from "ink"
+import { useLayoutEffect } from "react"
 
 import { TextInput } from "@/components/TextInput"
-import { useTerminalSize } from "@/hooks/useTerminalWidth"
+import { useTerminalSize } from "@/hooks/useTerminalSize"
 import { useMessages } from "@/hooks/useMessages"
 import { useServer } from "@/hooks/useServer"
 import { compactNumber } from "@/lib/number"
@@ -18,19 +18,19 @@ export const Chat = ({ conversation }: ChatProps) => {
   const server = useServer()
   const [width] = useTerminalSize({ maxWidth: 100 })
   const { messages, pending, usage, send } = useMessages(conversation?.messages)
-  const { focus } = useFocusManager()
+  // const { focus } = useFocusManager()
 
   // Clear terminal on first render.
   useClearScreen()
 
   // Stop server on exit.
   useLayoutEffect(() => {
-    process.on("exit", () => server?.stop())
+    return () => server?.stop()
   }, [server])
 
-  useEffect(() => {
-    focus("CHAT_INPUT")
-  }, [messages, focus])
+  // useEffect(() => {
+  //   focus("CHAT_INPUT")
+  // }, [messages, focus])
 
   if (!server) {
     return null

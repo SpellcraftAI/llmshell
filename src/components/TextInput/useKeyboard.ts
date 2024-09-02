@@ -1,10 +1,10 @@
 
 import { useLayoutEffect, useState } from "react"
 import { useApp, useInput } from "ink"
-import { cursorHide, cursorShow } from "ansi-escapes"
+import { cursorHide } from "ansi-escapes"
 import { getTextSegments, insertText, moveCursor, removeTextBefore, type CursorPosition } from "./cursor"
 import { log } from "@/lib/log"
-import { useSIGINTListener } from "./useSIGINTListener"
+import { useSIGINTListener } from "../../hooks/useSIGINTListener"
 
 export interface UseKeyboardArgs {
   onSubmit?: (input: string) => void | Promise<void>
@@ -20,10 +20,6 @@ export const useKeyboard = ({ onSubmit, isActive }: UseKeyboardArgs) => {
 
   useLayoutEffect(() => {
     process.stdout.write(cursorHide)
-
-    return () => {
-      process.stdout.write(cursorShow)
-    }
   }, [])
 
   const handleEnter = () => {
@@ -94,7 +90,7 @@ export const useKeyboard = ({ onSubmit, isActive }: UseKeyboardArgs) => {
       }
     }, 
     {
-      isActive: isActive
+      isActive
     }
   )
 

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { Box, Text, useInput } from "ink"
-import { useSIGINTListener } from "@/components/TextInput/useSIGINTListener"
+import { useSIGINTListener } from "@/hooks/useSIGINTListener"
 
 interface ScrollableProps<T> {
   items: T[];
@@ -19,11 +19,14 @@ const ScrollThumb: React.FC<{ show: boolean; position: number; height: number; t
     if (!show) return null
     return (
       <Box flexDirection="column" marginLeft={1} height={totalHeight}>
-        {Array(position).fill(" ").map((char, i) => (
-          <Text key={`space-${i}`}>{char}</Text>
+        {Array(position).fill(VERTICAL_BAR).map((char, i) => (
+          <Text dimColor key={`space-${i}`}>{char}</Text>
         ))}
         {Array(height).fill(VERTICAL_BAR).map((char, i) => (
           <Text key={`thumb-${i}`}>{char}</Text>
+        ))}
+        {Array(totalHeight - position - height).fill(VERTICAL_BAR).map((char, i) => (
+          <Text dimColor key={`space-${i}`}>{char}</Text>
         ))}
       </Box>
     )

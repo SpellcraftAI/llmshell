@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react"
 import { Box, render, Text, useFocus, useFocusManager, useInput } from "ink"
 import type { Props } from "node_modules/ink/build/components/Box"
-import { useSIGINTListener } from "@/components/TextInput/useSIGINTListener"
+import { useSIGINTListener } from "@/hooks/useSIGINTListener"
 
 interface MenuProps<T> extends Props {
   items: T[];

@@ -1,4 +1,4 @@
-import { useTerminalSize } from "@/hooks/useTerminalWidth"
+import { useTerminalSize } from "@/hooks/useTerminalSize"
 import { Box, Text } from "ink"
 
 export const CenterView = ({ children }: { children: React.ReactNode }) => {
