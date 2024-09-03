@@ -1,7 +1,0 @@
-Hello Adam!
-
-It showcases multi-line editing capabilities.
-The cursor can move freely between lines,
-allowing for easy text manipulation.
-
-Enjoy the show!

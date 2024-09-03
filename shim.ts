@@ -1,4 +1,9 @@
-const bin = Bun.file("dist/bin.js")
+const path = Bun.argv[2]
+if (!path) {
+  throw new Error("No path provided")
+}
+
+const bin = Bun.file(path)
 let content = await new Response(bin).text()
 
 // Replace createRequire(import.meta.url) with require
@@ -17,5 +22,5 @@ for (const match of matches) {
   content = content.replaceAll(pattern, "require")
 }
 
-await Bun.write("dist/bin.js", content)
-console.log("Successfully shimmed dist/bin.js")
+await Bun.write(path, content)
+console.log(`Successfully shimmed ${path}`)

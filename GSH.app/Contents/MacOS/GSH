@@ -1,0 +1,7 @@
+#!/bin/bash
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+ 
+clear
+osascript -e 'display notification "Starting GSH..." with title "GSH"'
+open -a "Terminal.app" "$DIR/run.sh"
