@@ -18,10 +18,10 @@ export enum LOGFILE {
   TRANSCRIPT = "transcript.txt",
 }
 
-const getConfigDir = () => resolve(homedir(), ".config", "claude_terminal")
-const getSessionDir = () => resolve(getConfigDir(), SESSION_ID)
+export const getConfigDir = () => resolve(homedir(), ".config", "claude_terminal")
+export const getSessionDir = () => resolve(getConfigDir(), SESSION_ID)
+export const getDebugPath = () => resolve(getSessionDir(), LOGFILE.DEBUG)
 
-const getDebugPath = () => resolve(getSessionDir(), LOGFILE.DEBUG)
 const getTranscriptPath = () => resolve(getSessionDir(), LOGFILE.TRANSCRIPT)
 const getMessagesPath = () => resolve(getSessionDir(), "messages.jsonl")
 

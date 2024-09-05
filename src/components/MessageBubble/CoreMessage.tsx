@@ -1,9 +1,9 @@
 import type { CoreMessage } from "ai"
-import { MessageBubble } from "."
+import { MessageBubble, MessageRow } from "."
 import { createANSIRenderer, createParser, finish, parse } from "mdstream"
 import { Box, Text } from "ink"
 
-const parseSync = (text: string) => {
+export const parseSync = (text: string) => {
   let parsed = ""
 
   const ansiRenderer = createANSIRenderer({
@@ -17,7 +17,9 @@ const parseSync = (text: string) => {
   return parsed
 }
 
-export const CoreMessageBubble = ({ message }: { message: CoreMessage }) => {
+// const MessageRow = () => {}
+
+export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreMessage, waiting?: boolean }) => {
   const from = message.role === "assistant" ? "Claude" : "you"
 
   if (Array.isArray(message.content)) {
@@ -25,12 +27,14 @@ export const CoreMessageBubble = ({ message }: { message: CoreMessage }) => {
       (messageContent, index) => {
         switch (messageContent.type) {
         case "text":
-          const loading = message.role === "assistant" && messageContent.text === "..."
-          return <MessageBubble key={index} from={from} text={parseSync(messageContent.text)} loading={loading} />
+          return (
+            <MessageBubble key={index} from={from} text={parseSync(messageContent.text)} waiting={waiting} />
+          )
 
         case "tool-call":
           // const argsTable = stringConsole.table(message.args)
           return (
+            // <MessageRow>
             <Box key={index} flexDirection="column" paddingLeft={1} alignItems="flex-start">
               {/* <Text bold>Tool</Text> */}
               <Box borderStyle="round" borderDimColor flexShrink={1}>
@@ -43,16 +47,19 @@ export const CoreMessageBubble = ({ message }: { message: CoreMessage }) => {
                 </Box>
               ))}
             </Box>
+            // </MessageRow>
           )
 
         case "tool-result":
           return (
+            // <MessageRow>
             <Box key={index} flexDirection="column" paddingLeft={1} alignItems="flex-start">
-              <Box borderStyle="round" borderDimColor flexShrink={1}>
+              {/* <Box borderStyle="round" borderDimColor flexShrink={1}>
                 <Text bold>{messageContent.toolName}</Text>
-              </Box>
+              </Box> */}
               <Text>{messageContent.result as string}</Text>
             </Box>
+            // </MessageRow>
           )
         }
       }
@@ -60,6 +67,6 @@ export const CoreMessageBubble = ({ message }: { message: CoreMessage }) => {
   }
 
   return (
-    <MessageBubble from={from} text={parseSync(message.content)} />
+    <MessageBubble from={from} text={parseSync(message.content)} waiting={waiting} />
   )
 }

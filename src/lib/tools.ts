@@ -61,7 +61,14 @@ export const tools = {
   }),
 
   terminal: tool({
-    description: `Type directly into the terminal's stdin. The text you type is parsed as JSON and can contain ANSI escape codes. Shell: ${getShellCommand()}`,
+    description: `
+      Type directly into the terminal's stdin. 
+      The text you type is parsed as JSON and can contain ANSI escape codes. 
+      Only use default libraries, MacOS. For instance, on MacOS, lscpu is NOT installed. 
+      Run sequential shell commands as a series of INDIVIDUAL tool calls.
+      For \`tree\` etc, or look at the top-level folders (depth: 1) first to see what needs to be excluded so stdout doesn't overflow.
+      Prefer checking the git file tree to prevent trying to ls a huge directory. node_modules and Python venv directories will be common offenders. Watch out for these.
+      Shell: ${getShellCommand()}`.trim(),
     parameters: z.object({
       command: z.string().describe("The terminal command to execute. Runs through bash -c.")
     }),

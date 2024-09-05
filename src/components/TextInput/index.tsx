@@ -3,22 +3,27 @@
 import { Box, Text, useFocus } from "ink"
 import chalk from "chalk"
 import { useKeyboard } from "./useKeyboard"
+import { parseSync } from "../MessageBubble/CoreMessage"
 
 export interface TextInputProps extends React.ComponentProps<typeof Box> {
   id?: string
   onSubmit?: (input: string) => void | Promise<void>
+  markdownEditing?: boolean
 }
 
 
-export const TextInput = ({ onSubmit, ...props }: TextInputProps) => {
+export const TextInput = ({ onSubmit, markdownEditing = true, ...props }: TextInputProps) => {
   // const { isFocused } = useFocus({ autoFocus: true, id })
   const { text, cursorPosition, before, at, after } = useKeyboard({ onSubmit })
   
   // const showCursor = useBlinkingCursor()
   // const characterAtCursor = input[cursorPosition] || " "
+  const trailingNewlines = text.match(/\n+$/)?.[0] || ""
+  const beforeContent = markdownEditing ? parseSync(before) + trailingNewlines : before
+  const afterContent = markdownEditing ? parseSync(after) : after
 
   return (
-    <Box paddingX={1} paddingY={1} flexDirection="column" flexGrow={1}>
+    <Box paddingX={1} paddingTop={1} flexDirection="column" flexGrow={1}>
       {/* <Box paddingLeft={1}>
         <Text dimColor>Enter your message below.</Text>
       </Box> */}
@@ -31,7 +36,7 @@ export const TextInput = ({ onSubmit, ...props }: TextInputProps) => {
         {...props}
       >
         <Text wrap="wrap">
-          {`${before}${chalk.inverse(at || " ")}${after}`}
+          {`${beforeContent}${chalk.inverse(at || " ")}${afterContent}`}
         </Text>
       </Box>
 

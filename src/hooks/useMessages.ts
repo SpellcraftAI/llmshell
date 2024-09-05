@@ -3,15 +3,19 @@ import { anthropic } from "@ai-sdk/anthropic"
 import { streamText, type CompletionTokenUsage, type CoreMessage } from "ai"
 import { useCallback, useState } from "react"
 import { addMessage, log, sessionLog } from "@/lib/log"
-import { SYSTEM_PROMPT } from "@/lib/system"
+import { getSystemPrompt } from "@/lib/system"
 import { useApp } from "ink"
 
 const model = anthropic("claude-3-5-sonnet-20240620")
-const MAX_ROUND_TRIPS = 5
+export interface UseMessagesOptions {
+  initialMessages?: CoreMessage[]
+  maxRoundTrips?: number
+}
 
-export const useMessages = (initialMessages: CoreMessage[] = []) => {
+export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMessagesOptions) => {
   const { exit } = useApp()
-  const [pending, setPending] = useState<boolean>(false)
+  const [waiting, setWaiting] = useState(false)
+  const [streaming, setStreaming] = useState<boolean>(false)
   const [messages, setMessages] = useState<CoreMessage[]>(initialMessages)
   const [usage, setUsage] = useState<CompletionTokenUsage>()
 
@@ -35,13 +39,14 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
           await sessionLog(userMessage)
         }
 
-        const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: "..." }] }
-        setMessages((prev) => [...prev, message])
+        // const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: "..." }] }
+        // setMessages((prev) => [...prev, message])
+        setWaiting(true)
 
         const abortController = new AbortController()
         const stream = streamText({
           model,
-          system: SYSTEM_PROMPT,
+          system: getSystemPrompt(),
           messages: messages,
           tools,
           experimental_toolCallStreaming: true,
@@ -52,7 +57,7 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
         const streamStartedOrAborted = await Promise.race([
           stream,
           new Promise<null>((resolve) => {
-            setTimeout(() => resolve(null), 5_000)
+            setTimeout(() => resolve(null), 10_000)
           })
         ])
 
@@ -67,10 +72,11 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
         await textStream.pipeTo(
           new WritableStream({
             start() {
-              setPending(true)
+              setStreaming(true)
               const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: "" }] }
               messages.push(message)
-              setMessages((prev) => [...prev.slice(0, -1), message])
+              setMessages((prev) => [...prev, message])
+              setWaiting(false)
             },
             write(chunk) {
               textBuffer += chunk
@@ -79,7 +85,7 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
               setMessages((prev) => [...prev.slice(0, -1), message])
             },
             async close() {
-              setPending(false)
+              setStreaming(false)
               const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }] }
               await addMessage(message)
               await sessionLog(message)
@@ -93,6 +99,7 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
         const [finishedToolCalls, finishedToolResults] = await Promise.all([toolCalls, toolResults])
         if (!finishedToolCalls.length && !finishedToolResults.length) {
           setUsedTools(false)
+          setRoundtrips(0)
           return
         }
 
@@ -100,6 +107,7 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
         const toolCallsMessage: CoreMessage = { role: "assistant", content: finishedToolCalls }
         messages.push(toolCallsMessage)
         setMessages([...messages])
+        await addMessage(toolCallsMessage)
 
         // const bufferedResults: ToolResultPart[] = []
         for (const toolResult of finishedToolResults) {
@@ -110,7 +118,7 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
             new WritableStream({
               start() {
                 const message: CoreMessage = { role: "tool", content: [] }
-                setPending(true)
+                setStreaming(true)
                 messages.push(message)
                 setMessages([...messages])
               },
@@ -121,7 +129,7 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
                 setMessages([...messages])
               },
               async close() {
-                setPending(false)
+                setStreaming(false)
                 const message: CoreMessage = { role: "tool", content: [{...toolResult, result: textBuffer }] }
                 messages[messages.length - 1] = message
                 setMessages([...messages])
@@ -132,13 +140,14 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
           )
         }
 
-        if (roundtrips < MAX_ROUND_TRIPS) {
-          await send()
+        if (roundtrips < maxRoundTrips - 1) {
           setUsedTools(true)
           setRoundtrips((prev) => prev + 1)
           await log("ROUNDTRIP", `${roundtrips}`)
+          await send()
         } else {
           setUsedTools(false)
+          setRoundtrips(0)
         }
       } catch (error: unknown) {
         await log("STREAM ERROR", { error })
@@ -147,8 +156,8 @@ export const useMessages = (initialMessages: CoreMessage[] = []) => {
         // throw error
       }
     },
-    [exit, messages, roundtrips]
+    [exit, maxRoundTrips, messages, roundtrips]
   )
 
-  return { messages, pending, usage, usedTools, send }
+  return { messages, waiting, streaming, usage, usedTools, roundtrips, send }
 }

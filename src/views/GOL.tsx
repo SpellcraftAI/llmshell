@@ -8,8 +8,8 @@ import { useClearScreen } from "@/hooks/useClearScreen"
 const CELL_ALIVE = "█"
 const CELL_DEAD = " "
 const TOTAL_DURATION = 2400
-const STATIC_DURATION = 500
-const BORDER_DENSITY = 1
+const STATIC_DURATION = 300
+const BORDER_DENSITY = 0.85
 const HALF_OPACITY_COLOR = Math.round(255 * 0.5)
 
 const letterPatterns = {
