@@ -1,6 +1,8 @@
 import { render } from "ink"
-import { cursorShow } from "ansi-escapes"
+import { clearTerminal, cursorShow } from "ansi-escapes"
 import { App } from "./views/App"
+
+process.stdout.write(clearTerminal)
 
 const { waitUntilExit } = render(<App />, { exitOnCtrlC: true })
 await waitUntilExit()

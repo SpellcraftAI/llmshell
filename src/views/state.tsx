@@ -1,5 +1,5 @@
-import { getConfig, setConfig, type Conversation } from "@/lib/log"
-import React, { createContext, useContext, useEffect, useState } from "react"
+import { getConfig, loadThreadsFromDisk, setConfig, type Conversation } from "@/lib/log"
+import React, { createContext, useContext, useEffect, useLayoutEffect, useState } from "react"
 
 export interface AppConfig {
   apiKey?: string;
@@ -8,6 +8,7 @@ export interface AppConfig {
 export interface AppState {
   config: AppConfig;
   selectedThread: Conversation | null;
+  threads: Conversation[];
 }
 
 interface AppStateContextType {
@@ -20,8 +21,18 @@ const AppStateContext = createContext<AppStateContextType | undefined>(undefined
 export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<AppState>({
     config: getConfig(),
-    selectedThread: null
+    selectedThread: null,
+    threads: []
   })
+
+  /**
+   * Load conversations from disk on mount.
+   */
+  useLayoutEffect(() => {
+    loadThreadsFromDisk().then((threads) => {
+      setState(prevState => ({ ...prevState, threads }))
+    })
+  }, [])
 
   const update = (newState: Partial<AppState>) => {
     setState(prevState => ({ ...prevState, ...newState }))

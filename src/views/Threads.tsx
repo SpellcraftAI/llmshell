@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect, useState } from "react"
 import { Box, Text } from "ink"
-import { getConversations, getNewConversation, setSessionId, type Conversation } from "@/lib/log"
+import { getNewConversation, setSessionId, type Conversation } from "@/lib/log"
 import { Scrollable } from "@/components/Scrollable"
 import { CenterView } from "./Center"
-import { useClearScreen } from "@/hooks/useClearScreen"
 import { useAppState } from "./state"
 import { useRouter } from "./router"
 import { FocusIndicator } from "@/components/FocusIndicator"
@@ -57,21 +56,13 @@ const NeedsApiKey = () => {
 
 export const Threads = ({ onSelect }: ThreadsProps) => {
   const { navigate } = useRouter()
-  const { state: { config, selectedThread }, update } = useAppState()
-  const [conversations, setConversations] = useState<Conversation[]>([])
+  const { state: { config, selectedThread, threads }, update } = useAppState()
   const [needsApiKey, setNeedsApiKey] = useState(false)
   const [, height] = useTerminalSize()
 
-  useClearScreen()
-  
-  useEffect(
-    () => {
-      getConversations().then(setConversations)
-    }, 
-    []
-  )
+  // useClearScreen()
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!config.apiKey) {
       setNeedsApiKey(true)
     } else {
@@ -131,51 +122,55 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
   )
 
   return (
-    <CenterView flexGrow={1}>
-      <Column paddingTop={2}>
-        <Column gap={1}>
+    <CenterView 
+      height={height}
+      overflow="hidden" 
+      paddingY={1} 
+      gap={1}
+      // borderStyle="round" 
+    >
     
-          <Column alignSelf="center" gap={1}>
-            <Column justifyContent="center" alignItems="center">
-              <Text bold>Welcome to GSH v2024.1.</Text>
-              <Text dimColor>Now powered Claude Sonnet 3.5.</Text>
-            </Column>
-
-            <Column justifyContent="center" alignItems="center">
-              <Text italic>{"\"A simple text interface.\""}</Text>
-              <Text italic dimColor> - Y Combinator (derogatory)</Text>
-            </Column>
-          </Column>
-    
-          {needsApiKey
-            ? <NeedsApiKey /> 
-            : (
-              <Scrollable
-                items={[NEW_THREAD_OPTION, SETTINGS_OPTION, ...conversations]}
-                renderItem={renderConversationItem}
-                itemHeight={4}
-                visibleItems={Math.max(Math.floor(height / 4) - 4, 4)}
-                onSelect={async (item) => {
-                  if ("type" in item) {
-                    switch (item.type) {
-                    case "NEW_THREAD":
-                      const newThread = await getNewConversation()
-                      update({ selectedThread: newThread })
-                      setSessionId(`${newThread.timestamp}`)
-                      return
-                    case "SETTINGS":
-                      navigate("settings")
-                      return
-                    }
-                  }
-
-                  update({ selectedThread: item })
-                  setSessionId(`${item.timestamp}`)
-                }}
-              />
-            )}
+      {/* <Column alignSelf="center" gap={1}>
+        <Column justifyContent="center" alignItems="center">
+          <Text bold>Welcome to GSH v2024.1.</Text>
+          <Text dimColor>Now powered Claude Sonnet 3.5.</Text>
         </Column>
+      </Column> */}
+      <Column flexShrink={0}>
+        <Text bold>Welcome to GSH v2024.1.</Text>
+        <Text dimColor>Now powered Claude Sonnet 3.5.</Text>
       </Column>
+    
+      {needsApiKey
+        ? <NeedsApiKey /> 
+        : (
+          <Scrollable
+            borderStyle="round"
+            borderDimColor
+            paddingX={1}
+            items={[NEW_THREAD_OPTION, SETTINGS_OPTION, ...threads]}
+            renderItem={renderConversationItem}
+            itemHeight={5}
+            visibleItems={Math.max(3, Math.floor(height / 5) - 1)}
+            onSelect={async (item) => {
+              if ("type" in item) {
+                switch (item.type) {
+                case "NEW_THREAD":
+                  const newThread = await getNewConversation()
+                  update({ selectedThread: newThread })
+                  setSessionId(`${newThread.timestamp}`)
+                  return
+                case "SETTINGS":
+                  navigate("settings")
+                  return
+                }
+              }
+
+              update({ selectedThread: item })
+              setSessionId(`${item.timestamp}`)
+            }}
+          />
+        )}
     </CenterView>
   )
 }

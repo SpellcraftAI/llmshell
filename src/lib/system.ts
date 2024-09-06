@@ -14,7 +14,12 @@ NOTE: You can use code blocks OUTSIDE of a list item.
 NOTE: Escape characters in your text response that you don't want parsed as Markdown, e.g.: 
 
 ASSISTANT:
-file\\_name.txt, a\\_b.xyz
+file\\_name.txt, a\\_b.xyz, ...
+
+or
+
+ASSISTANT
+\`file_name.txt\`, \`a_b.xyz\`, ...
 
 ---
 

@@ -1,6 +1,6 @@
 import { tools } from "@/lib/tools"
 import { createAnthropic } from "@ai-sdk/anthropic"
-import { streamText, type CompletionTokenUsage, type CoreMessage } from "ai"
+import { streamText, type CoreMessage, type LanguageModelUsage } from "ai"
 import { useCallback, useState } from "react"
 import { writeMessagesToDisk, log, writeMessagesToTranscript } from "@/lib/log"
 import { getSystemPrompt } from "@/lib/system"
@@ -18,7 +18,7 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
   const [waiting, setWaiting] = useState(false)
   const [streaming, setStreaming] = useState<boolean>(false)
   const [messages, setMessages] = useState<CoreMessage[]>(initialMessages)
-  const [usage, setUsage] = useState<CompletionTokenUsage>()
+  const [usage, setUsage] = useState<LanguageModelUsage>()
 
   const [usedTools, setUsedTools] = useState(false)
   const [roundtrips, setRoundtrips] = useState(0)
@@ -37,7 +37,7 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
         if (userMessage) {
           await log("SENDING", messageText)
 
-          messages.push(userMessage)
+          messages.unshift(userMessage)
           setMessages([...messages])
 
           await writeMessagesToDisk(userMessage)
@@ -53,7 +53,7 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
         const stream = streamText({
           model: provider.languageModel("claude-3-5-sonnet-20240620"),
           system: getSystemPrompt(),
-          messages: messages,
+          messages: messages.toReversed(),
           tools,
           experimental_toolCallStreaming: true,
           maxTokens: 4096,
@@ -80,15 +80,15 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
             start() {
               setStreaming(true)
               const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: "" }] }
-              messages.push(message)
-              setMessages((prev) => [...prev, message])
+              messages.unshift(message)
+              setMessages((prev) => [message, ...prev])
               setWaiting(false)
             },
             write(chunk) {
               textBuffer += chunk
               const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }] }
-              messages[messages.length - 1] = message
-              setMessages((prev) => [...prev.slice(0, -1), message])
+              messages[0] = message
+              setMessages((prev) => [message, ...prev.slice(1)])
             },
             async close() {
               setStreaming(false)
@@ -97,7 +97,7 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
                  * We received an erroneous empty message from assistant. Don't
                  * add it to disk, remove from memory.
                  */
-                messages.pop()
+                messages.shift()
                 setMessages([...messages])
                 return
               }
@@ -121,7 +121,7 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
 
         // Add tool calls to messages context.
         const toolCallsMessage: CoreMessage = { role: "assistant", content: finishedToolCalls }
-        messages.push(toolCallsMessage)
+        messages.unshift(toolCallsMessage)
         setMessages([...messages])
         await writeMessagesToDisk(toolCallsMessage)
 
@@ -135,19 +135,19 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
               start() {
                 const message: CoreMessage = { role: "tool", content: [] }
                 setStreaming(true)
-                messages.push(message)
+                messages.unshift(message)
                 setMessages([...messages])
               },
               write(chunk) {
                 textBuffer += chunk
                 const message: CoreMessage = { role: "tool", content: [{...toolResult, result: textBuffer }] }
-                messages[messages.length - 1] = message
+                messages[0] = message
                 setMessages([...messages])
               },
               async close() {
                 setStreaming(false)
-                const message: CoreMessage = { role: "tool", content: [{...toolResult, result: textBuffer }] }
-                messages[messages.length - 1] = message
+                const message: CoreMessage = { role: "tool", content: [{...toolResult, result: textBuffer.trim() }] }
+                messages[0] = message
                 setMessages([...messages])
                 await writeMessagesToDisk(message)
                 await writeMessagesToTranscript(message)

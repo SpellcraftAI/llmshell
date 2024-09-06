@@ -88,7 +88,7 @@ export const getNewConversation = async (): Promise<Conversation> => {
   return await getCurrentConversation()
 }
 
-export const getConversations = async () => {
+export const loadThreadsFromDisk = async () => {
   const glob = new Bun.Glob("./*/messages.jsonl")
   const scanner = glob.scan({ cwd: getConfigDir(), absolute: true, onlyFiles: true })
   const paths = await Array.fromAsync(scanner)

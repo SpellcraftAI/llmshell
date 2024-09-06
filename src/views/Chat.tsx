@@ -10,6 +10,7 @@ import { SESSION_ID, type Conversation } from "@/lib/log"
 import { CoreMessageBubble } from "@/components/MessageBubble/CoreMessage"
 import type { CoreMessage } from "ai"
 import { useResumeStdin } from "@/hooks/useResumeStdin"
+import { Column } from "@/components/Flex"
 // import { useClearScreen } from "@/hooks/useClearScreen"
 
 export interface ChatProps {
@@ -83,15 +84,17 @@ export const Chat = ({ conversation }: ChatProps) => {
   const server = useServer()
   const [page, setPage] = useState(0)
   const [width, height] = useTerminalSize({ maxWidth: 100 })
-  const { messages, roundtrips, waiting, streaming, usage, send } = useMessages({ initialMessages: conversation?.messages })
+  const { messages, roundtrips, waiting, streaming, usage, send } = useMessages({ initialMessages: conversation?.messages.toReversed() })
+  // useClearScreen()
 
-  const reversed = messages.toReversed()
+  // const reversed = messages.toReversed()
+  const PAGE_SIZE = 8
   let visibleMessageCount = 1
 
   const MAX_CHARS = 1000
   let charCount = 0
 
-  for (const message of reversed.slice(visibleMessageCount)) {
+  for (const message of messages.slice(1)) {
     const messageLength = getMessageLength(message)
     if (charCount + messageLength <= MAX_CHARS) {
       charCount += messageLength
@@ -101,8 +104,10 @@ export const Chat = ({ conversation }: ChatProps) => {
     }
   }
 
+  const staticMessages = messages.slice(visibleMessageCount)
+
   // const pageSize = 10
-  const totalPages = Math.floor(messages.length / visibleMessageCount)
+  const totalPages = Math.floor(staticMessages.length / PAGE_SIZE)
 
   useResumeStdin()
 
@@ -115,7 +120,7 @@ export const Chat = ({ conversation }: ChatProps) => {
     // write(JSON.stringify({ input, key }))
     const modKey = key.shift || key.ctrl || key.meta
     if (key.pageUp || (key.upArrow && modKey)) {
-      if (page < totalPages - 1) {
+      if (page < totalPages) {
         setPage((prevPage) => prevPage + 1)
       }
     } else if (key.pageDown || (key.downArrow && modKey)) {
@@ -143,17 +148,30 @@ export const Chat = ({ conversation }: ChatProps) => {
   }
 
   const PagesInfo = ({ mode }: { mode: "top" | "bottom" }) => {
-    const showPage =
-      mode === "top" ? totalPages > 1 :
-        mode === "bottom" ? page !== 0 :
-          false
+    if (totalPages < 1) {
+      return null
+    }
+    
+    const isTopPage = page === totalPages
+
+    if (mode === "top" && isTopPage) {
+      // horizontal line
+      return (
+        <Column paddingBottom={1} alignItems="center">
+          <Text italic dimColor>Top of conversation</Text>
+          <Text dimColor>
+            {"─".repeat(width - 8)}
+          </Text>
+        </Column>
+      )
+    }
        
     return (
       <Box paddingX={2} paddingTop={mode === "bottom" ? 1 : 0} paddingBottom={mode === "top" ? 1 : 0} flexDirection="row" flexGrow={1} justifyContent="space-between">
-        {showPage && <Text color="gray">Page {page}</Text>}
+        <Text color="gray">Page {page}/{totalPages}</Text>
         <Box flexDirection="column">
-          {page < totalPages - 1 && <Text bold>🔼 Alt ⌥ + Up ↑</Text>}
-          {page > 0 && <Text bold>🔽 Alt ⌥ + Down ↓</Text>}
+          {<Text bold>🔼 Alt ⌥ + Up ↑</Text>}
+          {page !== 0 && <Text bold>🔽 Alt ⌥ + Down ↓</Text>}
         </Box>
       </Box>
     )
@@ -196,7 +214,7 @@ export const Chat = ({ conversation }: ChatProps) => {
       {/* <Text dimColor>  DEBUG: messages {messages.length}</Text> */}
       <Box flexDirection="column" flexGrow={1} gap={1}>
         <TextInput id="CHAT_INPUT" onSubmit={send} />
-        <Text dimColor>DEBUG | {JSON.stringify({ visibleMessageCount, charCount })}</Text>
+        <Text dimColor>DEBUG | {JSON.stringify({ visibleMessageCount, charCount, totalPages, page })}</Text>
         <Text dimColor>  Session ID: {SESSION_ID}</Text>
       </Box>
     </Box>
@@ -208,7 +226,7 @@ export const Chat = ({ conversation }: ChatProps) => {
             <CoreMessageBubble key={messages.length - index} message={message} />
           ))} */}
       {waiting && <CoreMessageBubble message={{ role: "assistant", content: "..." }} waiting />}
-      {reversed.slice(0, visibleMessageCount).map((message, index) => (
+      {messages.slice(0, visibleMessageCount).map((message, index) => (
         <CoreMessageBubble key={messages.length - index} message={message} />
       ))}
     </Box>
@@ -236,8 +254,8 @@ export const Chat = ({ conversation }: ChatProps) => {
         {page === 0 && recentMessages}
         {!streaming && (
           <>
-            {page > 0 && <PagesInfo mode="bottom" />}
-            <StaticMessages paddingBottom={1} page={page} pageSize={visibleMessageCount} messages={reversed.slice(visibleMessageCount)}>
+            <PagesInfo mode="bottom" />
+            <StaticMessages paddingBottom={1} page={page} pageSize={PAGE_SIZE} messages={staticMessages}>
               {(message, index) => <CoreMessageBubble key={index} message={message} />}
             </StaticMessages>
             <PagesInfo mode="top" />

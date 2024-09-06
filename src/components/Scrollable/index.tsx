@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from "react"
-import { Box, Text, useInput } from "ink"
+import { Box, Text, useInput, type BoxProps } from "ink"
 import { useSIGINTListener } from "@/hooks/useSIGINTListener"
 
-interface ScrollableProps<T> {
+interface ScrollableProps<T> extends BoxProps {
   items: T[];
   itemHeight?: number;
   visibleItems: number;
@@ -39,7 +39,8 @@ export function Scrollable<T>({
   // highlightColor,
   isActive = true,
   renderItem,
-  onSelect
+  onSelect,
+  ...props
 }: ScrollableProps<T>) {
   const [currentIndex, setCurrentIndex] = useState(0)
   const [viewportStart, setViewportStart] = useState(0)
@@ -86,8 +87,8 @@ export function Scrollable<T>({
   const scrollThumbPosition = Math.floor((viewportStart / (items.length - visibleItems)) * (totalVisibleHeight - scrollThumbHeight))
 
   return (
-    <Box paddingX={1}>
-      <Box flexDirection="column" overflowY="hidden">
+    <Box paddingX={1} flexGrow={1}>
+      <Box flexDirection="column" flexGrow={1} overflowY="hidden" {...props}>
         {listItems}
       </Box>
       <ScrollThumb 

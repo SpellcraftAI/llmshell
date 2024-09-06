@@ -1,6 +1,5 @@
 
 import { Box, useInput } from "ink"
-import { useClearScreen } from "@/hooks/useClearScreen"
 import { GOL } from "./GOL"
 import { Chat } from "./Chat"
 import { Threads } from "./Threads"
@@ -8,12 +7,13 @@ import { AppStateProvider, useAppState } from "./state"
 import { RouterProvider, useRouter } from "./router"
 import { Settings } from "./Settings"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
+// import { useClearScreen } from "@/hooks/useClearScreen"
 
 export const Home = () => {
   const { state: { selectedThread }, update } = useAppState()
   const { page, navigate } = useRouter()
   
-  useClearScreen()
+  // useClearScreen()
   useInput(
     (input, key) => {
       if (key.escape) {
