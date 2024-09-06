@@ -1,5 +1,5 @@
 import { getConfig, loadThreadsFromDisk, setConfig, type Conversation } from "@/lib/log"
-import React, { createContext, useContext, useEffect, useLayoutEffect, useState } from "react"
+import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState } from "react"
 
 export interface AppConfig {
   apiKey?: string;
@@ -25,18 +25,18 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     threads: []
   })
 
+  const update = useCallback((newState: Partial<AppState>) => {
+    setState(prevState => ({ ...prevState, ...newState }))
+  }, [])
+
   /**
    * Load conversations from disk on mount.
    */
   useLayoutEffect(() => {
     loadThreadsFromDisk().then((threads) => {
-      setState(prevState => ({ ...prevState, threads }))
+      update({ threads })
     })
-  }, [])
-
-  const update = (newState: Partial<AppState>) => {
-    setState(prevState => ({ ...prevState, ...newState }))
-  }
+  }, [update])
 
   useEffect(
     () => {

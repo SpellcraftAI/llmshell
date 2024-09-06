@@ -22,11 +22,13 @@ export enum LOGFILE {
 
 export const getConfigDir = () => resolve(homedir(), ".config", "claude_terminal")
 export const getConfigPath = () => resolve(getConfigDir(), "config.json")
-export const getSessionDir = () => resolve(getConfigDir(), SESSION_ID)
-export const getDebugPath = () => resolve(getSessionDir(), LOGFILE.DEBUG)
+export const getSessionsDir = () => resolve(getConfigDir(), "sessions")
 
-const getTranscriptPath = () => resolve(getSessionDir(), LOGFILE.TRANSCRIPT)
-const getMessagesPath = () => resolve(getSessionDir(), "messages.jsonl")
+export const getCurrentDebugPath = () => resolve(getCurrentSessionDir(), LOGFILE.DEBUG)
+export const getCurrentSessionDir = () => resolve(getSessionsDir(), SESSION_ID)
+
+const getCurrentTranscriptPath = () => resolve(getCurrentSessionDir(), LOGFILE.TRANSCRIPT)
+const getCurrentMessagesPath = () => resolve(getCurrentSessionDir(), "messages.jsonl")
 
 export const getConfig = (): AppConfig => {
   const configPath = getConfigPath()
@@ -51,7 +53,7 @@ export const setConfig = async (config: AppConfig) => {
  */
 export const getLastSessionDirectory = async () => {
   const glob = new Bun.Glob("./*")
-  const scanner = glob.scan({ cwd: getConfigDir(), absolute: true, onlyFiles: false })
+  const scanner = glob.scan({ cwd: getSessionsDir(), absolute: true, onlyFiles: false })
   const results = await Array.fromAsync(scanner)
   
   const lastDirectory = results.sort().pop()
@@ -71,7 +73,7 @@ export interface Conversation {
 export const getCurrentConversation = async (): Promise<Conversation> => {
   await ensureLogsExist()
 
-  const path = getMessagesPath()
+  const path = getCurrentMessagesPath()
   const timestamp = Number(path.split(sep).at(-2))
   const messages = await parseJsonl(path) ?? []
 
@@ -90,7 +92,7 @@ export const getNewConversation = async (): Promise<Conversation> => {
 
 export const loadThreadsFromDisk = async () => {
   const glob = new Bun.Glob("./*/messages.jsonl")
-  const scanner = glob.scan({ cwd: getConfigDir(), absolute: true, onlyFiles: true })
+  const scanner = glob.scan({ cwd: getSessionsDir(), absolute: true, onlyFiles: true })
   const paths = await Array.fromAsync(scanner)
 
   const conversations: Conversation[] = []
@@ -122,11 +124,11 @@ export const getLastLog = async (type: LOGFILE) => {
 
 const ensureLogsExist = async () => {
   const CONFIG_FILE = Bun.file(getConfigPath())
-  const DEBUG_FILE = Bun.file(getDebugPath())
-  const TRANSCRIPT_FILE = Bun.file(getTranscriptPath())
-  const MESSAGES_FILE = Bun.file(getMessagesPath())
+  const DEBUG_FILE = Bun.file(getCurrentDebugPath())
+  const TRANSCRIPT_FILE = Bun.file(getCurrentTranscriptPath())
+  const MESSAGES_FILE = Bun.file(getCurrentMessagesPath())
 
-  await mkdir(getSessionDir(), { recursive: true })
+  await mkdir(getCurrentSessionDir(), { recursive: true })
 
   for (const file of [CONFIG_FILE, DEBUG_FILE, TRANSCRIPT_FILE, MESSAGES_FILE]) {
     const exists = await file.exists()
@@ -139,13 +141,13 @@ const ensureLogsExist = async () => {
 
 export const log = async (...messages: unknown[]) => {
   await ensureLogsExist()
-  await appendFile(getDebugPath(), `${new Date().toISOString()}\n${messages.map((msg) => JSON.stringify(msg, null, 2)).join("\n")}\n\n`)
+  await appendFile(getCurrentDebugPath(), `${new Date().toISOString()}\n${messages.map((msg) => JSON.stringify(msg, null, 2)).join("\n")}\n\n`)
 }
 
 export const writeMessagesToDisk = async (...messages: CoreMessage[]) => {
   await ensureLogsExist()
   for (const message of messages) {
-    await appendFile(getMessagesPath(), JSON.stringify(message) + "\n")
+    await appendFile(getCurrentMessagesPath(), JSON.stringify(message) + "\n")
   }
 }
 
@@ -153,16 +155,16 @@ export const writeMessagesToTranscript = async (...messages: CoreMessage[]) => {
   await ensureLogsExist()
   for (const message of messages) {
     if (typeof message.content === "string") {
-      await appendFile(getTranscriptPath(), `[${message.role}]\n${new Date().toISOString()}\n${message.content}\n\n`)
+      await appendFile(getCurrentTranscriptPath(), `[${message.role}]\n${new Date().toISOString()}\n${message.content}\n\n`)
     } else if (Array.isArray(message.content)) {
       for (const content of message.content) {
         switch (content.type) {
         case "text":
-          await appendFile(getTranscriptPath(), `[${message.role}]\n${new Date().toISOString()}\n${content.text}\n\n`)
+          await appendFile(getCurrentTranscriptPath(), `[${message.role}]\n${new Date().toISOString()}\n${content.text}\n\n`)
           break
         
         default:
-          await appendFile(getTranscriptPath(), `[${message.role}]\n${new Date().toISOString()}\n${JSON.stringify(content, null, 2)}\n\n`)
+          await appendFile(getCurrentTranscriptPath(), `[${message.role}]\n${new Date().toISOString()}\n${JSON.stringify(content, null, 2)}\n\n`)
           break
         }
       }

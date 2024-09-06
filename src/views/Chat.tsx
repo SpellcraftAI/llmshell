@@ -11,7 +11,7 @@ import { CoreMessageBubble } from "@/components/MessageBubble/CoreMessage"
 import type { CoreMessage } from "ai"
 import { useResumeStdin } from "@/hooks/useResumeStdin"
 import { Column } from "@/components/Flex"
-// import { useClearScreen } from "@/hooks/useClearScreen"
+import { useClearScreen } from "@/hooks/useClearScreen"
 
 export interface ChatProps {
   conversation?: Conversation
@@ -214,7 +214,7 @@ export const Chat = ({ conversation }: ChatProps) => {
       {/* <Text dimColor>  DEBUG: messages {messages.length}</Text> */}
       <Box flexDirection="column" flexGrow={1} gap={1}>
         <TextInput id="CHAT_INPUT" onSubmit={send} />
-        <Text dimColor>DEBUG | {JSON.stringify({ visibleMessageCount, charCount, totalPages, page })}</Text>
+        {/* <Text dimColor>DEBUG | {JSON.stringify({ visibleMessageCount, charCount, totalPages, page })}</Text> */}
         <Text dimColor>  Session ID: {SESSION_ID}</Text>
       </Box>
     </Box>

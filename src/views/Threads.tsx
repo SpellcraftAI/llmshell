@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useState } from "react"
 import { Box, Text } from "ink"
-import { getNewConversation, setSessionId, type Conversation } from "@/lib/log"
+import { getNewConversation, loadThreadsFromDisk, setSessionId, type Conversation } from "@/lib/log"
 import { Scrollable } from "@/components/Scrollable"
 import { CenterView } from "./Center"
 import { useAppState } from "./state"
@@ -8,6 +8,7 @@ import { useRouter } from "./router"
 import { FocusIndicator } from "@/components/FocusIndicator"
 import { Column, Row } from "@/components/Flex"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
+import { useClearScreen } from "@/hooks/useClearScreen"
 
 export type MenuOptionType = "NEW_THREAD" | "SETTINGS"
 
@@ -70,6 +71,13 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
     }
   }, [config.apiKey])
 
+  // Sync threads from disk.
+  // useLayoutEffect(() => {
+  //   loadThreadsFromDisk().then((threads) => {
+  //     update(({ threads }))
+  //   })
+  // }, [update])
+
   useEffect(
     () => { 
       if (selectedThread) {
@@ -83,7 +91,14 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
     (item: Conversation | MenuOption, isSelected: boolean) => {
       if ("type" in item) {
         return (
-          <Row alignItems="center" justifyContent="center" paddingX={1} minWidth={16} borderStyle="round" borderDimColor={!isSelected}>
+          <Row 
+            alignItems="center" 
+            justifyContent="center" 
+            paddingX={1} 
+            minWidth={16}
+            borderStyle="round" 
+            borderDimColor={!isSelected}
+          >
             <Text bold dimColor={!isSelected}>{item.title}</Text>
           </Row>
         )
@@ -123,9 +138,11 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
 
   return (
     <CenterView 
-      height={height}
+      // height={height}
+      minHeight={height}
       overflow="hidden" 
-      paddingY={1} 
+      paddingTop={2}
+      paddingBottom={1} 
       gap={1}
       // borderStyle="round" 
     >
@@ -138,38 +155,46 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
       </Column> */}
       <Column flexShrink={0}>
         <Text bold>Welcome to GSH v2024.1.</Text>
-        <Text dimColor>Now powered Claude Sonnet 3.5.</Text>
+        <Text italic dimColor>Now powered Claude Sonnet 3.5.</Text>
       </Column>
     
       {needsApiKey
         ? <NeedsApiKey /> 
         : (
-          <Scrollable
-            borderStyle="round"
-            borderDimColor
-            paddingX={1}
-            items={[NEW_THREAD_OPTION, SETTINGS_OPTION, ...threads]}
-            renderItem={renderConversationItem}
-            itemHeight={5}
-            visibleItems={Math.max(3, Math.floor(height / 5) - 1)}
-            onSelect={async (item) => {
-              if ("type" in item) {
-                switch (item.type) {
-                case "NEW_THREAD":
-                  const newThread = await getNewConversation()
-                  update({ selectedThread: newThread })
-                  setSessionId(`${newThread.timestamp}`)
-                  return
-                case "SETTINGS":
-                  navigate("settings")
-                  return
+          <>
+            <Scrollable
+              borderStyle={threads.length > 0 ? "round" : undefined}
+              borderDimColor
+              paddingX={4}
+              items={[NEW_THREAD_OPTION, SETTINGS_OPTION, ...threads]}
+              renderItem={renderConversationItem}
+              itemHeight={!threads.length ? 2 : 5}
+              visibleItems={!threads.length ? 2 : Math.max(3, Math.floor(height / 5) - 1)}
+              onSelect={async (item) => {
+                if ("type" in item) {
+                  switch (item.type) {
+                  case "NEW_THREAD":
+                    const newThread = await getNewConversation()
+                    update({ selectedThread: newThread })
+                    setSessionId(`${newThread.timestamp}`)
+                    return
+                  case "SETTINGS":
+                    navigate("settings")
+                    return
+                  }
                 }
-              }
 
-              update({ selectedThread: item })
-              setSessionId(`${item.timestamp}`)
-            }}
-          />
+                update({ selectedThread: item })
+                setSessionId(`${item.timestamp}`)
+              }}
+            />
+
+            {!threads.length && (
+              <Box justifyContent="center" alignItems="center">
+                <Text italic dimColor>No history yet. Create a new chat to get started.</Text>
+              </Box>
+            )}
+          </>
         )}
     </CenterView>
   )

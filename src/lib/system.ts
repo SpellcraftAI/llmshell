@@ -1,9 +1,9 @@
-import { getConfigDir, getDebugPath, getSessionDir, SESSION_ID } from "./log"
+import { getConfigDir, getCurrentDebugPath, getCurrentSessionDir, SESSION_ID } from "./log"
 
 export const getSystemPrompt = () => {
   const CONFIG_DIR = getConfigDir()
-  const SESSION_DIR = getSessionDir()
-  const DEBUG_FILE = getDebugPath()
+  const SESSION_DIR = getCurrentSessionDir()
+  const DEBUG_FILE = getCurrentDebugPath()
   return (
     `
 You interface with the user's computer system. 

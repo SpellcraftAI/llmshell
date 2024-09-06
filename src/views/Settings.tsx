@@ -5,13 +5,14 @@ import { getConfigPath } from "@/lib/log"
 import { useAppState } from "./state"
 import { FormInput } from "@/components/FormInput"
 import { useResumeStdin } from "@/hooks/useResumeStdin"
-// import { useClearScreen } from "@/hooks/useClearScreen"
+import { useClearScreen } from "@/hooks/useClearScreen"
+import { Column } from "@/components/Flex"
 
 export const Settings: React.FC = () => {
   const { state: { config }, update } = useAppState()
   const [width] = useTerminalSize({ maxWidth: 60 })
 
-  // useClearScreen()
+  useClearScreen()
 
   /**
    * MUST CALL RESUME()! IF YOU CALL USEINPUT() OR USE THE INK/UI TEXT INPUTS IN
