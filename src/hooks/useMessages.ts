@@ -2,7 +2,7 @@ import { tools } from "@/lib/tools"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { streamText, type CompletionTokenUsage, type CoreMessage } from "ai"
 import { useCallback, useState } from "react"
-import { addMessage, log, sessionLog } from "@/lib/log"
+import { writeMessagesToDisk, log, writeMessagesToTranscript } from "@/lib/log"
 import { getSystemPrompt } from "@/lib/system"
 import { useApp } from "ink"
 import { useAppState } from "@/views/state"
@@ -40,8 +40,8 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
           messages.push(userMessage)
           setMessages([...messages])
 
-          await addMessage(userMessage)
-          await sessionLog(userMessage)
+          await writeMessagesToDisk(userMessage)
+          await writeMessagesToTranscript(userMessage)
         }
 
         // const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: "..." }] }
@@ -92,9 +92,19 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
             },
             async close() {
               setStreaming(false)
+              if (!textBuffer.trim()) {
+                /**
+                 * We received an erroneous empty message from assistant. Don't
+                 * add it to disk, remove from memory.
+                 */
+                messages.pop()
+                setMessages([...messages])
+                return
+              }
+
               const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }] }
-              await addMessage(message)
-              await sessionLog(message)
+              await writeMessagesToDisk(message)
+              await writeMessagesToTranscript(message)
             }
           })
         )
@@ -113,7 +123,7 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
         const toolCallsMessage: CoreMessage = { role: "assistant", content: finishedToolCalls }
         messages.push(toolCallsMessage)
         setMessages([...messages])
-        await addMessage(toolCallsMessage)
+        await writeMessagesToDisk(toolCallsMessage)
 
         // const bufferedResults: ToolResultPart[] = []
         for (const toolResult of finishedToolResults) {
@@ -139,8 +149,8 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
                 const message: CoreMessage = { role: "tool", content: [{...toolResult, result: textBuffer }] }
                 messages[messages.length - 1] = message
                 setMessages([...messages])
-                await addMessage(message)
-                await sessionLog(message)
+                await writeMessagesToDisk(message)
+                await writeMessagesToTranscript(message)
               }
             })
           )

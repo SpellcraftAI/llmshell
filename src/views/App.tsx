@@ -1,5 +1,5 @@
 
-import { useInput } from "ink"
+import { Box, useInput } from "ink"
 import { useClearScreen } from "@/hooks/useClearScreen"
 import { GOL } from "./GOL"
 import { Chat } from "./Chat"
@@ -7,6 +7,7 @@ import { Threads } from "./Threads"
 import { AppStateProvider, useAppState } from "./state"
 import { RouterProvider, useRouter } from "./router"
 import { Settings } from "./Settings"
+import { useTerminalSize } from "@/hooks/useTerminalSize"
 
 export const Home = () => {
   const { state: { selectedThread }, update } = useAppState()
@@ -56,10 +57,13 @@ export const Home = () => {
 }
 
 export const App = () => {
+  const [width, height] = useTerminalSize()
   return (
     <AppStateProvider>
       <RouterProvider>
-        <Home />
+        <Box flexDirection="column" alignSelf="center" width={width} minHeight={height}>
+          <Home />
+        </Box>
       </RouterProvider>
     </AppStateProvider>
   )

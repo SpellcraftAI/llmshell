@@ -1,12 +1,14 @@
 import { clearTerminal } from "ansi-escapes"
+import { useStdout } from "ink"
 import { useLayoutEffect } from "react"
 
 export const useClearScreen = (callback?: () => void | Promise<void>) => {
+  const { write } = useStdout()
   useLayoutEffect(
     () => {
-      process.stdout.write(clearTerminal)
+      write(clearTerminal)
       callback?.()
     },
-    [callback]
+    [callback, write]
   )
 }

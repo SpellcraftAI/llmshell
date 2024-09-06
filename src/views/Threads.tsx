@@ -8,6 +8,7 @@ import { useAppState } from "./state"
 import { useRouter } from "./router"
 import { FocusIndicator } from "@/components/FocusIndicator"
 import { Column, Row } from "@/components/Flex"
+import { useTerminalSize } from "@/hooks/useTerminalSize"
 
 export type MenuOptionType = "NEW_THREAD" | "SETTINGS"
 
@@ -23,12 +24,12 @@ export interface ThreadsProps {
 
 const NEW_THREAD_OPTION: MenuOption = {
   type: "NEW_THREAD",
-  title: "New Thread",
+  title: "💬 New chat",
 }
 
 const SETTINGS_OPTION: MenuOption = {
   type: "SETTINGS",
-  title: "Settings",
+  title: "⚙ Settings",
 }
 
 
@@ -59,6 +60,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
   const { state: { config, selectedThread }, update } = useAppState()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [needsApiKey, setNeedsApiKey] = useState(false)
+  const [, height] = useTerminalSize()
 
   useClearScreen()
   
@@ -129,19 +131,19 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
   )
 
   return (
-    <CenterView>
+    <CenterView flexGrow={1}>
       <Column paddingTop={2}>
         <Column gap={1}>
     
           <Column alignSelf="center" gap={1}>
             <Column justifyContent="center" alignItems="center">
               <Text bold>Welcome to GSH v2024.1.</Text>
-              <Text dimColor>Now running on Claude Sonnet 3.5.</Text>
+              <Text dimColor>Now powered Claude Sonnet 3.5.</Text>
             </Column>
 
             <Column justifyContent="center" alignItems="center">
               <Text italic>{"\"A simple text interface.\""}</Text>
-              <Text dimColor> - Y Combinator, derogatory</Text>
+              <Text italic dimColor> - Y Combinator (derogatory)</Text>
             </Column>
           </Column>
     
@@ -152,7 +154,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
                 items={[NEW_THREAD_OPTION, SETTINGS_OPTION, ...conversations]}
                 renderItem={renderConversationItem}
                 itemHeight={4}
-                visibleItems={4}
+                visibleItems={Math.max(Math.floor(height / 4) - 4, 4)}
                 onSelect={async (item) => {
                   if ("type" in item) {
                     switch (item.type) {

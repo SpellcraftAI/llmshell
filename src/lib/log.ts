@@ -142,14 +142,14 @@ export const log = async (...messages: unknown[]) => {
   await appendFile(getDebugPath(), `${new Date().toISOString()}\n${messages.map((msg) => JSON.stringify(msg, null, 2)).join("\n")}\n\n`)
 }
 
-export const addMessage = async (...messages: CoreMessage[]) => {
+export const writeMessagesToDisk = async (...messages: CoreMessage[]) => {
   await ensureLogsExist()
   for (const message of messages) {
     await appendFile(getMessagesPath(), JSON.stringify(message) + "\n")
   }
 }
 
-export const sessionLog = async (...messages: CoreMessage[]) => {
+export const writeMessagesToTranscript = async (...messages: CoreMessage[]) => {
   await ensureLogsExist()
   for (const message of messages) {
     if (typeof message.content === "string") {

@@ -87,7 +87,7 @@ export function Scrollable<T>({
 
   return (
     <Box paddingX={1}>
-      <Box flexDirection="column">
+      <Box flexDirection="column" overflowY="hidden">
         {listItems}
       </Box>
       <ScrollThumb 
