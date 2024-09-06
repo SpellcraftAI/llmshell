@@ -3,7 +3,7 @@ import chalk from "chalk"
 import { Box, Text, useInput } from "ink"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
 import { useSIGINTListener } from "@/hooks/useSIGINTListener"
-import { useClearScreen } from "@/hooks/useClearScreen"
+// import { useClearScreen } from "@/hooks/useClearScreen"
 
 const CELL_ALIVE = "█"
 const CELL_DEAD = " "
@@ -61,7 +61,7 @@ export const GOL: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const [grid, setGrid] = useState(() => initializeGrid(width, height))
   const [isRunning, setIsRunning] = useState(true)
 
-  useClearScreen()
+  // useClearScreen()
   useSIGINTListener(isRunning)
 
   useEffect(() => {

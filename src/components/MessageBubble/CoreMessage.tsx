@@ -1,5 +1,5 @@
 import type { CoreMessage } from "ai"
-import { MessageBubble, MessageRow } from "."
+import { MessageBubble } from "."
 import { createANSIRenderer, createParser, finish, parse } from "mdstream"
 import { Box, Text } from "ink"
 

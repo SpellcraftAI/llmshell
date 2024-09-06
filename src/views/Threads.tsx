@@ -1,11 +1,18 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from "react"
+import { useCallback, useEffect, useState } from "react"
 import { Box, Text } from "ink"
 import { getConversations, getNewConversation, setSessionId, type Conversation } from "@/lib/log"
 import { Scrollable } from "@/components/Scrollable"
 import { CenterView } from "./Center"
 import { useClearScreen } from "@/hooks/useClearScreen"
+import { useAppState } from "./state"
+import { useRouter } from "./router"
+import { FocusIndicator } from "@/components/FocusIndicator"
+import { Column, Row } from "@/components/Flex"
+
+export type MenuOptionType = "NEW_THREAD" | "SETTINGS"
 
 export interface MenuOption {
+  type: MenuOptionType
   title: string
 }
 
@@ -15,39 +22,77 @@ export interface ThreadsProps {
 }
 
 const NEW_THREAD_OPTION: MenuOption = {
-  title: "Start a new thread"
+  type: "NEW_THREAD",
+  title: "New Thread",
+}
+
+const SETTINGS_OPTION: MenuOption = {
+  type: "SETTINGS",
+  title: "Settings",
+}
+
+
+const NeedsApiKey = () => {
+  const { navigate } = useRouter()
+  
+  return (
+    <Box flexDirection="column" justifyContent="center" alignItems="center" gap={1}>
+      <Text color="red">No API key set. Please update your settings.</Text>
+
+      <FocusIndicator
+        paddingX={1}
+        inputHandler={(_, key) => {
+          if (key.return) {
+            navigate("settings")
+          }
+        }}
+      >
+        <Text>Settings</Text>
+      </FocusIndicator>
+
+    </Box>
+  )
 }
 
 export const Threads = ({ onSelect }: ThreadsProps) => {
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
+  const { navigate } = useRouter()
+  const { state: { config, selectedThread }, update } = useAppState()
   const [conversations, setConversations] = useState<Conversation[]>([])
-  
-  // useSIGINTListener()
+  const [needsApiKey, setNeedsApiKey] = useState(false)
+
   useClearScreen()
   
-  useLayoutEffect(
+  useEffect(
     () => {
       getConversations().then(setConversations)
     }, 
     []
   )
 
+  useEffect(() => {
+    if (!config.apiKey) {
+      setNeedsApiKey(true)
+    } else {
+      setNeedsApiKey(false)
+    }
+  }, [config.apiKey])
+
   useEffect(
     () => { 
-      if (selectedConversation) {
-        onSelect?.(selectedConversation)
+      if (selectedThread) {
+        onSelect?.(selectedThread)
       }
     }, 
-    [onSelect, selectedConversation]
+    [onSelect, selectedThread]
   )
 
   const renderConversationItem = useCallback(
     (item: Conversation | MenuOption, isSelected: boolean) => {
-      if ("title" in item) {
+      if ("type" in item) {
         return (
-          <Box paddingX={1} borderStyle="round" borderDimColor={!isSelected}>
-            <Text bold dimColor={!isSelected}> {item.title} </Text>
-          </Box>
+          <Row alignItems="center" justifyContent="center" paddingX={1} minWidth={16} borderStyle="round" borderDimColor={!isSelected}>
+            <Text bold dimColor={!isSelected}>{item.title}</Text>
+          </Row>
         )
       }
 
@@ -56,7 +101,8 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
           .filter(({ role }) => role === "assistant")
           .filter(({ content }) => Array.isArray(content) && content[0].type === "text")
 
-      // @ts-expect-error - We know that the last message is always a text message
+      // @ts-expect-error - We know that the last message is always of type
+      // [{ type: "text", ... }]
       const title = assistantTextMessages.map(({ content }) => content[0].text).at(-1)?.trim() ?? "Untitled"
       const titlePreview = title.split("\n")[0].slice(0, 72)
       const date = new Date(item.timestamp).toLocaleString()
@@ -84,45 +130,50 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
 
   return (
     <CenterView>
-      <Box flexDirection="column" paddingTop={2}>
-        <Box flexDirection="column" gap={1}>
+      <Column paddingTop={2}>
+        <Column gap={1}>
     
-          <Box flexDirection="column" justifyContent="center" alignItems="center" alignSelf="center">
-            <Text bold>Welcome to GSH v2024.1.</Text>
-            <Text dimColor>Now running on Claude Sonnet 3.5.</Text>
-          </Box>
+          <Column alignSelf="center" gap={1}>
+            <Column justifyContent="center" alignItems="center">
+              <Text bold>Welcome to GSH v2024.1.</Text>
+              <Text dimColor>Now running on Claude Sonnet 3.5.</Text>
+            </Column>
 
-          {/* <Menu
-            isActive={true}
-            flexDirection="column"
-            alignItems="center"
-            justifyContent="center"
-            items={items}
-            renderItem={(item, isSelected) => (
-              <Text color={isSelected ? "green" : "white"}>{item}</Text>
+            <Column justifyContent="center" alignItems="center">
+              <Text italic>{"\"A simple text interface.\""}</Text>
+              <Text dimColor> - Y Combinator, derogatory</Text>
+            </Column>
+          </Column>
+    
+          {needsApiKey
+            ? <NeedsApiKey /> 
+            : (
+              <Scrollable
+                items={[NEW_THREAD_OPTION, SETTINGS_OPTION, ...conversations]}
+                renderItem={renderConversationItem}
+                itemHeight={4}
+                visibleItems={4}
+                onSelect={async (item) => {
+                  if ("type" in item) {
+                    switch (item.type) {
+                    case "NEW_THREAD":
+                      const newThread = await getNewConversation()
+                      update({ selectedThread: newThread })
+                      setSessionId(`${newThread.timestamp}`)
+                      return
+                    case "SETTINGS":
+                      navigate("settings")
+                      return
+                    }
+                  }
+
+                  update({ selectedThread: item })
+                  setSessionId(`${item.timestamp}`)
+                }}
+              />
             )}
-            onSelect={(item, index) => {}}
-          />  */}
-    
-          <Scrollable
-            items={[NEW_THREAD_OPTION, ...conversations]}
-            renderItem={renderConversationItem}
-            itemHeight={4}
-            visibleItems={4}
-            onSelect={async (item) => {
-              if ("title" in item) {
-                // use current new session
-                const newConversation = await getNewConversation()
-                setSelectedConversation(newConversation)
-                return
-              }
-
-              setSelectedConversation(item)
-              setSessionId(`${item.timestamp}`)
-            }}
-          />
-        </Box>
-      </Box>
+        </Column>
+      </Column>
     </CenterView>
   )
 }

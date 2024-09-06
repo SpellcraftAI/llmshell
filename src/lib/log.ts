@@ -3,6 +3,8 @@ import { resolve, sep } from "path"
 import { mkdir, appendFile } from "fs/promises"
 import type { CoreMessage } from "ai"
 import { parseJsonl } from "./jsonl"
+import type { AppConfig } from "@/views/state"
+import { readFileSync, writeFileSync } from "fs"
 
 // date-time file compatible
 export let SESSION_ID = new Date().getTime().toString()
@@ -19,11 +21,30 @@ export enum LOGFILE {
 }
 
 export const getConfigDir = () => resolve(homedir(), ".config", "claude_terminal")
+export const getConfigPath = () => resolve(getConfigDir(), "config.json")
 export const getSessionDir = () => resolve(getConfigDir(), SESSION_ID)
 export const getDebugPath = () => resolve(getSessionDir(), LOGFILE.DEBUG)
 
 const getTranscriptPath = () => resolve(getSessionDir(), LOGFILE.TRANSCRIPT)
 const getMessagesPath = () => resolve(getSessionDir(), "messages.jsonl")
+
+export const getConfig = (): AppConfig => {
+  const configPath = getConfigPath()
+  try {
+    const text = readFileSync(configPath, "utf-8")
+    const config = JSON.parse(text)
+    log("Loaded config", config)
+    return config
+  } catch (error) {
+    log("Error loading config file")
+    return {}
+  }
+}
+
+export const setConfig = async (config: AppConfig) => {
+  const configPath = getConfigPath()
+  writeFileSync(configPath, JSON.stringify(config, null, 2))
+}
 
 /**
  * @returns The directory of the most recent session.
@@ -100,13 +121,14 @@ export const getLastLog = async (type: LOGFILE) => {
 }
 
 const ensureLogsExist = async () => {
+  const CONFIG_FILE = Bun.file(getConfigPath())
   const DEBUG_FILE = Bun.file(getDebugPath())
   const TRANSCRIPT_FILE = Bun.file(getTranscriptPath())
   const MESSAGES_FILE = Bun.file(getMessagesPath())
 
   await mkdir(getSessionDir(), { recursive: true })
 
-  for (const file of [DEBUG_FILE, TRANSCRIPT_FILE, MESSAGES_FILE]) {
+  for (const file of [CONFIG_FILE, DEBUG_FILE, TRANSCRIPT_FILE, MESSAGES_FILE]) {
     const exists = await file.exists()
     if (!exists) {
       await Bun.write(file, "")

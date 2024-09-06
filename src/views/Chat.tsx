@@ -7,9 +7,10 @@ import { useMessages } from "@/hooks/useMessages"
 import { useServer } from "@/hooks/useServer"
 import { compactNumber } from "@/lib/number"
 import { SESSION_ID, type Conversation } from "@/lib/log"
-import { useClearScreen } from "@/hooks/useClearScreen"
 import { CoreMessageBubble } from "@/components/MessageBubble/CoreMessage"
 import type { CoreMessage } from "ai"
+import { useResumeStdin } from "@/hooks/useResumeStdin"
+// import { useClearScreen } from "@/hooks/useClearScreen"
 
 export interface ChatProps {
   conversation?: Conversation
@@ -63,17 +64,14 @@ const StaticMessages = ({
 
 export const Chat = ({ conversation }: ChatProps) => {
   const server = useServer()
-  // const { write } = useStdout()
   const [page, setPage] = useState(0)
   const [width, height] = useTerminalSize({ maxWidth: 100 })
   const { messages, roundtrips, waiting, streaming, usage, send } = useMessages({ initialMessages: conversation?.messages })
-  // const { focus } = useFocusManager()
 
   const pageSize = 10
   const totalPages = Math.floor(messages.length / pageSize)
 
-  // Clear terminal on first render.
-  useClearScreen()
+  useResumeStdin()
 
   // Stop server on exit.
   useLayoutEffect(() => {
@@ -92,7 +90,7 @@ export const Chat = ({ conversation }: ChatProps) => {
         setPage((prevPage) => prevPage - 1)
       }
     }
-  }, { isActive: true })
+  })
   // Scroll to bottom on new messages.
 
   // useEffect(() => {

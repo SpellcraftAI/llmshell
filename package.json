@@ -34,7 +34,8 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^0.0.35",
     "@anthropic-ai/sdk": "^0.25.0",
-    "ai": "^3.3.0",
+    "@inkjs/ui": "^2.0.0",
+    "ai": "^3.3.27",
     "ansi-escapes": "^7.0.0",
     "ansi-styles": "^6.2.1",
     "boxen": "^8.0.0",

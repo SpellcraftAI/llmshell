@@ -1,6 +1,6 @@
 "use server"
 
-import { Box, Text, useFocus } from "ink"
+import { Box, Text } from "ink"
 import chalk from "chalk"
 import { useKeyboard } from "./useKeyboard"
 import { parseSync } from "../MessageBubble/CoreMessage"

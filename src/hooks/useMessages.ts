@@ -1,12 +1,12 @@
 import { tools } from "@/lib/tools"
-import { anthropic } from "@ai-sdk/anthropic"
+import { createAnthropic } from "@ai-sdk/anthropic"
 import { streamText, type CompletionTokenUsage, type CoreMessage } from "ai"
 import { useCallback, useState } from "react"
 import { addMessage, log, sessionLog } from "@/lib/log"
 import { getSystemPrompt } from "@/lib/system"
 import { useApp } from "ink"
+import { useAppState } from "@/views/state"
 
-const model = anthropic("claude-3-5-sonnet-20240620")
 export interface UseMessagesOptions {
   initialMessages?: CoreMessage[]
   maxRoundTrips?: number
@@ -14,6 +14,7 @@ export interface UseMessagesOptions {
 
 export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMessagesOptions) => {
   const { exit } = useApp()
+  const { state: { config } } = useAppState()
   const [waiting, setWaiting] = useState(false)
   const [streaming, setStreaming] = useState<boolean>(false)
   const [messages, setMessages] = useState<CoreMessage[]>(initialMessages)
@@ -24,6 +25,10 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
   
   const send = useCallback(
     async (text?: string) => {
+      if (!config.apiKey) {
+        throw new Error("No API key configured. This screen should not have been visible.")
+      }
+
       await log("STREAM STARTED")
       try {
         const messageText = text?.trimEnd()
@@ -44,8 +49,9 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
         setWaiting(true)
 
         const abortController = new AbortController()
+        const provider = createAnthropic({ apiKey: config.apiKey })
         const stream = streamText({
-          model,
+          model: provider.languageModel("claude-3-5-sonnet-20240620"),
           system: getSystemPrompt(),
           messages: messages,
           tools,
@@ -156,7 +162,7 @@ export const useMessages = ({ initialMessages = [], maxRoundTrips = 5 }: UseMess
         // throw error
       }
     },
-    [exit, maxRoundTrips, messages, roundtrips]
+    [config.apiKey, exit, maxRoundTrips, messages, roundtrips]
   )
 
   return { messages, waiting, streaming, usage, usedTools, roundtrips, send }

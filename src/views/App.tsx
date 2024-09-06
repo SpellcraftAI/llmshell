@@ -1,48 +1,66 @@
 
 import { useInput } from "ink"
 import { useClearScreen } from "@/hooks/useClearScreen"
-import { type Conversation } from "@/lib/log"
-import { useMemo, useState } from "react"
 import { GOL } from "./GOL"
 import { Chat } from "./Chat"
 import { Threads } from "./Threads"
+import { AppStateProvider, useAppState } from "./state"
+import { RouterProvider, useRouter } from "./router"
+import { Settings } from "./Settings"
 
-export const App = () => {
-  const [selectedConversation, setSelectedConversation] = useState<Conversation | null>(null)
-  const [page, setPage] = useState<"animation" | "threads" | "chat">("animation")
+export const Home = () => {
+  const { state: { selectedThread }, update } = useAppState()
+  const { page, navigate } = useRouter()
   
   useClearScreen()
-  useInput((input, key) => {
-    if (key.escape) {
-      setPage("threads")
-      setSelectedConversation(null)
-    }
-  })
-
-  const rendered = useMemo(
-    () => {
-      switch (page) {
-      case "animation":
-        return <GOL onComplete={() => setPage("threads")} />
-      case "threads":
-        return (
-          <Threads 
-            onSelect={(conversation) => {
-              setSelectedConversation(conversation)
-              setPage("chat")
-            }} 
-          />
-        )
-      case "chat":
-        if (!selectedConversation) {
-          throw new Error("selectedConversation is null")
-        }
-
-        return <Chat conversation={selectedConversation} />
+  useInput(
+    (input, key) => {
+      if (key.escape) {
+        navigate("threads")
+        update({
+          selectedThread: null
+        })
       }
-    },
-    [page, selectedConversation]
+    }, 
+    { isActive: page !== "threads" }
   )
 
-  return rendered
+  switch (page) {
+  case "animation":
+    return <GOL onComplete={() => navigate("threads")} />
+  case "threads":
+    return (
+      <Threads 
+        onSelect={(conversation) => {
+          update({
+            selectedThread: conversation
+          })
+          
+          navigate("chat")
+        }} 
+      />
+    )
+  case "chat":
+    if (!selectedThread) {
+      throw new Error("selectedThread is null")
+    }
+
+    return <Chat conversation={selectedThread} />
+
+  case "settings":
+    return <Settings />
+  
+  default:
+    throw new Error(`Unknown page: ${page}`)
+  }
+}
+
+export const App = () => {
+  return (
+    <AppStateProvider>
+      <RouterProvider>
+        <Home />
+      </RouterProvider>
+    </AppStateProvider>
+  )
 }
