@@ -87,8 +87,8 @@ export function Scrollable<T>({
   const scrollThumbPosition = Math.floor((viewportStart / (items.length - visibleItems)) * (totalVisibleHeight - scrollThumbHeight))
 
   return (
-    <Box flexDirection="row" paddingX={4} height={totalVisibleHeight}>
-      <Box flexDirection="column" flexGrow={1} overflowY="hidden" {...props}>
+    <Box flexDirection="row" flexGrow={1}>
+      <Box flexDirection="column" justifyContent="flex-start" flexGrow={1} overflowY="hidden" {...props}>
         {listItems}
       </Box>
       <ScrollThumb 

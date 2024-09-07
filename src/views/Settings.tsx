@@ -27,7 +27,7 @@ export const Settings: React.FC = () => {
   }
 
   return (
-    <CenterView gap={1} width={width} paddingY={1} borderStyle="round" borderDimColor>
+    <CenterView gap={1} width={width} marginTop={2} paddingY={1} borderStyle="round" borderDimColor>
       <Box flexDirection="column" alignItems="center">
         <Box paddingBottom={1}>
           <Text bold>Settings</Text>

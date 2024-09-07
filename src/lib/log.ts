@@ -53,10 +53,13 @@ export const setConfig = async (config: AppConfig) => {
 
 export const loadToolsFromDisk = async () => {
   const toolsPath = getToolsPath()
+  await log("Loading tools file", toolsPath)
   try {
     const { default: tools } = await import(toolsPath)
+    await log("Loaded tools file", tools)
     return tools as Record<string, CoreTool>
   } catch (e) {
+    await log("Error loading tools file", e)
     return {}
   }
 }

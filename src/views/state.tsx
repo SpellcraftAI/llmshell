@@ -1,5 +1,5 @@
 import type { CoreTool } from "ai"
-import { getConfig, loadThreadsFromDisk, loadToolsFromDisk, setConfig, type Conversation } from "@/lib/log"
+import { getConfig, loadThreadsFromDisk, loadToolsFromDisk, log, setConfig, type Conversation } from "@/lib/log"
 import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState } from "react"
 
 export interface AppConfig {
@@ -37,6 +37,7 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   useLayoutEffect(() => {
     Promise.all([loadThreadsFromDisk(), loadToolsFromDisk()]).then(([threads, customTools]) => {
       update({ threads, customTools })
+      log("Loaded custom tools", customTools)
     })
   }, [update])
 

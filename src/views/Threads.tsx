@@ -126,7 +126,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
             </Box>
           </Box>
           
-          <Text dimColor>{date.padEnd(10)}</Text>
+          <Text dimColor>{date}</Text>
         </Box>
       )
     },
