@@ -160,7 +160,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
         : (
           <>
             <Scrollable
-              borderStyle={threads.length > 0 ? "round" : undefined}
+              // borderStyle={threads.length > 0 ? "round" : undefined}
               borderDimColor
               paddingX={4}
               items={[NEW_THREAD_OPTION, SETTINGS_OPTION, ...threads]}
