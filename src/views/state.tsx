@@ -1,4 +1,5 @@
-import { getConfig, loadThreadsFromDisk, setConfig, type Conversation } from "@/lib/log"
+import type { CoreTool } from "ai"
+import { getConfig, loadThreadsFromDisk, loadToolsFromDisk, setConfig, type Conversation } from "@/lib/log"
 import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState } from "react"
 
 export interface AppConfig {
@@ -9,6 +10,7 @@ export interface AppState {
   config: AppConfig;
   selectedThread: Conversation | null;
   threads: Conversation[];
+  customTools?: Record<string, CoreTool>;
 }
 
 interface AppStateContextType {
@@ -30,11 +32,11 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   }, [])
 
   /**
-   * Load conversations from disk on mount.
+   * Load conversations and tools from disk on mount.
    */
   useLayoutEffect(() => {
-    loadThreadsFromDisk().then((threads) => {
-      update({ threads })
+    Promise.all([loadThreadsFromDisk(), loadToolsFromDisk()]).then(([threads, customTools]) => {
+      update({ threads, customTools })
     })
   }, [update])
 

@@ -1,7 +1,7 @@
 import { homedir } from "os"
 import { resolve, sep } from "path"
 import { mkdir, appendFile } from "fs/promises"
-import type { CoreMessage } from "ai"
+import type { CoreMessage, CoreTool } from "ai"
 import { parseJsonl } from "./jsonl"
 import type { AppConfig } from "@/views/state"
 import { readFileSync, writeFileSync } from "fs"
@@ -16,19 +16,22 @@ export const setSessionId = (id: string) => {
 } 
 
 export enum LOGFILE {
+  CONFIG = "config.json",
   DEBUG = "debug.txt",
   TRANSCRIPT = "transcript.txt",
+  MESSAGES = "messages.jsonl",
+  TOOLS = "tools.ts"
 }
 
 export const getConfigDir = () => resolve(homedir(), ".config", "claude_terminal")
-export const getConfigPath = () => resolve(getConfigDir(), "config.json")
 export const getSessionsDir = () => resolve(getConfigDir(), "sessions")
+export const getConfigPath = () => resolve(getConfigDir(), LOGFILE.CONFIG)
+export const getToolsPath = () => resolve(getConfigDir(), LOGFILE.TOOLS)
 
-export const getCurrentDebugPath = () => resolve(getCurrentSessionDir(), LOGFILE.DEBUG)
 export const getCurrentSessionDir = () => resolve(getSessionsDir(), SESSION_ID)
-
-const getCurrentTranscriptPath = () => resolve(getCurrentSessionDir(), LOGFILE.TRANSCRIPT)
-const getCurrentMessagesPath = () => resolve(getCurrentSessionDir(), "messages.jsonl")
+export const getCurrentDebugPath = () => resolve(getCurrentSessionDir(), LOGFILE.DEBUG)
+export const getCurrentTranscriptPath = () => resolve(getCurrentSessionDir(), LOGFILE.TRANSCRIPT)
+export const getCurrentMessagesPath = () => resolve(getCurrentSessionDir(), LOGFILE.MESSAGES)
 
 export const getConfig = (): AppConfig => {
   const configPath = getConfigPath()
@@ -46,6 +49,16 @@ export const getConfig = (): AppConfig => {
 export const setConfig = async (config: AppConfig) => {
   const configPath = getConfigPath()
   writeFileSync(configPath, JSON.stringify(config, null, 2))
+}
+
+export const loadToolsFromDisk = async () => {
+  const toolsPath = getToolsPath()
+  try {
+    const { default: tools } = await import(toolsPath)
+    return tools as Record<string, CoreTool>
+  } catch (e) {
+    return {}
+  }
 }
 
 /**

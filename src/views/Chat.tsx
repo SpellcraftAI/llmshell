@@ -11,7 +11,6 @@ import { CoreMessageBubble } from "@/components/MessageBubble/CoreMessage"
 import type { CoreMessage } from "ai"
 import { useResumeStdin } from "@/hooks/useResumeStdin"
 import { Column } from "@/components/Flex"
-import { tools } from "@/lib/tools"
 
 export interface ChatProps {
   conversation?: Conversation
@@ -85,8 +84,7 @@ export const Chat = ({ conversation }: ChatProps) => {
   const [page, setPage] = useState(0)
   const [width, height] = useTerminalSize({ maxWidth: 100 })
   const { assistantMessage, messages, roundtrips, waiting, streaming, usage, send } = useMessages({ 
-    initialMessages: conversation?.messages.toReversed(),
-    tools
+    initialMessages: conversation?.messages.toReversed() 
   })
   // useClearScreen()
 

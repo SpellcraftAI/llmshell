@@ -2,11 +2,6 @@ import { getShellCommand } from "@/internals/getShellCommand"
 import { tool } from "ai"
 import { z } from "zod"
 
-
-/**
- * execute() must not return streams, since Bun does not support half duplex
- * (streams up, streams down).
- */
 export const tools = {
   read: tool({
     description: "Read the contents of a file.",

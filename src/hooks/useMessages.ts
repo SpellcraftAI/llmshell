@@ -5,20 +5,19 @@ import { writeMessagesToDisk, log, writeMessagesToTranscript } from "@/lib/log"
 import { getSystemPrompt } from "@/lib/system"
 import { useApp } from "ink"
 import { useAppState } from "@/views/state"
+import { tools } from "@/lib/tools"
 
-export interface UseMessagesOptions<TOOLS extends Record<string, CoreTool>> {
+export interface UseMessagesOptions {
   initialMessages?: CoreMessage[]
   maxRoundTrips?: number
-  tools: TOOLS
 }
 
-export const useMessages = <TOOLS extends Record<string, CoreTool>>({ 
+export const useMessages = ({ 
   initialMessages = [], 
-  maxRoundTrips = 5,
-  tools
-}: UseMessagesOptions<TOOLS>) => {
+  maxRoundTrips = 5
+}: UseMessagesOptions) => {
   const { exit } = useApp()
-  const { state: { config } } = useAppState()
+  const { state: { config, customTools } } = useAppState()
 
   const [waiting, setWaiting] = useState(false)
   const [streaming, setStreaming] = useState<boolean>(false)
@@ -27,7 +26,7 @@ export const useMessages = <TOOLS extends Record<string, CoreTool>>({
   const [messages, setMessages] = useState<CoreMessage[]>(initialMessages)
   const [assistantMessage, setAssistantMessage] = useState<CoreMessage | null>(null)
   
-  const [stream, setStream] = useState<StreamTextResult<TOOLS> | null>(null)
+  const [stream, setStream] = useState<StreamTextResult<typeof tools & Record<string, CoreTool>> | null>(null)
   const [usedTools, setUsedTools] = useState(false)
   const [roundtrips, setRoundtrips] = useState(0)
 
@@ -65,7 +64,10 @@ export const useMessages = <TOOLS extends Record<string, CoreTool>>({
           model: provider.languageModel("claude-3-5-sonnet-20240620"),
           system: getSystemPrompt(),
           messages: reversed,
-          tools,
+          tools: {
+            ...tools,
+            ...customTools,
+          },
           experimental_toolCallStreaming: true,
           maxTokens: 4096,
           abortSignal: abortController.signal
@@ -91,7 +93,7 @@ export const useMessages = <TOOLS extends Record<string, CoreTool>>({
         throw error
       }
     },
-    [config.apiKey, exit, messages, tools]
+    [config.apiKey, exit, messages, customTools]
   )
   
   /**
@@ -168,6 +170,14 @@ export const useMessages = <TOOLS extends Record<string, CoreTool>>({
 
       for (const toolResult of finishedToolResults) {
         if (!toolResult.result) continue
+
+        if (!(toolResult.result instanceof ReadableStream)) {
+          const message: CoreMessage = { role: "tool", content: [toolResult] }
+          setMessages((prev) => [message, ...prev])
+          await writeMessagesToDisk(message)
+          await writeMessagesToTranscript(message)
+          continue
+        }
 
         let textBuffer = ""
         await toolResult.result.pipeThrough(new TextDecoderStream()).pipeTo(
