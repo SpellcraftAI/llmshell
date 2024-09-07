@@ -11,7 +11,7 @@ import { CoreMessageBubble } from "@/components/MessageBubble/CoreMessage"
 import type { CoreMessage } from "ai"
 import { useResumeStdin } from "@/hooks/useResumeStdin"
 import { Column } from "@/components/Flex"
-import { useClearScreen } from "@/hooks/useClearScreen"
+import { tools } from "@/lib/tools"
 
 export interface ChatProps {
   conversation?: Conversation
@@ -84,7 +84,10 @@ export const Chat = ({ conversation }: ChatProps) => {
   const server = useServer()
   const [page, setPage] = useState(0)
   const [width, height] = useTerminalSize({ maxWidth: 100 })
-  const { messages, roundtrips, waiting, streaming, usage, send } = useMessages({ initialMessages: conversation?.messages.toReversed() })
+  const { assistantMessage, messages, roundtrips, waiting, streaming, usage, send } = useMessages({ 
+    initialMessages: conversation?.messages.toReversed(),
+    tools
+  })
   // useClearScreen()
 
   // const reversed = messages.toReversed()
@@ -225,6 +228,7 @@ export const Chat = ({ conversation }: ChatProps) => {
       {/* {messages.toReversed().slice.map((message, index) => (
             <CoreMessageBubble key={messages.length - index} message={message} />
           ))} */}
+      {assistantMessage && <CoreMessageBubble message={assistantMessage} />}
       {waiting && <CoreMessageBubble message={{ role: "assistant", content: "..." }} waiting />}
       {messages.slice(0, visibleMessageCount).map((message, index) => (
         <CoreMessageBubble key={messages.length - index} message={message} />

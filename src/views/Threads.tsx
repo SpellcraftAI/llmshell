@@ -8,7 +8,6 @@ import { useRouter } from "./router"
 import { FocusIndicator } from "@/components/FocusIndicator"
 import { Column, Row } from "@/components/Flex"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
-import { useClearScreen } from "@/hooks/useClearScreen"
 
 export type MenuOptionType = "NEW_THREAD" | "SETTINGS"
 
@@ -61,8 +60,6 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
   const [needsApiKey, setNeedsApiKey] = useState(false)
   const [, height] = useTerminalSize()
 
-  // useClearScreen()
-
   useLayoutEffect(() => {
     if (!config.apiKey) {
       setNeedsApiKey(true)
@@ -71,12 +68,12 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
     }
   }, [config.apiKey])
 
-  // Sync threads from disk.
-  // useLayoutEffect(() => {
-  //   loadThreadsFromDisk().then((threads) => {
-  //     update(({ threads }))
-  //   })
-  // }, [update])
+
+  useLayoutEffect(() => {
+    loadThreadsFromDisk().then((threads) => {
+      update({ threads })
+    })
+  }, [update])
 
   useEffect(
     () => { 

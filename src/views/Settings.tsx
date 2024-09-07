@@ -6,7 +6,6 @@ import { useAppState } from "./state"
 import { FormInput } from "@/components/FormInput"
 import { useResumeStdin } from "@/hooks/useResumeStdin"
 import { useClearScreen } from "@/hooks/useClearScreen"
-import { Column } from "@/components/Flex"
 
 export const Settings: React.FC = () => {
   const { state: { config }, update } = useAppState()

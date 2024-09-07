@@ -6,25 +6,12 @@ import { Threads } from "./Threads"
 import { AppStateProvider, useAppState } from "./state"
 import { RouterProvider, useRouter } from "./router"
 import { Settings } from "./Settings"
-import { useEffect, useLayoutEffect } from "react"
-import { loadThreadsFromDisk } from "@/lib/log"
 // import { useClearScreen } from "@/hooks/useClearScreen"
 // import { useTerminalSize } from "@/hooks/useTerminalSize"
 
 export const Home = () => {
   const { state: { selectedThread }, update } = useAppState()
   const { page, navigate } = useRouter()
-
-  /**
-   * Reload threads from disk when navigating to the threads page.
-   */
-  useLayoutEffect(() => {
-    if (page === "threads") {
-      loadThreadsFromDisk().then((threads) => {
-        update({ threads })
-      })
-    }
-  }, [page, update])
   
   // useClearScreen()
   useInput(
