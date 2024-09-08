@@ -36,10 +36,11 @@ export const Settings: React.FC = () => {
         <Text><Text italic underline dimColor>{getConfigPath()}</Text></Text>
       </Box>
 
-      <Box paddingX={2} paddingTop={1} width={width - 4} flexDirection="column" alignSelf="center">
+      <Box paddingTop={1} width={width - 4} flexDirection="column" alignSelf="center">
         <FormInput
           label="Anthropic API Key"
-          placeholder="Paste your API key here..."
+          placeholder={config.apiKey ? "*".repeat(32) : "Paste your API key here..."}
+          type="password"
           indicateFocus={false}
           initialValue={config.apiKey}
           onSave={handleSaveApiKey}

@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useCallback } from "react"
 import { Box, Text, type BoxProps } from "ink"
-import { TextInput } from "@inkjs/ui"
+import { PasswordInput, TextInput } from "@inkjs/ui"
 import { FocusIndicator } from "@/components/FocusIndicator"
 
 interface FormInputProps extends BoxProps {
+  type?: "text" | "password";
   label?: string;
   placeholder?: string;
   initialValue?: string;
@@ -12,7 +13,8 @@ interface FormInputProps extends BoxProps {
   isDisabled?: boolean;
 }
 
-export const FormInput: React.FC<FormInputProps> = ({ 
+export const FormInput: React.FC<FormInputProps> = ({
+  type = "text",
   label, 
   placeholder, 
   initialValue,
@@ -24,11 +26,16 @@ export const FormInput: React.FC<FormInputProps> = ({
   const [value, setValue] = useState<string | undefined>(initialValue)
   const [showSaved, setShowSaved] = useState<boolean>(false)
 
-  const handleSubmit = (newValue: string): void => {
-    setValue(newValue)
-    setShowSaved(true)
-    onSave?.(newValue)
-  }
+  const handleSubmit = useCallback(
+    (newValue: string): void => {
+      if (newValue.trim()) {
+        setValue(newValue)
+        setShowSaved(true)
+        onSave?.(newValue)
+      }
+    },
+    [onSave]
+  )
 
   useEffect(() => {
     if (showSaved) {
@@ -38,6 +45,24 @@ export const FormInput: React.FC<FormInputProps> = ({
       return () => clearTimeout(timer)
     }
   }, [showSaved])
+
+  const input = 
+    type === "text"
+      ? (
+        <TextInput
+          defaultValue={value}
+          placeholder={placeholder}
+          onSubmit={handleSubmit}
+          isDisabled={isDisabled}
+        />
+      )
+      : (
+        <PasswordInput
+          placeholder={placeholder}
+          onSubmit={handleSubmit}
+          isDisabled={isDisabled}
+        />
+      )
 
   return (
     <Box flexDirection="column" {...boxProps}>
@@ -50,12 +75,7 @@ export const FormInput: React.FC<FormInputProps> = ({
         flexGrow={1}
         paddingX={1}
       >
-        <TextInput
-          defaultValue={value}
-          placeholder={placeholder}
-          onSubmit={handleSubmit}
-          isDisabled={isDisabled}
-        />
+        {input}
       </FocusIndicator>
 
       {showSaved 

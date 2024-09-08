@@ -166,6 +166,10 @@ export const Chat = ({ conversation }: ChatProps) => {
         </Column>
       )
     }
+
+    if (mode === "bottom" && page === 0) {
+      return null
+    }
        
     return (
       <Box paddingX={2} paddingTop={mode === "bottom" ? 1 : 0} paddingBottom={mode === "top" ? 1 : 0} flexDirection="row" flexGrow={1} justifyContent="space-between">
@@ -213,10 +217,10 @@ export const Chat = ({ conversation }: ChatProps) => {
       </Box>
           
       {/* <Text dimColor>  DEBUG: messages {messages.length}</Text> */}
-      <Box flexDirection="column" flexGrow={1} gap={1}>
+      <Box flexDirection="column" flexGrow={1}>
+        <Text dimColor>  Session ID {SESSION_ID}</Text>
         <TextInput id="CHAT_INPUT" onSubmit={send} />
         {/* <Text dimColor>DEBUG | {JSON.stringify({ visibleMessageCount, charCount, totalPages, page })}</Text> */}
-        <Text dimColor>  Session ID: {SESSION_ID}</Text>
       </Box>
     </Box>
   )
@@ -251,8 +255,7 @@ export const Chat = ({ conversation }: ChatProps) => {
     <Box flexDirection="column-reverse" minHeight={height} gap={0}>
       {editorView}
 
-      <Box flexDirection="column-reverse" width={width - 4} alignSelf="center">
-        
+      <Box flexDirection="column-reverse" width={width - 4} alignSelf="center" paddingBottom={2}>
         {page === 0 && recentMessages}
         {!streaming && (
           <>

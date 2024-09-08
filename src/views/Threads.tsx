@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useState } from "react"
+import { useCallback, useEffect, useLayoutEffect } from "react"
 import { Box, Text } from "ink"
 import { getNewConversation, loadThreadsFromDisk, setSessionId, type Conversation } from "@/lib/log"
 import { Scrollable } from "@/components/Scrollable"
@@ -57,16 +57,7 @@ const NeedsApiKey = () => {
 export const Threads = ({ onSelect }: ThreadsProps) => {
   const { navigate } = useRouter()
   const { state: { config, selectedThread, threads }, update } = useAppState()
-  const [needsApiKey, setNeedsApiKey] = useState(false)
   const [, height] = useTerminalSize()
-
-  useLayoutEffect(() => {
-    if (!config.apiKey) {
-      setNeedsApiKey(true)
-    } else {
-      setNeedsApiKey(false)
-    }
-  }, [config.apiKey])
 
 
   useLayoutEffect(() => {
@@ -96,7 +87,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
             borderStyle="round" 
             borderDimColor={!isSelected}
           >
-            <Text bold dimColor={!isSelected}>{item.title}</Text>
+            <Text bold={isSelected} dimColor={!isSelected}>{item.title}</Text>
           </Row>
         )
       }
@@ -116,7 +107,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
         <Box flexDirection="column" borderStyle="round" borderDimColor={!isSelected} paddingX={1} flexGrow={1} width={60}>
           <Box flexDirection="row" justifyContent="space-between" gap={2}>
             <Box>
-              <Text bold={isSelected}>
+              <Text dimColor={!isSelected} bold={isSelected}>
                 {titlePreview}{titlePreview.length < title.length ? "…" : ""}
               </Text>
             </Box>
@@ -143,19 +134,12 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
       gap={1}
       // borderStyle="round" 
     >
-    
-      {/* <Column alignSelf="center" gap={1}>
-        <Column justifyContent="center" alignItems="center">
-          <Text bold>Welcome to GSH v2024.1.</Text>
-          <Text dimColor>Now powered Claude Sonnet 3.5.</Text>
-        </Column>
-      </Column> */}
-      <Column flexShrink={0}>
-        <Text bold>Welcome to GSH v2024.1.</Text>
-        <Text italic dimColor>Now powered Claude Sonnet 3.5.</Text>
+      <Column flexShrink={0} alignItems="center">
+        <Text bold>Welcome to AutoTerminal.</Text>
+        <Text dimColor>Powered Claude Sonnet 3.5.</Text>
       </Column>
     
-      {needsApiKey
+      {!config.apiKey
         ? <NeedsApiKey /> 
         : (
           <>

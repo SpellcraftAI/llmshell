@@ -11,6 +11,9 @@ export interface TextInputProps extends React.ComponentProps<typeof Box> {
   markdownEditing?: boolean
 }
 
+const KeyboardKey = ({ children, ...props }: React.ComponentProps<typeof Text>) => (
+  <Text color="white" backgroundColor="rgb(50,50,50)" {...props}> {children} </Text>
+)
 
 export const TextInput = ({ onSubmit, markdownEditing = true, ...props }: TextInputProps) => {
   // const { isFocused } = useFocus({ autoFocus: true, id })
@@ -23,7 +26,7 @@ export const TextInput = ({ onSubmit, markdownEditing = true, ...props }: TextIn
   const afterContent = markdownEditing ? parseSync(after) : after
 
   return (
-    <Box paddingX={1} paddingTop={1} flexDirection="column" flexGrow={1}>
+    <Box paddingX={1} flexDirection="column" flexGrow={1}>
       {/* <Box paddingLeft={1}>
         <Text dimColor>Enter your message below.</Text>
       </Box> */}
@@ -42,8 +45,8 @@ export const TextInput = ({ onSubmit, markdownEditing = true, ...props }: TextIn
 
       <Box paddingLeft={1} flexDirection="row" justifyContent="space-between">
         <Box flexDirection="column">
-          <Text>Press <Text bold>⏎ ENTER</Text> 3x to send.</Text>
-          <Text>Press <Text bold>ESC</Text>, <Text bold>Ctrl+C</Text>, or <Text bold>Ctrl+D</Text> to exit.</Text>
+          <Text dimColor>Press <KeyboardKey>⏎ ENTER</KeyboardKey> 3x to send.</Text>
+          <Text dimColor>Press <KeyboardKey>ESC</KeyboardKey>, <KeyboardKey>Ctrl+C</KeyboardKey>, or <KeyboardKey>Ctrl+D</KeyboardKey> to exit.</Text>
         </Box>
 
         <Box flexDirection="column">
