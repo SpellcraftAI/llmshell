@@ -217,10 +217,11 @@ export const Chat = ({ conversation }: ChatProps) => {
       </Box>
           
       {/* <Text dimColor>  DEBUG: messages {messages.length}</Text> */}
-      <Box flexDirection="column" flexGrow={1}>
-        <Text dimColor>  Session ID {SESSION_ID}</Text>
+      <Box flexDirection="column" flexGrow={1} paddingTop={1}>
         <TextInput id="CHAT_INPUT" onSubmit={send} />
-        {/* <Text dimColor>DEBUG | {JSON.stringify({ visibleMessageCount, charCount, totalPages, page })}</Text> */}
+        <Box paddingX={2} justifyContent="flex-end">
+          <Text dimColor>Session ID: {SESSION_ID}</Text>
+        </Box>
       </Box>
     </Box>
   )

@@ -21,21 +21,20 @@ export const TextInput = ({ onSubmit, markdownEditing = true, ...props }: TextIn
   
   // const showCursor = useBlinkingCursor()
   // const characterAtCursor = input[cursorPosition] || " "
-  const trailingNewlines = text.match(/\n+$/)?.[0] || ""
-  const beforeContent = markdownEditing ? parseSync(before) + trailingNewlines : before
-  const afterContent = markdownEditing ? parseSync(after) : after
+  const beforePrecedingNewlines = before.match(/^\n+/)?.[0] || ""
+  const beforeTrailingNewlines = before.match(/\n+$/)?.[0] || ""
+  const afterPrecedingNewlines = after.match(/^\n+/)?.[0] || ""
+  const afterTrailingNewlines = after.match(/\n+$/)?.[0] || ""
+  const beforeContent = markdownEditing ? beforePrecedingNewlines + parseSync(before) + beforeTrailingNewlines : before
+  const afterContent = markdownEditing ? afterPrecedingNewlines + parseSync(after) + afterTrailingNewlines : after
 
   return (
     <Box paddingX={1} flexDirection="column" flexGrow={1}>
-      {/* <Box paddingLeft={1}>
-        <Text dimColor>Enter your message below.</Text>
-      </Box> */}
-
       <Box
-        padding={1}
+        paddingX={1}
+        minHeight={4}
         borderStyle="round"
         borderDimColor
-        // borderDimColor={!isFocused}
         {...props}
       >
         <Text wrap="wrap">
@@ -43,7 +42,7 @@ export const TextInput = ({ onSubmit, markdownEditing = true, ...props }: TextIn
         </Text>
       </Box>
 
-      <Box paddingLeft={1} flexDirection="row" justifyContent="space-between">
+      <Box paddingX={1} flexDirection="row" alignItems="flex-end" justifyContent="space-between">
         <Box flexDirection="column">
           <Text dimColor>Press <KeyboardKey>⏎ ENTER</KeyboardKey> 3x to send.</Text>
           <Text dimColor>Press <KeyboardKey>ESC</KeyboardKey>, <KeyboardKey>Ctrl+C</KeyboardKey>, or <KeyboardKey>Ctrl+D</KeyboardKey> to exit.</Text>

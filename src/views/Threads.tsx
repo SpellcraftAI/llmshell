@@ -100,14 +100,14 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
       // @ts-expect-error - We know that the last message is always of type
       // [{ type: "text", ... }]
       const title = assistantTextMessages.map(({ content }) => content[0].text).at(-1)?.trim() ?? "Untitled"
-      const titlePreview = title.split("\n")[0].slice(0, 72)
+      const titlePreview: string = title.split("\n")[0].slice(0, 72)
       const date = new Date(item.timestamp).toLocaleString()
       const count = item.messages.filter(({ role }) => role !== "tool").length
       return (
         <Box flexDirection="column" borderStyle="round" borderDimColor={!isSelected} paddingX={1} flexGrow={1} width={60}>
           <Box flexDirection="row" justifyContent="space-between" gap={2}>
             <Box>
-              <Text dimColor={!isSelected} bold={isSelected}>
+              <Text dimColor={!isSelected}>
                 {titlePreview}{titlePreview.length < title.length ? "…" : ""}
               </Text>
             </Box>
