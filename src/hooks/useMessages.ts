@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react"
 import { writeMessagesToDisk, log, writeMessagesToTranscript } from "@/lib/log"
 import { getSystemPrompt } from "@/lib/system"
 import { useApp } from "ink"
-import { useAppState } from "@/views/state"
+import { useAppState } from "@/lib/state"
 import { tools } from "@/lib/tools"
 
 export interface UseMessagesOptions {

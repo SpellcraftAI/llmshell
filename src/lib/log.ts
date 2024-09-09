@@ -3,7 +3,7 @@ import { resolve, sep } from "path"
 import { mkdir, appendFile } from "fs/promises"
 import type { CoreMessage, CoreTool } from "ai"
 import { parseJsonl } from "./jsonl"
-import type { AppConfig } from "@/views/state"
+import type { AppConfig } from "@/lib/state"
 import { readFileSync, writeFileSync } from "fs"
 
 // date-time file compatible
