@@ -1,5 +1,5 @@
 import { homedir } from "os"
-import { resolve, sep } from "path"
+import { basename, resolve, sep } from "path"
 import { mkdir, appendFile } from "fs/promises"
 import type { CoreMessage, CoreTool } from "ai"
 import { parseJsonl } from "./jsonl"
@@ -23,7 +23,7 @@ export enum LOGFILE {
   TOOLS = "tools.ts"
 }
 
-export const getConfigDir = () => resolve(homedir(), ".config", "claude_terminal")
+export const getConfigDir = () => resolve(homedir(), ".config", "ttychat")
 export const getSessionsDir = () => resolve(getConfigDir(), "sessions")
 export const getConfigPath = () => resolve(getConfigDir(), LOGFILE.CONFIG)
 export const getToolsPath = () => resolve(getConfigDir(), LOGFILE.TOOLS)
@@ -59,7 +59,7 @@ export const loadToolsFromDisk = async () => {
     await log("Loaded tools file", tools)
     return tools as Record<string, CoreTool>
   } catch (e) {
-    await log("Error loading tools file", e)
+    await log("`tools.ts` config file does not exist - no custom tools")
     return {}
   }
 }
@@ -80,13 +80,96 @@ export const getLastSessionDirectory = async () => {
   return lastDirectory
 }
 
-export interface Conversation {
+export const getExamplesFromDisk = async (): Promise<Record<string, CoreMessage[]> | null> => {
+  await ensureConfigDir()
+
+  const glob = new Bun.Glob("./examples/*.jsonl")
+  const scanner = glob.scan({ cwd: getConfigDir(), absolute: true, onlyFiles: true })
+
+  const paths = await Array.fromAsync(scanner) as string[]
+  const examples: Record<string, CoreMessage[]> = {}
+
+  if (!paths.length) {
+    return null
+  }
+
+  for (const path of paths) {
+    const name = basename(path).replace(".jsonl", "")
+    const messages = await parseJsonl(path)
+    if (messages === null) {
+      continue
+    }
+
+    examples[name] = messages
+  }
+
+  return examples
+}
+
+// console.log(await getExamplesFromDisk())
+
+export const getExamplesAsSystemMessage = async () => {
+  const examples = await getExamplesFromDisk()
+  if (!examples) {
+    return ""
+  }
+
+  let system = "--- TRAINING EXAMPLES FOLLOW. THESE ARE *PAST* CONVERSATIONS WITH A *DIFFERENT* USER ON A *DIFFERENT* MACHINE. ---\n\n"
+  
+  for (const [name, messages] of Object.entries(examples)) {
+    const tag = `TRAINING EXAMPLE ${name}`
+    system += `<${tag}>\n\n`
+    
+    for (const message of messages) {
+      system += `[${message.role.toUpperCase()}]\n`
+      if (typeof message.content === "string") {
+        // section.push({ role: "user", content: message.content })
+        system += `${message.content}\n`
+      } else if (Array.isArray(message.content)) {
+        for (const content of message.content) {
+          switch (content.type) {
+          case "text":
+            // section.push({ role: "user", content: content.text })
+            system += `${content.text.trim()}\n`
+            break
+
+          case "tool-call":
+            system += "TOOL-CALL:\n"
+            system += `${content.toolName}\n`
+            break
+
+          case "tool-result":
+            system += "TOOL-RESULT:\n"
+            system += `${JSON.stringify(content.result, null, 2).slice(0, 24)} ...\n`
+            break
+          
+          default:
+            // section.push({ role: "user", content: JSON.stringify(content, null, 2) })
+            // system += `${JSON.stringify(content, null, 2)}\n`
+            break
+          }
+        }
+      }
+
+      system += "\n"
+    }
+
+    system += `</${tag}>\n\n`
+
+  }
+
+  system += "--- END OF TRAINING EXAMPLES. CURRENT CONVERSATION FOLLOWS. ---"
+
+  return system
+}
+
+export interface Thread {
   path: string
   timestamp: number
   messages: CoreMessage[]
 }
 
-export const getCurrentConversation = async (): Promise<Conversation> => {
+export const getCurrentThread = async (): Promise<Thread> => {
   await ensureLogsExist()
 
   const path = getCurrentMessagesPath()
@@ -100,10 +183,10 @@ export const getCurrentConversation = async (): Promise<Conversation> => {
   }
 }
 
-export const getNewConversation = async (): Promise<Conversation> => {
+export const getNewThread = async (): Promise<Thread> => {
   // New session ID.
   setSessionId(new Date().getTime().toString())
-  return await getCurrentConversation()
+  return await getCurrentThread()
 }
 
 export const loadThreadsFromDisk = async () => {
@@ -111,7 +194,7 @@ export const loadThreadsFromDisk = async () => {
   const scanner = glob.scan({ cwd: getSessionsDir(), absolute: true, onlyFiles: true })
   const paths = await Array.fromAsync(scanner)
 
-  const conversations: Conversation[] = []
+  const conversations: Thread[] = []
   for (const path of paths) {
     const timestamp = Number(path.split(sep).at(-2))
     const messages = await parseJsonl(path)
@@ -136,6 +219,11 @@ export const getLastLog = async (type: LOGFILE) => {
   
   const logFile = Bun.file(lastLogPath)
   return await new Response(logFile.stream()).text()
+}
+
+export const ensureConfigDir = async () => {
+  const CONFIG_DIR = getConfigDir()
+  await mkdir(CONFIG_DIR, { recursive: true })
 }
 
 const ensureLogsExist = async () => {

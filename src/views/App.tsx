@@ -1,17 +1,20 @@
 
 import { Box, useInput } from "ink"
+import { AppStateProvider, useAppState } from "@/lib/state"
+import { RouterProvider, useRouter } from "@/lib/router"
+import { useSIGINTListener } from "@/hooks/useSIGINTListener"
 import { GOL } from "./GOL"
 import { Chat } from "./Chat"
 import { Threads } from "./Threads"
-import { AppStateProvider, useAppState } from "../lib/state"
-import { RouterProvider, useRouter } from "../lib/router"
 import { Settings } from "./Settings"
-// import { useClearScreen } from "@/hooks/useClearScreen"
-// import { useTerminalSize } from "@/hooks/useTerminalSize"
 
 export const Home = () => {
   const { state: { selectedThread }, update } = useAppState()
   const { page, navigate } = useRouter()
+
+  // Top-level SIGINTListener is used to ensure that the app never hangs on
+  // Ctrl+C, even though Ink's exit() function already bound to it.
+  useSIGINTListener()
   
   // useClearScreen()
   useInput(

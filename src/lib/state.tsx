@@ -1,5 +1,5 @@
 import type { CoreTool } from "ai"
-import { getConfig, loadThreadsFromDisk, loadToolsFromDisk, log, setConfig, type Conversation } from "@/lib/log"
+import { getConfig, loadThreadsFromDisk, loadToolsFromDisk, log, setConfig, type Thread } from "@/lib/log"
 import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState } from "react"
 
 export interface AppConfig {
@@ -8,8 +8,8 @@ export interface AppConfig {
 
 export interface AppState {
   config: AppConfig;
-  selectedThread: Conversation | null;
-  threads: Conversation[];
+  selectedThread: Thread | null;
+  threads: Thread[];
   customTools?: Record<string, CoreTool>;
 }
 

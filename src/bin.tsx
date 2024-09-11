@@ -1,3 +1,7 @@
+if (typeof Bun === "undefined") {
+  throw new Error("TTY Chat only works with Bun runtime. Sorry!")
+}
+
 import { render } from "ink"
 import { clearTerminal, cursorShow } from "ansi-escapes"
 import { App } from "./views/App"

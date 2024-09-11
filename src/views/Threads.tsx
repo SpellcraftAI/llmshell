@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect } from "react"
 import { Box, Text } from "ink"
-import { getNewConversation, loadThreadsFromDisk, setSessionId, type Conversation } from "@/lib/log"
+import { getNewThread, loadThreadsFromDisk, setSessionId, type Thread } from "@/lib/log"
 import { Scrollable } from "@/components/Scrollable"
 import { CenterView } from "./Center"
 import { useAppState } from "@/lib/state"
@@ -17,8 +17,8 @@ export interface MenuOption {
 }
 
 export interface ThreadsProps {
-  initialConversations?: Conversation[]
-  onSelect: (conversation: Conversation) => void | Promise<void>
+  initialConversations?: Thread[]
+  onSelect: (conversation: Thread) => void | Promise<void>
 }
 
 const NEW_THREAD_OPTION: MenuOption = {
@@ -36,7 +36,7 @@ const NeedsApiKey = () => {
   const { navigate } = useRouter()
   
   return (
-    <Box flexDirection="column" justifyContent="center" alignItems="center" gap={1}>
+    <Box flexDirection="column" justifyContent="center" alignItems="center" flexGrow={1} gap={1}>
       <Text color="red">No API key set. Please update your settings.</Text>
 
       <FocusIndicator
@@ -76,7 +76,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
   )
 
   const renderConversationItem = useCallback(
-    (item: Conversation | MenuOption, isSelected: boolean) => {
+    (item: Thread | MenuOption, isSelected: boolean) => {
       if ("type" in item) {
         return (
           <Row 
@@ -107,7 +107,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
         <Box flexDirection="column" borderStyle="round" borderDimColor={!isSelected} paddingX={1} flexGrow={1} width={60}>
           <Box flexDirection="row" justifyContent="space-between" gap={2}>
             <Box>
-              <Text dimColor={!isSelected}>
+              <Text bold={isSelected} dimColor={!isSelected}>
                 {titlePreview}{titlePreview.length < title.length ? "…" : ""}
               </Text>
             </Box>
@@ -134,8 +134,8 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
       gap={1}
       // borderStyle="round" 
     >
-      <Column flexShrink={0} alignItems="center">
-        <Text bold>Welcome to AutoTerminal.</Text>
+      <Column borderStyle="round" borderDimColor padding={1} flexShrink={1} alignItems="center">
+        <Text bold>TTY Chat v1.0.0</Text>
         <Text dimColor>Powered Claude Sonnet 3.5.</Text>
       </Column>
     
@@ -148,6 +148,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
               borderDimColor
               paddingX={4}
               items={[NEW_THREAD_OPTION, SETTINGS_OPTION, ...threads]}
+              flexGrow={threads.length ? 1 : 0}
               renderItem={renderConversationItem}
               itemHeight={!threads.length ? 2 : 5}
               visibleItems={!threads.length ? 2 : Math.max(3, Math.floor(height / 5) - 1)}
@@ -155,7 +156,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
                 if ("type" in item) {
                   switch (item.type) {
                   case "NEW_THREAD":
-                    const newThread = await getNewConversation()
+                    const newThread = await getNewThread()
                     update({ selectedThread: newThread })
                     setSessionId(`${newThread.timestamp}`)
                     return
@@ -171,7 +172,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
             />
 
             {!threads.length && (
-              <Box justifyContent="center" alignItems="center">
+              <Box flexGrow={1} justifyContent="center" alignItems="flex-start">
                 <Text italic dimColor>No history yet. Create a new chat to get started.</Text>
               </Box>
             )}

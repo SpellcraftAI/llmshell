@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react"
+import React, { useState, useEffect, useLayoutEffect } from "react"
 import chalk from "chalk"
 import { Box, Text, useInput } from "ink"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
 import { useSIGINTListener } from "@/hooks/useSIGINTListener"
+import { clearTerminal } from "ansi-escapes"
 // import { useClearScreen } from "@/hooks/useClearScreen"
 
 const CELL_ALIVE = "█"
@@ -13,14 +14,17 @@ const BORDER_DENSITY = 0.85
 const HALF_OPACITY_COLOR = Math.round(255 * 0.5)
 
 const letterPatterns = {
-  G: [[1,1,1,1,1],[1,0,0,0,0],[1,0,1,1,1],[1,0,0,0,1],[1,1,1,1,1]],
-  S: [[1,1,1,1,1],[1,0,0,0,0],[1,1,1,1,1],[0,0,0,0,1],[1,1,1,1,1]],
-  H: [[1,0,0,0,1],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]]
+  T: [[1,1,1,1,1],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],
+  Y: [[1,0,0,0,1],[0,1,0,1,0],[0,0,1,0,0],[0,0,1,0,0],[0,0,1,0,0]],
+  C: [[1,1,1,1,1],[1,0,0,0,0],[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,1]],
+  h: [[1,0,0,0,0],[1,0,0,0,0],[1,1,1,1,0],[1,0,0,0,1],[1,0,0,0,1]],
+  a: [[0,1,1,1,0],[1,0,0,0,1],[1,1,1,1,1],[1,0,0,0,1],[1,0,0,0,1]],
+  t: [[0,1,0,0,0],[1,1,1,0,0],[0,1,0,0,0],[0,1,0,0,1],[0,0,1,1,0]]
 }
 
 const initializeGrid = (width: number, height: number) => {
   const grid = Array.from({ length: height }, () => Array(width).fill(false))
-  const startX = Math.floor(width / 2) - 10
+  const startX = Math.floor(width / 2) - 15
   const startY = Math.floor(height / 2) - 3
 
   const embedLetter = (letter: keyof typeof letterPatterns, offsetX: number) => {
@@ -31,9 +35,13 @@ const initializeGrid = (width: number, height: number) => {
     })
   }
 
-  embedLetter("G", 0)
-  embedLetter("S", 7)
-  embedLetter("H", 14)
+  embedLetter("T", 0)
+  embedLetter("T", 6)
+  embedLetter("Y", 12)
+  embedLetter("C", 18)
+  embedLetter("h", 24)
+  embedLetter("a", 30)
+  embedLetter("t", 36)
 
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
@@ -61,8 +69,13 @@ export const GOL: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
   const [grid, setGrid] = useState(() => initializeGrid(width, height))
   const [isRunning, setIsRunning] = useState(true)
 
-  // useClearScreen()
   useSIGINTListener(isRunning)
+
+  useLayoutEffect(() => {
+    return () => {
+      process.stdout.write(clearTerminal)
+    }
+  }, [])
 
   useEffect(() => {
     const startTime = Date.now()
@@ -78,7 +91,7 @@ export const GOL: React.FC<{ onComplete: () => void }> = ({ onComplete }) => {
         setIsRunning(false)
         onComplete()
       }
-    }, 1000 / 60)
+    }, 1000 / 20)
 
     return () => clearInterval(intervalId)
   }, [onComplete])

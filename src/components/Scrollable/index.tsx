@@ -40,6 +40,7 @@ export function Scrollable<T>({
   isActive = true,
   renderItem,
   onSelect,
+  flexGrow = 1,
   ...props
 }: ScrollableProps<T>) {
   const [currentIndex, setCurrentIndex] = useState(0)
@@ -87,8 +88,8 @@ export function Scrollable<T>({
   const scrollThumbPosition = Math.floor((viewportStart / (items.length - visibleItems)) * (totalVisibleHeight - scrollThumbHeight))
 
   return (
-    <Box flexDirection="row" flexGrow={1}>
-      <Box flexDirection="column" justifyContent="flex-start" flexGrow={1} overflowY="hidden" {...props}>
+    <Box flexDirection="row" flexGrow={flexGrow}>
+      <Box flexDirection="column" justifyContent="flex-start" flexGrow={flexGrow} overflowY="hidden" {...props}>
         {listItems}
       </Box>
       <ScrollThumb 

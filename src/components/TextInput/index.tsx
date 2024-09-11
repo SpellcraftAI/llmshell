@@ -4,6 +4,7 @@ import { Box, Text } from "ink"
 import chalk from "chalk"
 import { useKeyboard } from "./useKeyboard"
 import { parseSync } from "../MessageBubble/CoreMessage"
+import { useCallback } from "react"
 
 export interface TextInputProps extends React.ComponentProps<typeof Box> {
   id?: string
@@ -15,18 +16,25 @@ const KeyboardKey = ({ children, ...props }: React.ComponentProps<typeof Text>) 
   <Text color="white" backgroundColor="rgb(50,50,50)" {...props}> {children} </Text>
 )
 
+
 export const TextInput = ({ onSubmit, markdownEditing = true, ...props }: TextInputProps) => {
   // const { isFocused } = useFocus({ autoFocus: true, id })
   const { text, cursorPosition, before, at, after } = useKeyboard({ onSubmit })
+  const parseContentAround = useCallback(
+    (content: string) => {
+      if (!markdownEditing) return content
+      
+      const preceding = content.match(/^\s+/)?.[0] || ""
+      const trailing = content.match(/\s+$/)?.[0] || ""
+      const parsed = parseSync(content).trim()
   
-  // const showCursor = useBlinkingCursor()
-  // const characterAtCursor = input[cursorPosition] || " "
-  const beforePrecedingNewlines = before.match(/^\n+/)?.[0] || ""
-  const beforeTrailingNewlines = before.match(/\n+$/)?.[0] || ""
-  const afterPrecedingNewlines = after.match(/^\n+/)?.[0] || ""
-  const afterTrailingNewlines = after.match(/\n+$/)?.[0] || ""
-  const beforeContent = markdownEditing ? beforePrecedingNewlines + parseSync(before) + beforeTrailingNewlines : before
-  const afterContent = markdownEditing ? afterPrecedingNewlines + parseSync(after) + afterTrailingNewlines : after
+      return `${preceding}${parsed}${trailing}`
+    },
+    [markdownEditing]
+  )
+  
+  const beforeContent = parseContentAround(before)
+  const afterContent = parseContentAround(after)
 
   return (
     <Box paddingX={1} flexDirection="column" flexGrow={1}>

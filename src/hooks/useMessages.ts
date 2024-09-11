@@ -2,7 +2,7 @@ import { createAnthropic } from "@ai-sdk/anthropic"
 import { streamText, type CoreMessage, type CoreTool, type LanguageModelUsage, type StreamTextResult } from "ai"
 import { useCallback, useEffect, useState } from "react"
 import { writeMessagesToDisk, log, writeMessagesToTranscript } from "@/lib/log"
-import { getSystemPrompt } from "@/lib/system"
+import { SYSTEM_PROMPT } from "@/lib/system"
 import { useApp } from "ink"
 import { useAppState } from "@/lib/state"
 import { tools } from "@/lib/tools"
@@ -24,7 +24,7 @@ export const useMessages = ({
   const [usage, setUsage] = useState<LanguageModelUsage>()
 
   const [messages, setMessages] = useState<CoreMessage[]>(initialMessages)
-  const [assistantMessage, setAssistantMessage] = useState<CoreMessage | null>(null)
+  // const [assistantMessage, setAssistantMessage] = useState<CoreMessage | null>(null)
   
   const [stream, setStream] = useState<StreamTextResult<typeof tools & Record<string, CoreTool>> | null>(null)
   const [usedTools, setUsedTools] = useState(false)
@@ -43,9 +43,9 @@ export const useMessages = ({
         const messageText = text?.trimEnd()
         const userMessage: CoreMessage | null = messageText ? { role: "user", content: messageText } : null
   
-        const reversed = messages.toReversed()
+        const unreversed = messages.toReversed()
         if (userMessage) {
-          reversed.push(userMessage)
+          unreversed.push(userMessage)
   
           setMessages((prev) => [userMessage, ...prev]) 
           await writeMessagesToDisk(userMessage)
@@ -62,8 +62,8 @@ export const useMessages = ({
   
         const stream = streamText({
           model: provider.languageModel("claude-3-5-sonnet-20240620"),
-          system: getSystemPrompt(),
-          messages: reversed,
+          system: SYSTEM_PROMPT,
+          messages: unreversed,
           tools: {
             ...tools,
             ...customTools,
@@ -125,13 +125,15 @@ export const useMessages = ({
           start() {
             setStreaming(true)
             const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: "" }] }
-            setAssistantMessage(message)
+            setMessages((prev) => [message, ...prev])
+            // setAssistantMessage(message)
             setWaiting(false)
           },
           write(chunk) {
             textBuffer += chunk
             const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }] }
-            setAssistantMessage(message)
+            setMessages((prev) => [message, ...prev.slice(1)])
+            // setAssistantMessage(message)
           },
           async close() {
             setStreaming(false)
@@ -140,13 +142,14 @@ export const useMessages = ({
                * We received an erroneous empty message from assistant. Don't
                * add it to disk, remove from memory.
                */
-              setAssistantMessage(null)
+              // setAssistantMessage(null)
+              setMessages((prev) => prev.slice(1))
               return
             }
 
             const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }] }
-            setAssistantMessage(null)
-            setMessages((prev) => [message, ...prev])
+            // setAssistantMessage(() => null)
+            setMessages((prev) => [message, ...prev.slice(1)])
             await writeMessagesToDisk(message)
             await writeMessagesToTranscript(message)
           }
@@ -180,6 +183,7 @@ export const useMessages = ({
         }
 
         let textBuffer = ""
+        let lastTimestamp = Date.now()
         await toolResult.result.pipeThrough(new TextDecoderStream()).pipeTo(
           new WritableStream({
             start() {
@@ -189,8 +193,12 @@ export const useMessages = ({
             },
             write(chunk) {
               textBuffer += chunk
-              const message: CoreMessage = { role: "tool", content: [{...toolResult, result: textBuffer }] }
-              setMessages((prev) => [message, ...prev.slice(1)])
+
+              if (Date.now() - lastTimestamp > 100) {
+                const message: CoreMessage = { role: "tool", content: [{...toolResult, result: textBuffer }] }
+                setMessages((prev) => [message, ...prev.slice(1)])
+                lastTimestamp = Date.now()
+              }
             },
             async close() {
               setStreaming(false)
@@ -234,5 +242,5 @@ export const useMessages = ({
     [maxRoundTrips, roundtrips, send, usedTools]
   )
 
-  return { assistantMessage, messages, waiting, streaming, usage, usedTools, roundtrips, send }
+  return { messages, waiting, streaming, usage, usedTools, roundtrips, send }
 }

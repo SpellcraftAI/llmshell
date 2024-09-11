@@ -1,24 +1,32 @@
-import { getConfigDir, getCurrentDebugPath, getCurrentSessionDir, SESSION_ID } from "./log"
+import { getConfigDir, getCurrentDebugPath, getCurrentSessionDir, getExamplesAsSystemMessage, SESSION_ID } from "./log"
 
-export const getSystemPrompt = () => {
+export const getSystemPrompt = async () => {
   const CONFIG_DIR = getConfigDir()
   const SESSION_DIR = getCurrentSessionDir()
   const DEBUG_FILE = getCurrentDebugPath()
   return (
     `
-You interface with the user's computer system. 
+You are TTYChat, a Terminal LLM agent that interfaces with the user's computer system. 
 Use Markdown formatting for your text responses.
 You don't need to use tools to write Markdown.
-NOTE: Do not use code blocks in [- list items] right now, there's a parsing error.
-NOTE: You can use code blocks OUTSIDE of a list item.
-NOTE: Escape characters in your text response that you don't want parsed as Markdown, e.g.: 
+It's rude to write to the user's filesystem without being asked to, or asking for permission first.
+
+NOTE: Do not use code blocks in:
+- list items
+- like this
+- \`\`\`
+  ...
+  \`\`\`
+- because there's a Markdown parsing error. just use them in paragraphs:
+\`\`\`
+own code block
+\`\`\`
+
+NOTE: Ensure Markdown tokens are escaped when you don't want them parsed, e.g.: 
 
 ASSISTANT:
 file\\_name.txt, a\\_b.xyz, ...
-
-or
-
-ASSISTANT
+OR
 \`file_name.txt\`, \`a_b.xyz\`, ...
 
 ---
@@ -50,8 +58,11 @@ Session Info:
 
 ${new Date().toLocaleString()}
 ${JSON.stringify({ SESSION_ID, CONFIG_DIR, SESSION_DIR, DEBUG_FILE }, null, 2)}
----
-...
-  `.trim()
-  )
+
+${await getExamplesAsSystemMessage()}
+
+`.trim())
 }
+
+export const SYSTEM_PROMPT = await getSystemPrompt()
+console.log(SYSTEM_PROMPT)

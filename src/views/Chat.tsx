@@ -6,14 +6,14 @@ import { useTerminalSize } from "@/hooks/useTerminalSize"
 import { useMessages } from "@/hooks/useMessages"
 import { useServer } from "@/hooks/useServer"
 import { compactNumber } from "@/lib/number"
-import { SESSION_ID, type Conversation } from "@/lib/log"
+import { SESSION_ID, type Thread } from "@/lib/log"
 import { CoreMessageBubble } from "@/components/MessageBubble/CoreMessage"
 import type { CoreMessage } from "ai"
 import { useResumeStdin } from "@/hooks/useResumeStdin"
 import { Column } from "@/components/Flex"
 
 export interface ChatProps {
-  conversation?: Conversation
+  conversation?: Thread
 }
 
 interface StaticMessagesProps extends BoxProps {
@@ -79,11 +79,24 @@ const getMessageLength = (message: CoreMessage) => {
   return 0
 }
 
+const Rule = ({ text = "" }: { text?: string }) => {
+  const [width] = useTerminalSize({ maxWidth: 80 })
+
+  return (
+    <Column paddingBottom={1} alignItems="center">
+      <Text italic dimColor>{text}</Text>
+      <Text dimColor>
+        {"─".repeat(width - 8)}
+      </Text>
+    </Column>
+  )
+}
+
 export const Chat = ({ conversation }: ChatProps) => {
   const server = useServer()
   const [page, setPage] = useState(0)
   const [width, height] = useTerminalSize({ maxWidth: 100 })
-  const { assistantMessage, messages, roundtrips, waiting, streaming, usage, send } = useMessages({ 
+  const { messages, roundtrips, waiting, streaming, usage, send } = useMessages({ 
     initialMessages: conversation?.messages.toReversed() 
   })
   // useClearScreen()
@@ -157,14 +170,7 @@ export const Chat = ({ conversation }: ChatProps) => {
 
     if (mode === "top" && isTopPage) {
       // horizontal line
-      return (
-        <Column paddingBottom={1} alignItems="center">
-          <Text italic dimColor>Top of conversation</Text>
-          <Text dimColor>
-            {"─".repeat(width - 8)}
-          </Text>
-        </Column>
-      )
+      return <Rule text="Top of conversation" />
     }
 
     if (mode === "bottom" && page === 0) {
@@ -231,7 +237,7 @@ export const Chat = ({ conversation }: ChatProps) => {
       {/* {messages.toReversed().slice.map((message, index) => (
             <CoreMessageBubble key={messages.length - index} message={message} />
           ))} */}
-      {assistantMessage && <CoreMessageBubble message={assistantMessage} />}
+      {/* {assistantMessage && <CoreMessageBubble message={assistantMessage} />} */}
       {waiting && <CoreMessageBubble message={{ role: "assistant", content: "..." }} waiting />}
       {messages.slice(0, visibleMessageCount).map((message, index) => (
         <CoreMessageBubble key={messages.length - index} message={message} />
@@ -258,6 +264,7 @@ export const Chat = ({ conversation }: ChatProps) => {
 
       <Box flexDirection="column-reverse" width={width - 4} alignSelf="center" paddingBottom={2}>
         {page === 0 && recentMessages}
+        {streaming && messages.length > visibleMessageCount && <Rule text="Streaming..." />}
         {!streaming && (
           <>
             <PagesInfo mode="bottom" />
