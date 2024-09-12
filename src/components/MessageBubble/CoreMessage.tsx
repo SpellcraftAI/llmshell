@@ -7,7 +7,7 @@ export const parseSync = (text: string) => {
   let parsed = ""
 
   const ansiRenderer = createANSIRenderer({
-    level: 1,
+    level: 3,
     render: (chunk) => parsed += chunk
   })
 

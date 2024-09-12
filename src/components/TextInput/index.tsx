@@ -13,7 +13,7 @@ export interface TextInputProps extends React.ComponentProps<typeof Box> {
 }
 
 const KeyboardKey = ({ children, ...props }: React.ComponentProps<typeof Text>) => (
-  <Text color="white" backgroundColor="rgb(50,50,50)" {...props}> {children} </Text>
+  <Text color="black" dimColor={false} backgroundColor="rgb(160,160,160)" {...props}> {children} </Text>
 )
 
 
@@ -46,7 +46,7 @@ export const TextInput = ({ onSubmit, markdownEditing = true, ...props }: TextIn
         {...props}
       >
         <Text wrap="wrap">
-          {`${beforeContent}${chalk.inverse(at || " ")}${afterContent}`}
+          {`${beforeContent}${chalk.bgRgb(150, 150, 150)(at || " ")}${afterContent}`}
         </Text>
       </Box>
 

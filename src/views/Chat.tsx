@@ -5,12 +5,12 @@ import { TextInput } from "@/components/TextInput"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
 import { useMessages } from "@/hooks/useMessages"
 import { useServer } from "@/hooks/useServer"
-import { compactNumber } from "@/lib/number"
+import { compactNumber, compactUSD } from "@/lib/number"
 import { SESSION_ID, type Thread } from "@/lib/log"
 import { CoreMessageBubble } from "@/components/MessageBubble/CoreMessage"
 import type { CoreMessage } from "ai"
 import { useResumeStdin } from "@/hooks/useResumeStdin"
-import { Column } from "@/components/Flex"
+import { Column, Row } from "@/components/Flex"
 
 export interface ChatProps {
   conversation?: Thread
@@ -96,7 +96,7 @@ export const Chat = ({ conversation }: ChatProps) => {
   const server = useServer()
   const [page, setPage] = useState(0)
   const [width, height] = useTerminalSize({ maxWidth: 100 })
-  const { messages, roundtrips, waiting, streaming, usage, send } = useMessages({ 
+  const { messages, roundtrips, waiting, streaming, lastUsage, lastCost, totalCost, send } = useMessages({ 
     initialMessages: conversation?.messages.toReversed() 
   })
   // useClearScreen()
@@ -211,15 +211,29 @@ export const Chat = ({ conversation }: ChatProps) => {
         flexShrink={0}
         gap={1}
       >
-        <Box flexDirection="column" justifyContent="center" alignItems="center">
-          <Text dimColor>Tokens</Text>
-          <Text dimColor>{compactNumber(usage?.totalTokens ?? 0)}</Text>
-        </Box>
+        <Row gap={2}>
+          <Column alignItems="center">
+            <Text dimColor>Last Cost</Text>
+            <Text dimColor>{compactUSD(lastCost.total)}</Text>
+          </Column>
 
-        <Box flexDirection="column" justifyContent="center" alignItems="center">
-          <Text dimColor>Roundtrip</Text>
-          <Text dimColor>{roundtrips} of 5</Text>
-        </Box>
+          <Column alignItems="center">
+            <Text dimColor>Total Cost</Text>
+            <Text dimColor>{compactUSD(totalCost.total)}</Text>
+          </Column>
+        </Row>
+
+        <Row gap={2}>
+          <Column alignItems="center">
+            <Text dimColor>Tokens</Text>
+            <Text dimColor>{compactNumber(lastUsage?.totalTokens ?? 0)}</Text>
+          </Column>
+          
+          <Column alignItems="center">
+            <Text dimColor>Roundtrip</Text>
+            <Text dimColor>{roundtrips} of 5</Text>
+          </Column>
+        </Row>
       </Box>
           
       {/* <Text dimColor>  DEBUG: messages {messages.length}</Text> */}

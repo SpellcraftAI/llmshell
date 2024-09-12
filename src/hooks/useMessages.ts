@@ -6,10 +6,23 @@ import { SYSTEM_PROMPT } from "@/lib/system"
 import { useApp } from "ink"
 import { useAppState } from "@/lib/state"
 import { tools } from "@/lib/tools"
+import { getCost, type TokensCost } from "@/lib/cost"
 
 export interface UseMessagesOptions {
   initialMessages?: CoreMessage[]
   maxRoundTrips?: number
+}
+
+const EMPTY_COST: TokensCost = {
+  input: 0,
+  output: 0,
+  total: 0
+}
+
+const EMPTY_USAGE: LanguageModelUsage = {
+  completionTokens: 0,
+  promptTokens: 0,
+  totalTokens: 0
 }
 
 export const useMessages = ({ 
@@ -21,7 +34,12 @@ export const useMessages = ({
 
   const [waiting, setWaiting] = useState(false)
   const [streaming, setStreaming] = useState<boolean>(false)
-  const [usage, setUsage] = useState<LanguageModelUsage>()
+
+  const [lastUsage, setLastUsage] = useState<LanguageModelUsage>(EMPTY_USAGE)
+  const [totalUsage, setTotalUsage] = useState<LanguageModelUsage>(EMPTY_USAGE)
+
+  const [lastCost, setLastCost] = useState(EMPTY_COST)
+  const [totalCost, setTotalCost] = useState(EMPTY_COST)
 
   const [messages, setMessages] = useState<CoreMessage[]>(initialMessages)
   // const [assistantMessage, setAssistantMessage] = useState<CoreMessage | null>(null)
@@ -156,7 +174,8 @@ export const useMessages = ({
         })
       )
         
-      setUsage(await usage)
+      const currentUsage = await usage
+      setLastUsage(currentUsage)
                 
       // If no tool calls - we're done.
       const [finishedToolCalls, finishedToolResults] = await Promise.all([toolCalls, toolResults])
@@ -217,6 +236,28 @@ export const useMessages = ({
   )
 
   /**
+   * Update costs when lastUsage changes.
+   */
+  useEffect(
+    () => {
+      setTotalUsage((prev) => ({ 
+        promptTokens: prev.promptTokens + lastUsage.promptTokens,
+        completionTokens: prev.completionTokens + lastUsage.completionTokens,
+        totalTokens: prev.totalTokens + lastUsage.totalTokens,
+      }))
+      
+      const currentCost = getCost(lastUsage)
+      setLastCost(currentCost)
+      setTotalCost((prev) => ({
+        input: prev.input + currentCost.input,
+        output: prev.output + currentCost.output,
+        total: prev.total + currentCost.total
+      }))
+    },
+    [lastUsage]
+  )
+
+  /**
    * When a stream is available, read it and then reset the stream.
    */
   useEffect(
@@ -242,5 +283,5 @@ export const useMessages = ({
     [maxRoundTrips, roundtrips, send, usedTools]
   )
 
-  return { messages, waiting, streaming, usage, usedTools, roundtrips, send }
+  return { messages, waiting, streaming, lastUsage, totalUsage, lastCost, totalCost, usedTools, roundtrips, send }
 }

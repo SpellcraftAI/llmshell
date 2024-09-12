@@ -134,7 +134,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
       gap={1}
       // borderStyle="round" 
     >
-      <Column borderStyle="round" borderDimColor padding={1} flexShrink={1} alignItems="center">
+      <Column flexShrink={1} alignItems="center">
         <Text bold>TTY Chat v1.0.0</Text>
         <Text dimColor>Powered Claude Sonnet 3.5.</Text>
       </Column>
