@@ -2,6 +2,9 @@ import type { CoreMessage } from "ai"
 import { MessageBubble } from "."
 import { createANSIRenderer, createParser, finish, parse } from "mdstream"
 import { Box, Text } from "ink"
+import { common, createEmphasize } from "emphasize"
+
+const emphasize = createEmphasize(common)
 
 export const parseSync = (text: string) => {
   let parsed = ""
@@ -51,13 +54,17 @@ export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreM
           )
 
         case "tool-result":
+          const result = 
+            messageContent.toolName === "read"
+              ? emphasize.highlightAuto(messageContent.result as string).value
+              : messageContent.result as string
           return (
             // <MessageRow>
             <Box key={index} flexDirection="column" paddingLeft={1} alignItems="flex-start">
               {/* <Box borderStyle="round" borderDimColor flexShrink={1}>
                 <Text bold>{messageContent.toolName}</Text>
               </Box> */}
-              <Text>{messageContent.result as string}</Text>
+              <Text>{result}</Text>
             </Box>
             // </MessageRow>
           )

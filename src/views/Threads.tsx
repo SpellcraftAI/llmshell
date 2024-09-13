@@ -129,7 +129,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
       // height={height}
       minHeight={height}
       overflow="hidden" 
-      paddingTop={2}
+      paddingTop={0}
       paddingBottom={1} 
       gap={1}
       // borderStyle="round" 
