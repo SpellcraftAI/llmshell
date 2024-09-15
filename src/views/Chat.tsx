@@ -64,18 +64,21 @@ const getMessageLength = (message: CoreMessage) => {
   if (typeof message.content === "string") {
     return message.content.length
   } else if (Array.isArray(message.content)) {
-    return message.content.reduce((total, contentItem) => 
-      total + (
-        contentItem.type === "text" 
-          ? contentItem.text.length 
-          : contentItem.type === "tool-result" 
-            ? new String(contentItem.result).length 
-            : contentItem.type === "tool-call"
-              ? JSON.stringify(contentItem.args).length
-              : 0
-      ), 0
+    return message.content.reduce(
+      (total, contentItem) => 
+        total + (
+          contentItem.type === "text" 
+            ? contentItem.text.length 
+            : contentItem.type === "tool-result" 
+              ? new String(contentItem.result).length 
+              : contentItem.type === "tool-call"
+                ? JSON.stringify(contentItem.args).length
+                : 0
+        ), 
+      0
     )
   }
+  
   return 0
 }
 
@@ -102,26 +105,39 @@ export const Chat = ({ conversation }: ChatProps) => {
   // useClearScreen()
 
   // const reversed = messages.toReversed()
-  const PAGE_SIZE = 8
-  let visibleMessageCount = 1
+  // const PAGE_SIZE = 8
+  // let visibleMessageCount = 1
 
   const MAX_CHARS = 1000
-  let charCount = 0
 
-  for (const message of messages.slice(1)) {
-    const messageLength = getMessageLength(message)
-    if (charCount + messageLength <= MAX_CHARS) {
-      charCount += messageLength
-      visibleMessageCount++
-    } else {
-      break
-    }
-  }
+  const visibleMessageCount = useMemo(
+    () => {
+      let visible = 1
+      let charCount = 0
+
+      for (const message of messages.slice(1)) {
+        const messageLength = getMessageLength(message)
+        if (charCount + messageLength <= MAX_CHARS) {
+          charCount += messageLength
+          visible++
+        } else {
+          break
+        }
+      }
+
+      return visible
+    },
+    [messages.length]
+  )
+
+  const pageSize = useMemo(() => Math.min(visibleMessageCount, 10), [visibleMessageCount])
+
+  // const debugInfo = { charCount, visibleMessageCount }
 
   const staticMessages = messages.slice(visibleMessageCount)
 
   // const pageSize = 10
-  const totalPages = Math.floor(staticMessages.length / PAGE_SIZE)
+  const totalPages = Math.floor(staticMessages.length / pageSize)
 
   useResumeStdin()
 
@@ -235,6 +251,10 @@ export const Chat = ({ conversation }: ChatProps) => {
           </Column>
         </Row>
       </Box>
+
+      {/* <Box>
+        <Text>{JSON.stringify({ visibleMessageCount })}</Text>
+      </Box> */}
           
       {/* <Text dimColor>  DEBUG: messages {messages.length}</Text> */}
       <Box flexDirection="column" flexGrow={1} paddingTop={1}>
@@ -282,7 +302,7 @@ export const Chat = ({ conversation }: ChatProps) => {
         {!streaming && (
           <>
             <PagesInfo mode="bottom" />
-            <StaticMessages paddingBottom={1} page={page} pageSize={PAGE_SIZE} messages={staticMessages}>
+            <StaticMessages paddingBottom={1} page={page} pageSize={pageSize} messages={staticMessages}>
               {(message, index) => <CoreMessageBubble key={index} message={message} />}
             </StaticMessages>
             <PagesInfo mode="top" />

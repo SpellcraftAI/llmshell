@@ -1,24 +1,8 @@
 import type { CoreMessage } from "ai"
 import { MessageBubble } from "."
-import { createANSIRenderer, createParser, finish, parse } from "mdstream"
 import { Box, Text } from "ink"
-import { common, createEmphasize } from "emphasize"
+import { emphasize, parseCodeBlocks, parseMarkdown } from "./parse"
 
-const emphasize = createEmphasize(common)
-
-export const parseSync = (text: string) => {
-  let parsed = ""
-
-  const ansiRenderer = createANSIRenderer({
-    level: 3,
-    render: (chunk) => parsed += chunk
-  })
-
-  const ansiParser = createParser(ansiRenderer)
-  parse(ansiParser, text)
-  finish(ansiParser)
-  return parsed
-}
 
 // const MessageRow = () => {}
 
@@ -31,7 +15,7 @@ export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreM
         switch (messageContent.type) {
         case "text":
           return (
-            <MessageBubble key={index} from={from} text={parseSync(messageContent.text)} waiting={waiting} />
+            <MessageBubble key={index} from={from} text={parseCodeBlocks(messageContent.text)} waiting={waiting} />
           )
 
         case "tool-call":
@@ -54,10 +38,29 @@ export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreM
           )
 
         case "tool-result":
+          if (messageContent.toolName === "google") {
+            const searchResults = JSON.parse(messageContent.result as string)
+            return (
+              <Box flexDirection="column" paddingLeft={1} gap={1}>
+                {searchResults.map((result: any, index: number) => (
+                  <Box key={index} flexDirection="column" alignItems="flex-start">
+                    <Text bold>{result.title}</Text>
+                    
+                    <Box flexDirection="column">
+                      <Text dimColor>{result.primaryLink}</Text>
+                      <Text>{result.snippet}</Text>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            )
+          }
+
           const result = 
             messageContent.toolName === "read"
               ? emphasize.highlightAuto(messageContent.result as string).value
               : messageContent.result as string
+
           return (
             // <MessageRow>
             <Box key={index} flexDirection="column" paddingLeft={1} alignItems="flex-start">
@@ -74,6 +77,6 @@ export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreM
   }
 
   return (
-    <MessageBubble from={from} text={parseSync(message.content)} waiting={waiting} />
+    <MessageBubble from={from} text={parseCodeBlocks(message.content)} waiting={waiting} />
   )
 }

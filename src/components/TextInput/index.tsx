@@ -3,8 +3,8 @@
 import { Box, Text } from "ink"
 import chalk from "chalk"
 import { useKeyboard } from "./useKeyboard"
-import { parseSync } from "../MessageBubble/CoreMessage"
 import { useCallback } from "react"
+import { parseMarkdown } from "../MessageBubble/parse"
 
 export interface TextInputProps extends React.ComponentProps<typeof Box> {
   id?: string
@@ -26,7 +26,7 @@ export const TextInput = ({ onSubmit, markdownEditing = true, ...props }: TextIn
       
       const preceding = content.match(/^\s+/)?.[0] || ""
       const trailing = content.match(/\s+$/)?.[0] || ""
-      const parsed = parseSync(content).trim()
+      const parsed = parseMarkdown(content).trim()
   
       return `${preceding}${parsed}${trailing}`
     },

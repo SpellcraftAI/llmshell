@@ -83,7 +83,8 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
             alignItems="center" 
             justifyContent="center" 
             paddingX={1} 
-            minWidth={16}
+            // minWidth={16}
+            flexGrow={1}
             borderStyle="round" 
             borderDimColor={!isSelected}
           >
