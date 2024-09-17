@@ -1,10 +1,8 @@
 import type { CoreMessage } from "ai"
 import { MessageBubble } from "."
 import { Box, Text } from "ink"
-import { emphasize, parseCodeBlocks, parseMarkdown } from "./parse"
-
-
-// const MessageRow = () => {}
+import { emphasize } from "./parse"
+import { simpleMarkdown } from "@/lib/md"
 
 export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreMessage, waiting?: boolean }) => {
   const from = message.role === "assistant" ? "Claude" : "you"
@@ -15,7 +13,7 @@ export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreM
         switch (messageContent.type) {
         case "text":
           return (
-            <MessageBubble key={index} from={from} text={parseCodeBlocks(messageContent.text)} waiting={waiting} />
+            <MessageBubble key={index} from={from} text={simpleMarkdown(messageContent.text)} waiting={waiting} />
           )
 
         case "tool-call":
@@ -42,16 +40,19 @@ export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreM
             const searchResults = JSON.parse(messageContent.result as string)
             return (
               <Box flexDirection="column" paddingLeft={1} gap={1}>
-                {searchResults.map((result: any, index: number) => (
-                  <Box key={index} flexDirection="column" alignItems="flex-start">
-                    <Text bold>{result.title}</Text>
+                {
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  searchResults.map((result: any, index: number) => (
+                    <Box key={index} flexDirection="column" alignItems="flex-start">
+                      <Text bold>{result.title}</Text>
                     
-                    <Box flexDirection="column">
-                      <Text dimColor>{result.primaryLink}</Text>
-                      <Text>{result.snippet}</Text>
+                      <Box flexDirection="column">
+                        <Text dimColor>{result.primaryLink}</Text>
+                        <Text>{result.snippet}</Text>
+                      </Box>
                     </Box>
-                  </Box>
-                ))}
+                  ))
+                }
               </Box>
             )
           }
@@ -77,6 +78,6 @@ export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreM
   }
 
   return (
-    <MessageBubble from={from} text={parseCodeBlocks(message.content)} waiting={waiting} />
+    <MessageBubble from={from} text={simpleMarkdown(message.content)} waiting={waiting} />
   )
 }

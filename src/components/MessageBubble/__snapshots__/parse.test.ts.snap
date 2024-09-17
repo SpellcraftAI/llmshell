@@ -5,14 +5,12 @@ exports[`parsing code blocks 1`] = `
 
 \`\`\`javascript
 [33mconsole[39m.[34mlog[39m([36m"Hello, world!"[39m)
-
 \`\`\`
 
 This is another code block:
 
 \`\`\`typescript
 [33mconsole[39m.[34mlog[39m([36m"Hello, world!"[39m)
-
 \`\`\`
 
 This one is incomplete, but should still parse:

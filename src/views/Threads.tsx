@@ -2,7 +2,6 @@ import { useCallback, useEffect, useLayoutEffect } from "react"
 import { Box, Text } from "ink"
 import { getNewThread, loadThreadsFromDisk, setSessionId, type Thread } from "@/lib/log"
 import { Scrollable } from "@/components/Scrollable"
-import { CenterView } from "./Center"
 import { useAppState } from "@/lib/state"
 import { useRouter } from "@/lib/router"
 import { FocusIndicator } from "@/components/FocusIndicator"
@@ -126,11 +125,14 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
   )
 
   return (
-    <CenterView 
+    <Box
+      flexDirection="column"
+      justifyContent="flex-start"
+      alignItems="center"
       // height={height}
       minHeight={height}
       overflow="hidden" 
-      paddingTop={0}
+      paddingTop={1}
       paddingBottom={1} 
       gap={1}
       // borderStyle="round" 
@@ -179,6 +181,6 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
             )}
           </>
         )}
-    </CenterView>
+    </Box>
   )
 }

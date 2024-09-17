@@ -5,6 +5,7 @@ import chalk from "chalk"
 import { useKeyboard } from "./useKeyboard"
 import { useCallback } from "react"
 import { parseMarkdown } from "../MessageBubble/parse"
+import { simpleMarkdown } from "@/lib/md"
 
 export interface TextInputProps extends React.ComponentProps<typeof Box> {
   id?: string
@@ -26,7 +27,7 @@ export const TextInput = ({ onSubmit, markdownEditing = true, ...props }: TextIn
       
       const preceding = content.match(/^\s+/)?.[0] || ""
       const trailing = content.match(/\s+$/)?.[0] || ""
-      const parsed = parseMarkdown(content).trim()
+      const parsed = simpleMarkdown(content).trim()
   
       return `${preceding}${parsed}${trailing}`
     },

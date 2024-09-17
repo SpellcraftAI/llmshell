@@ -25,7 +25,7 @@ const ScrollThumb: React.FC<{ show: boolean; position: number; height: number; t
         {Array(height).fill(VERTICAL_BAR).map((char, i) => (
           <Text key={`thumb-${i}`}>{char}</Text>
         ))}
-        {Array(totalHeight - position - height).fill(VERTICAL_BAR).map((char, i) => (
+        {Array(Math.max(0, totalHeight - position - height)).fill(VERTICAL_BAR).map((char, i) => (
           <Text dimColor key={`space-${i}`}>{char}</Text>
         ))}
       </Box>

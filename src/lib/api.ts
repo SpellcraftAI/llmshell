@@ -3,6 +3,7 @@ import { Readable } from "stream"
 import { JSONPropertyStream, type JSONPropertyChunk } from "@/internals/JSONPropertyStream"
 import { parseContentStream } from "@/internals/parseContentStream"
 import { FileWriterStream } from "@/internals/FileWriteStream"
+import { log } from "./log"
 
 // const ENCODER = new TextEncoder()
 const DECODER = new TextDecoder()
@@ -186,7 +187,7 @@ export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
       // console.log(`${req.method} ${url.pathname} ${req.body ? "with body" : ""}`)
       // console.log({ url: url.pathname, hasBody: !!req.body, method: req.method })
       if (!request.body || request.method !== "POST") {
-        console.log({ request, body: request.body })
+        log("ERROR [400]", { request })
         return new Response("Bad Request", { status: 400 })
       }
 
