@@ -30,7 +30,13 @@ const initializeGrid = (width: number, height: number) => {
   const embedLetter = (letter: keyof typeof letterPatterns, offsetX: number) => {
     letterPatterns[letter].forEach((row, y) => {
       row.forEach((cell, x) => {
-        if (cell) grid[startY + y][startX + offsetX + x] = true
+        const gridY = startY + y
+        const gridX = startX + offsetX + x
+        
+        // Check if the position is within the grid bounds
+        if (gridY >= 0 && gridY < height && gridX >= 0 && gridX < width) {
+          if (cell) grid[gridY][gridX] = true
+        }
       })
     })
   }

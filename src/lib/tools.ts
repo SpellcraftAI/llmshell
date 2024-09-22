@@ -2,7 +2,17 @@ import { tool } from "ai"
 import { z } from "zod"
 
 import { getShellCommand } from "@/internals/getShellCommand"
-import type { BrowserType } from "playwright"
+import { type Browser }from "playwright"
+
+/**
+ * Initialize Chromium if available for faster search queries, terminate on
+ * exit.
+ */
+export let browser: Browser | null = null
+try { 
+  const { chromium  } = await import("playwright")
+  browser = await chromium.launch({ headless: true })
+} catch (error) {}
 
 export const tools = {
   read: tool({
@@ -87,21 +97,18 @@ export const tools = {
       query: z.string().describe("The query to search Google for.")
     }),
     execute: async ({ query }) => {
-      let chromium: BrowserType
-      try { 
-        const { chromium: loadedChromium } = await import("playwright")
-        chromium = loadedChromium
-      } catch (error) {
-        throw new Error("Playwright is not installed. Run `bun i playwright`.")
+      if (!browser) {
+        throw new Error("Chromium is not available. Run `bunx playwright install`.")
       }
 
-      const browser = await chromium.launch({ headless: true })
-      const page = await browser.newPage()
+      const context = await browser.newContext()
+      const page = await context.newPage()
       
       await page.goto(`https://www.google.com/search?q=${encodeURIComponent(query)}`)
       
       const results = await page.evaluate(() => {
-        return Array.from(document.querySelectorAll("#search [data-async-context*=query] > div")).map((node) => {
+        const searchResults = document.querySelectorAll("#search [data-async-context*=query] > div")
+        return Array.from(searchResults).map((node) => {
           const titleNode = node.querySelector("h3")
           const linkNode = node.querySelector("a")
           const snippetNode = node.querySelector("div[style*=\"webkit-line-clamp\"]")
@@ -127,26 +134,8 @@ export const tools = {
         }).filter(result => result !== null)
       })
 
-      await browser.close()
-      
+      await context.close()
       return JSON.stringify(results, null, 2)
     }
   }),
 }
-
-// function checkPlaywrightInstallation(): boolean {
-//   try {
-//     // Check if playwright is in node_modules
-//     const playwrightPath = join(process.cwd(), "node_modules", "playwright")
-//     if (!existsSync(playwrightPath)) {
-//       return false
-//     }
-
-//     // Check if Chromium is installed
-//     const result = execSync("bunx playwright install chromium --dry-run", { stdio: "pipe" })
-//     return !result.toString().includes("Chromium is not installed")
-//   } catch (error) {
-//     console.error("Error checking Playwright installation:", error)
-//     return false
-//   }
-// }

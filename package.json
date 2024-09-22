@@ -4,7 +4,7 @@
   "type": "module",
   "platform": "node",
   "scripts": {
-    "bundle": "bun build --bundle --minify src/bin.tsx --outfile dist/bin.js --target node && bun shim.ts dist/bin.js",
+    "bundle": "bun build --bundle --minify src/bin.tsx --outdir dist --target node && bun shim.ts dist/bin.js",
     "bundle-macos": "NODE_ENV=production DEV=0 bun build --bundle --minify src/bin.tsx --outfile GSH/GSH/bin.js --target node && bun shim.ts GSH/GSH/bin.js",
     "postbundle": "cp node_modules/yoga-wasm-web/dist/yoga.wasm dist",
     "postbundle-macos": "cp node_modules/yoga-wasm-web/dist/yoga.wasm GSH/GSH",
@@ -33,9 +33,10 @@
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^0.0.35",
+    "@ai-sdk/openai": "^0.0.60",
     "@anthropic-ai/sdk": "^0.25.0",
     "@inkjs/ui": "^2.0.0",
-    "ai": "^3.3.27",
+    "ai": "^3.3.39",
     "ansi-escapes": "^7.0.0",
     "ansi-styles": "^6.2.1",
     "chalk": "^5.3.0",

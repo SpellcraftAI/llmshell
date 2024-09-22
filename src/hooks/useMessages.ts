@@ -7,6 +7,7 @@ import { useApp } from "ink"
 import { useAppState } from "@/lib/state"
 import { tools } from "@/lib/tools"
 import { getCost, type TokensCost } from "@/lib/cost"
+import { createOpenAI } from "@ai-sdk/openai"
 
 export interface UseMessagesOptions {
   initialMessages?: CoreMessage[]
@@ -74,12 +75,14 @@ export const useMessages = ({
         setUsedTools(false)
   
         const abortController = new AbortController()
+        // const provider = createOpenAI({ apiKey: config.apiKey })
         const provider = createAnthropic({ apiKey: config.apiKey })
         
         await log("STREAM STARTED")
   
         const stream = streamText({
           model: provider.languageModel("claude-3-5-sonnet-20240620"),
+          // model: provider.languageModel("gpt-4o"),
           system: SYSTEM_PROMPT,
           messages: unreversed,
           tools: {

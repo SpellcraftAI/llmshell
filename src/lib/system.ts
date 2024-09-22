@@ -65,4 +65,4 @@ ${await getExamplesAsSystemMessage()}
 }
 
 export const SYSTEM_PROMPT = await getSystemPrompt()
-console.log(SYSTEM_PROMPT)
+// console.log(SYSTEM_PROMPT)
