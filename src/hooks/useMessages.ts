@@ -7,7 +7,7 @@ import { useApp } from "ink"
 import { useAppState } from "@/lib/state"
 import { tools } from "@/lib/tools"
 import { getCost, type TokensCost } from "@/lib/cost"
-import { createOpenAI } from "@ai-sdk/openai"
+// import { createOpenAI } from "@ai-sdk/openai"
 
 export interface UseMessagesOptions {
   initialMessages?: CoreMessage[]
@@ -176,6 +176,28 @@ export const useMessages = ({
           }
         })
       )
+
+      /**
+       * Anthropic will buffer the stream and send the chunks all at once.
+       * OpenAI may behave differently.
+       */
+      // await fullStream.pipeTo(
+      //   new WritableStream({
+      //     start() {
+      //       log("FULL STREAM START")
+      //     },
+      //     write(chunk) {
+      //       switch (chunk.type) {
+      //       case "tool-call-delta":
+      //         log("TOOL CALL DELTA", chunk)
+      //         break
+      //       }
+      //     }, 
+      //     close() {
+      //       log("FULL STREAM END")
+      //     } 
+      //   })
+      // )
         
       const currentUsage = await usage
       setLastUsage(currentUsage)

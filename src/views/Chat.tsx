@@ -1,5 +1,5 @@
-import { Box, Text, useInput, type BoxProps } from "ink"
-import { useEffect, useLayoutEffect, useMemo, useState } from "react"
+import { Box, Text } from "ink"
+import { useLayoutEffect } from "react"
 
 import { TextInput } from "@/components/TextInput"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
@@ -7,166 +7,24 @@ import { useMessages } from "@/hooks/useMessages"
 import { useServer } from "@/hooks/useServer"
 import { compactNumber, compactUSD } from "@/lib/number"
 import { SESSION_ID, type Thread } from "@/lib/log"
-import { CoreMessageBubble } from "@/components/MessageBubble/CoreMessage"
-import type { CoreMessage } from "ai"
-import { useResumeStdin } from "@/hooks/useResumeStdin"
 import { Column, Row } from "@/components/Flex"
+import { Paginated } from "./Paginated"
 
 export interface ChatProps {
   conversation?: Thread
 }
 
-interface StaticMessagesProps extends BoxProps {
-  page?: number;
-  pageSize?: number;
-  messages: CoreMessage[];
-  children: (message: CoreMessage, index: number) => React.ReactNode;
-}
-
-const StaticMessages = ({ 
-  page = 0, 
-  pageSize = 2, 
-  messages, 
-  children, 
-  ...boxProps 
-}: StaticMessagesProps) => {
-  const [renderedMessages, setRenderedMessages] = useState<CoreMessage[]>([])
-
-  useEffect(() => {
-    const startIndex = page * pageSize
-    const endIndex = startIndex + pageSize
-    const pageMessages = messages.slice(startIndex, endIndex)
-    
-    setRenderedMessages(prevMessages => {
-      const newMessages = [...prevMessages]
-      pageMessages.forEach((message, index) => {
-        newMessages[startIndex + index] = message
-      })
-      return newMessages
-    })
-  }, [messages, page, pageSize])
-
-  const messageElements = useMemo(() => {
-    const startIndex = page * pageSize
-    return renderedMessages
-      .slice(startIndex, startIndex + pageSize)
-      .map((message, index) => children(message, startIndex + index))
-  }, [renderedMessages, children, page, pageSize])
-
-  return (
-    <Box flexDirection="column-reverse" gap={1} {...boxProps}>
-      {messageElements}
-    </Box>
-  )
-}
-
-const getMessageLength = (message: CoreMessage) => {
-  if (typeof message.content === "string") {
-    return message.content.length
-  } else if (Array.isArray(message.content)) {
-    return message.content.reduce(
-      (total, contentItem) => 
-        total + (
-          contentItem.type === "text" 
-            ? contentItem.text.length 
-            : contentItem.type === "tool-result" 
-              ? new String(contentItem.result).length 
-              : contentItem.type === "tool-call"
-                ? JSON.stringify(contentItem.args).length
-                : 0
-        ), 
-      0
-    )
-  }
-  
-  return 0
-}
-
-const Rule = ({ text = "" }: { text?: string }) => {
-  const [width] = useTerminalSize({ maxWidth: 80 })
-
-  return (
-    <Column paddingBottom={1} alignItems="center">
-      <Text italic dimColor>{text}</Text>
-      <Text dimColor>
-        {"─".repeat(width - 8)}
-      </Text>
-    </Column>
-  )
-}
-
 export const Chat = ({ conversation }: ChatProps) => {
   const server = useServer()
-  const [page, setPage] = useState(0)
   const [width, height] = useTerminalSize({ maxWidth: 100 })
   const { messages, roundtrips, waiting, streaming, lastUsage, lastCost, totalCost, send } = useMessages({ 
     initialMessages: conversation?.messages.toReversed() 
   })
-  // useClearScreen()
-
-  // const reversed = messages.toReversed()
-  // const PAGE_SIZE = 8
-  // let visibleMessageCount = 1
-
-  const MAX_CHARS = 1000
-
-  const visibleMessageCount = useMemo(
-    () => {
-      let visible = 1
-      let charCount = 0
-
-      for (const message of messages.slice(1)) {
-        const messageLength = getMessageLength(message)
-        if (charCount + messageLength <= MAX_CHARS) {
-          charCount += messageLength
-          visible++
-        } else {
-          break
-        }
-      }
-
-      return visible
-    },
-    [messages.length]
-  )
-
-  const pageSize = useMemo(() => Math.min(visibleMessageCount, 10), [visibleMessageCount])
-
-  // const debugInfo = { charCount, visibleMessageCount }
-
-  const staticMessages = messages.slice(visibleMessageCount)
-
-  // const pageSize = 10
-  const totalPages = Math.floor(staticMessages.length / pageSize)
-
-  useResumeStdin()
 
   // Stop server on exit.
   useLayoutEffect(() => {
     return () => server?.stop()
   }, [server])
-
-  useInput((input, key) => {
-    // write(JSON.stringify({ input, key }))
-    const modKey = key.shift || key.ctrl || key.meta
-    if (key.pageUp || (key.upArrow && modKey)) {
-      if (page < totalPages) {
-        setPage((prevPage) => prevPage + 1)
-      }
-    } else if (key.pageDown || (key.downArrow && modKey)) {
-      if (page > 0) {
-        setPage((prevPage) => prevPage - 1)
-      }
-    }
-  })
-  // Scroll to bottom on new messages.
-
-  // useEffect(() => {
-  //   if (page > 0) {
-  //     process.stdout.cursorTo(0, 0)
-  //     // setTimeout(() => write("\x1B[9999A"), 100)
-  //   }
-  // }, [page, write])
 
   /**
    * Static messages only update when a new message is added, and not for old
@@ -175,33 +33,6 @@ export const Chat = ({ conversation }: ChatProps) => {
 
   if (!server) {
     return null
-  }
-
-  const PagesInfo = ({ mode }: { mode: "top" | "bottom" }) => {
-    if (totalPages < 1) {
-      return null
-    }
-    
-    const isTopPage = page === totalPages
-
-    if (mode === "top" && isTopPage) {
-      // horizontal line
-      return <Rule text="Top of conversation" />
-    }
-
-    if (mode === "bottom" && page === 0) {
-      return null
-    }
-       
-    return (
-      <Box paddingX={2} paddingTop={mode === "bottom" ? 1 : 0} paddingBottom={mode === "top" ? 1 : 0} flexDirection="row" flexGrow={1} justifyContent="space-between">
-        <Text color="gray">Page {page}/{totalPages}</Text>
-        <Box flexDirection="column">
-          {<Text bold>🔼 Alt ⌥ + Up ↑</Text>}
-          {page !== 0 && <Text bold>🔽 Alt ⌥ + Down ↓</Text>}
-        </Box>
-      </Box>
-    )
   }
 
   const editorView = (
@@ -254,9 +85,9 @@ export const Chat = ({ conversation }: ChatProps) => {
 
       {/* <Box>
         <Text>{JSON.stringify({ visibleMessageCount })}</Text>
+        <Text dimColor>  DEBUG: messages {messages.length}</Text>
       </Box> */}
           
-      {/* <Text dimColor>  DEBUG: messages {messages.length}</Text> */}
       <Box flexDirection="column" flexGrow={1} paddingTop={1}>
         <TextInput id="CHAT_INPUT" onSubmit={send} />
         <Box paddingX={2} justifyContent="flex-end">
@@ -266,50 +97,14 @@ export const Chat = ({ conversation }: ChatProps) => {
     </Box>
   )
 
-  const recentMessages = (
-    <Box flexDirection="column-reverse" gap={1} flexGrow={1}>
-      {/* {messages.toReversed().slice.map((message, index) => (
-            <CoreMessageBubble key={messages.length - index} message={message} />
-          ))} */}
-      {/* {assistantMessage && <CoreMessageBubble message={assistantMessage} />} */}
-      {waiting && <CoreMessageBubble message={{ role: "assistant", content: "..." }} waiting />}
-      {messages.slice(0, visibleMessageCount).map((message, index) => (
-        <CoreMessageBubble key={messages.length - index} message={message} />
-      ))}
-    </Box>
-  )
-
   // Reverse messages for flex-reverse display, which prevents clipping and
   // forced scrolling up on update with <Static> or naive column.
   // messages.reverse()
 
   return (
-    // <Box 
-    //   flexDirection="column" 
-    //   justifyContent="center"
-    //   alignSelf="center" 
-    //   paddingTop={1}
-    //   width={width - 4}
-    //   // borderStyle="round"
-    //   // borderColor="red"
-    // >
     <Box flexDirection="column-reverse" minHeight={height} gap={0}>
       {editorView}
-
-      <Box flexDirection="column-reverse" width={width - 4} alignSelf="center" paddingBottom={2}>
-        {page === 0 && recentMessages}
-        {streaming && messages.length > visibleMessageCount && <Rule text="Streaming..." />}
-        {!streaming && (
-          <>
-            <PagesInfo mode="bottom" />
-            <StaticMessages paddingBottom={1} page={page} pageSize={pageSize} messages={staticMessages}>
-              {(message, index) => <CoreMessageBubble key={index} message={message} />}
-            </StaticMessages>
-            <PagesInfo mode="top" />
-          </>
-        )}
-      </Box>
+      <Paginated paddingBottom={1} maxCharactersPerPage={2_000} messages={messages} streaming={streaming} waiting={waiting} />
     </Box>
-    // </Box>
   )
 }
