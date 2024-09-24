@@ -5,6 +5,7 @@ import { useResumeStdin } from "@/hooks/useResumeStdin"
 import { Rule } from "@/components/Rule"
 import { CoreMessageBubble } from "@/components/MessageBubble/CoreMessage"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
+import { useAppState } from "@/lib/state"
 
 interface PaginatedProps extends BoxProps {
   maxCharactersPerPage: number
@@ -35,7 +36,7 @@ const calculateMessageLength = (message: CoreMessage): number => {
 }
 
 const PagesInfo = ({ totalPages, page, mode }: { page: number, totalPages: number, mode: "top" | "bottom" }) => {
-  if (totalPages < 1) {
+  if (totalPages < 2) {
     return null
   }
   
@@ -66,6 +67,7 @@ export const Paginated: React.FC<PaginatedProps> = ({
   streaming,
   waiting
 }) => {
+  const { state: { config } } = useAppState()
   const [width] = useTerminalSize({ maxWidth: 100 }) 
   const pages = useMemo(() => {
     if (streaming) {
@@ -116,11 +118,11 @@ export const Paginated: React.FC<PaginatedProps> = ({
   const currentPageMessages = pages[currentPage] || []
 
   return (
-    <Box flexDirection="column-reverse" gap={1} width={width - 4} alignSelf="center">
+    <Box flexDirection="column-reverse" gap={1} width={width - 8} alignSelf="center">
       {!streaming && <PagesInfo page={currentPage} totalPages={pages.length} mode="bottom" />}
 
       {currentPage === 0 && waiting && (
-        <CoreMessageBubble message={{ role: "assistant", content: "..." }} waiting />
+        <CoreMessageBubble message={{ role: "assistant", content: "...", experimental_providerMetadata: { assistant: { model: config.model }} }} waiting />
       )}
 
       {currentPageMessages.map((message, index) => 

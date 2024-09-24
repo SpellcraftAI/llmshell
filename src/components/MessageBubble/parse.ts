@@ -72,7 +72,7 @@ export const parseCodeBlocks = (text: string) => {
     inlineCodeBlockRegex,
     (match, openingBackticks, code, closingBackticks) => {
       const highlighted = highlight(code)
-      return chalk.bold(highlighted)
+      return `${chalk.dim(openingBackticks)}${highlighted}${chalk.dim(closingBackticks)}`
     }
   )
 

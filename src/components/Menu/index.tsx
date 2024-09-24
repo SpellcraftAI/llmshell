@@ -1,5 +1,5 @@
 import { useState } from "react"
-import { Box, Text, useInput } from "ink"
+import { Box, Text, useFocus, useInput } from "ink"
 
 interface MenuProps<T> {
   items: T[][]
@@ -12,6 +12,7 @@ interface CursorPosition {
 }
 
 export const Menu = <T extends React.ReactNode,>({ items, onSelect }: MenuProps<T>) => {
+  const { isFocused } = useFocus({ autoFocus: true })
   const [cursorPosition, setCursorPosition] = useState<CursorPosition>({ x: 0, y: 0 })
 
   const maxY = items.length - 1
@@ -32,7 +33,7 @@ export const Menu = <T extends React.ReactNode,>({ items, onSelect }: MenuProps<
         onSelect(selectedItem)
       }
     }
-  })
+  }, { isActive: isFocused })
 
   return (
     <Box flexDirection="column" gap={1}>
@@ -41,7 +42,7 @@ export const Menu = <T extends React.ReactNode,>({ items, onSelect }: MenuProps<
           {row.map((item, colIndex) => {
             const selected = rowIndex === cursorPosition.y && colIndex === cursorPosition.x
             return (
-              <Box borderDimColor={!selected} borderStyle="round" key={colIndex} flexShrink={0}>
+              <Box borderDimColor={!selected} borderStyle="round" key={colIndex} flexShrink={0} paddingX={1}>
                 <Text dimColor={!selected}>
                   {item}
                 </Text>

@@ -1,5 +1,5 @@
 import { createAnthropic } from "@ai-sdk/anthropic"
-import { streamText, type CoreMessage, type CoreTool, type LanguageModelUsage, type StreamTextResult } from "ai"
+import { streamText, type CoreMessage, type CoreTool, type LanguageModel, type LanguageModelUsage, type StreamTextResult } from "ai"
 import { useCallback, useEffect, useState } from "react"
 import { writeMessagesToDisk, log, writeMessagesToTranscript } from "@/lib/log"
 import { SYSTEM_PROMPT } from "@/lib/system"
@@ -7,7 +7,7 @@ import { useApp } from "ink"
 import { useAppState } from "@/lib/state"
 import { tools } from "@/lib/tools"
 import { getCost, type TokensCost } from "@/lib/cost"
-// import { createOpenAI } from "@ai-sdk/openai"
+import { createOpenAI } from "@ai-sdk/openai"
 
 export interface UseMessagesOptions {
   initialMessages?: CoreMessage[]
@@ -31,7 +31,7 @@ export const useMessages = ({
   maxRoundTrips = 5
 }: UseMessagesOptions) => {
   const { exit } = useApp()
-  const { state: { config, customTools } } = useAppState()
+  const { state: { config, customTools, needsApiKey } } = useAppState()
 
   const [waiting, setWaiting] = useState(false)
   const [streaming, setStreaming] = useState<boolean>(false)
@@ -49,16 +49,34 @@ export const useMessages = ({
   const [usedTools, setUsedTools] = useState(false)
   const [roundtrips, setRoundtrips] = useState(0)
 
+  useEffect(() => {
+    if (needsApiKey) {
+      throw new Error("Missing necessary API key. Should not make it to this page.")
+    }
+  }, [needsApiKey])
+
+  let model: LanguageModel
+  switch (config.model) {
+  case "GPT-4o":
+    const openai = createOpenAI({ apiKey: config.openaiApiKey })
+    model = openai.languageModel("gpt-4o")
+    break
+
+  case "Claude Sonnet 3.5":
+    const anthropic = createAnthropic({ apiKey: config.anthropicApiKey }) 
+    model = anthropic.languageModel("claude-3-5-sonnet-20240620")
+    break
+      
+  default:
+    throw new Error(`Unknown model: ${config.model}`)
+  }
+
   /**
    * Create a stream given the current context and tools.
    */
   const getStream = useCallback(
     async (text?: string) => {
       try { 
-        if (!config.apiKey) {
-          throw new Error("No API key configured. Cannot connect to Anthropic.")
-        }
-  
         const messageText = text?.trimEnd()
         const userMessage: CoreMessage | null = messageText ? { role: "user", content: messageText } : null
   
@@ -75,13 +93,11 @@ export const useMessages = ({
         setUsedTools(false)
   
         const abortController = new AbortController()
-        // const provider = createOpenAI({ apiKey: config.apiKey })
-        const provider = createAnthropic({ apiKey: config.apiKey })
         
         await log("STREAM STARTED")
   
         const stream = streamText({
-          model: provider.languageModel("claude-3-5-sonnet-20240620"),
+          model,
           // model: provider.languageModel("gpt-4o"),
           system: SYSTEM_PROMPT,
           messages: unreversed,
@@ -90,6 +106,11 @@ export const useMessages = ({
             ...customTools,
           },
           experimental_toolCallStreaming: true,
+          experimental_providerMetadata: {
+            assistant: {
+              model: config.model
+            }
+          },
           maxTokens: 4096,
           abortSignal: abortController.signal
         })
@@ -114,7 +135,7 @@ export const useMessages = ({
         throw error
       }
     },
-    [config.apiKey, exit, messages, customTools]
+    [messages, model, customTools, config.model, exit]
   )
   
   /**
@@ -122,14 +143,10 @@ export const useMessages = ({
    */
   const send = useCallback(
     async (text?: string) => {
-      if (!config.apiKey) {
-        throw new Error("No API key configured. This screen should not have been visible.")
-      }
-
       const stream = await getStream(text)
       setStream(stream)
     },
-    [config.apiKey, getStream]
+    [getStream]
   )
 
   /**
@@ -140,19 +157,21 @@ export const useMessages = ({
       if (!stream) return
       const { textStream, usage, toolCalls, toolResults } = stream 
 
+      const experimental_providerMetadata = { assistant: { model: config.model } }
+
       let textBuffer = ""
       await textStream.pipeTo(
         new WritableStream({
           start() {
             setStreaming(true)
-            const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: "" }] }
+            const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: "" }], experimental_providerMetadata }
             setMessages((prev) => [message, ...prev])
             // setAssistantMessage(message)
             setWaiting(false)
           },
           write(chunk) {
             textBuffer += chunk
-            const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }] }
+            const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }], experimental_providerMetadata }
             setMessages((prev) => [message, ...prev.slice(1)])
             // setAssistantMessage(message)
           },
@@ -168,7 +187,7 @@ export const useMessages = ({
               return
             }
 
-            const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }] }
+            const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }], experimental_providerMetadata }
             // setAssistantMessage(() => null)
             setMessages((prev) => [message, ...prev.slice(1)])
             await writeMessagesToDisk(message)
@@ -211,7 +230,7 @@ export const useMessages = ({
       }
 
       // Add tool calls to messages context.
-      const toolCallsMessage: CoreMessage = { role: "assistant", content: finishedToolCalls }
+      const toolCallsMessage: CoreMessage = { role: "assistant", content: finishedToolCalls, experimental_providerMetadata }
       setMessages((prev) => [toolCallsMessage, ...prev])
       await writeMessagesToDisk(toolCallsMessage)
 
@@ -219,7 +238,7 @@ export const useMessages = ({
         if (!toolResult.result) continue
 
         if (!(toolResult.result instanceof ReadableStream)) {
-          const message: CoreMessage = { role: "tool", content: [toolResult] }
+          const message: CoreMessage = { role: "tool", content: [toolResult], experimental_providerMetadata }
           setMessages((prev) => [message, ...prev])
           await writeMessagesToDisk(message)
           await writeMessagesToTranscript(message)
@@ -231,7 +250,7 @@ export const useMessages = ({
         await toolResult.result.pipeThrough(new TextDecoderStream()).pipeTo(
           new WritableStream({
             start() {
-              const message: CoreMessage = { role: "tool", content: [] }
+              const message: CoreMessage = { role: "tool", content: [], experimental_providerMetadata }
               setStreaming(true)
               setMessages((prev) => [message, ...prev])
             },
@@ -246,7 +265,7 @@ export const useMessages = ({
             },
             async close() {
               setStreaming(false)
-              const message: CoreMessage = { role: "tool", content: [{...toolResult, result: textBuffer.trim() }] }
+              const message: CoreMessage = { role: "tool", content: [{...toolResult, result: textBuffer.trim() }], experimental_providerMetadata }
               setMessages((prev) => [message, ...prev.slice(1)])
               await writeMessagesToDisk(message)
               await writeMessagesToTranscript(message)
@@ -257,7 +276,7 @@ export const useMessages = ({
 
       setUsedTools(true)
     },
-    [stream]
+    [config.model, stream]
   )
 
   /**

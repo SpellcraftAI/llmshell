@@ -42,11 +42,13 @@ export const getConfig = (): AppConfig => {
     return config
   } catch (error) {
     log("Error loading config file")
-    return {}
+    return {
+      model: "Claude Sonnet 3.5"
+    }
   }
 }
 
-export const setConfig = async (config: AppConfig) => {
+export const writeConfigToDisk = async (config: AppConfig) => {
   const configPath = getConfigPath()
   writeFileSync(configPath, JSON.stringify(config, null, 2))
 }

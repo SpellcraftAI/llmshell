@@ -5,7 +5,9 @@ import { emphasize } from "./parse"
 import { simpleMarkdown } from "@/lib/md"
 
 export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreMessage, waiting?: boolean }) => {
-  const from = message.role === "assistant" ? "Claude" : "you"
+  // console.log(JSON.stringify(message))
+  const assistantName = message?.experimental_providerMetadata?.assistant?.model as string ?? "Unknown"
+  const from = message.role === "assistant" ? assistantName : "you"
 
   if (Array.isArray(message.content)) {
     return message.content.map(

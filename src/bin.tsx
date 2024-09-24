@@ -1,5 +1,5 @@
 if (typeof Bun === "undefined") {
-  throw new Error("TTY Chat only works with Bun runtime. Sorry!")
+  throw new Error("LLM Shell only works with Bun runtime. Sorry!")
 }
 
 import { render } from "ink"

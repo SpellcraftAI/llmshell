@@ -1,4 +1,8 @@
-export const compactNumber = (num: number, digits = 1) => {
+export const compactNumber = (num: number | null, digits = 1) => {
+  if (num === null || isNaN(num)) {
+    return "N/A"
+  }
+
   const formatter = Intl.NumberFormat(
     "en-US", 
     { 
@@ -11,7 +15,11 @@ export const compactNumber = (num: number, digits = 1) => {
   return formatter.format(num)
 }
 
-export const compactUSD = (amount: number, digits = 2) => {
+export const compactUSD = (amount: number | null, digits = 2) => {
+  if (amount === null || isNaN(amount)) {
+    return "N/A"
+  }
+
   const formatter = new Intl.NumberFormat("en-US", {
     style: "currency",
     currency: "USD",

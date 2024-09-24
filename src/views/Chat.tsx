@@ -58,6 +58,7 @@ export const Chat = ({ conversation }: ChatProps) => {
         flexShrink={0}
         gap={1}
       >
+
         <Row gap={2}>
           <Column alignItems="center">
             <Text dimColor>Last Cost</Text>
@@ -73,7 +74,7 @@ export const Chat = ({ conversation }: ChatProps) => {
         <Row gap={2}>
           <Column alignItems="center">
             <Text dimColor>Tokens</Text>
-            <Text dimColor>{compactNumber(lastUsage?.totalTokens ?? 0)}</Text>
+            <Text dimColor>{compactNumber(lastUsage?.totalTokens)}</Text>
           </Column>
           
           <Column alignItems="center">
@@ -82,11 +83,6 @@ export const Chat = ({ conversation }: ChatProps) => {
           </Column>
         </Row>
       </Box>
-
-      {/* <Box>
-        <Text>{JSON.stringify({ visibleMessageCount })}</Text>
-        <Text dimColor>  DEBUG: messages {messages.length}</Text>
-      </Box> */}
           
       <Box flexDirection="column" flexGrow={1} paddingTop={1}>
         <TextInput id="CHAT_INPUT" onSubmit={send} />
@@ -104,6 +100,12 @@ export const Chat = ({ conversation }: ChatProps) => {
   return (
     <Box flexDirection="column-reverse" minHeight={height} gap={0}>
       {editorView}
+      
+      {/* <Box>
+        <Text>{JSON.stringify({ lastUsage })}</Text>
+        <Text dimColor>  DEBUG: messages {messages.length}</Text>
+      </Box> */}
+
       <Paginated paddingBottom={1} maxCharactersPerPage={2_000} messages={messages} streaming={streaming} waiting={waiting} />
     </Box>
   )

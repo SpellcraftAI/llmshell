@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { Box, Text, type BoxProps } from "ink"
 import { PasswordInput, TextInput } from "@inkjs/ui"
-import { FocusIndicator } from "@/components/FocusIndicator"
 
 interface FormInputProps extends BoxProps {
-  type?: "text" | "password";
+  type?: "text" | "password" | "select";
   label?: string;
   placeholder?: string;
   initialValue?: string;
@@ -23,6 +22,7 @@ export const FormInput: React.FC<FormInputProps> = ({
   onSave,
   ...boxProps
 }) => {
+  // const { isFocused } = useFocus({ autoFocus: true })
   const [value, setValue] = useState<string | undefined>(initialValue)
   const [showSaved, setShowSaved] = useState<boolean>(false)
 
@@ -46,37 +46,47 @@ export const FormInput: React.FC<FormInputProps> = ({
     }
   }, [showSaved])
 
-  const input = 
-    type === "text"
-      ? (
-        <TextInput
-          defaultValue={value}
-          placeholder={placeholder}
-          onSubmit={handleSubmit}
-          isDisabled={isDisabled}
-        />
-      )
-      : (
+  let input: JSX.Element
+
+  switch (type) {
+  case "text":
+    input = (
+      <TextInput
+        defaultValue={value}
+        placeholder={placeholder}
+        onSubmit={handleSubmit}
+        isDisabled={isDisabled || !indicateFocus}
+      />
+    )
+    break
+  case "password":
+    input = (
+      <Box flexDirection="row" borderStyle="round" paddingX={1} borderDimColor={isDisabled || !indicateFocus}>
         <PasswordInput
           placeholder={placeholder}
           onSubmit={handleSubmit}
           isDisabled={isDisabled}
         />
-      )
+      </Box>
+    )
+    break
+  default:
+    throw new Error(`Unsupported input type: ${type}`)
+  }
 
   return (
     <Box flexDirection="column" {...boxProps}>
       {label && <Text dimColor> {label}</Text>}
 
-      <FocusIndicator 
-        indicateFocus={indicateFocus} 
+      <Box 
+        // indicateFocus={indicateFocus} 
         borderColor={showSaved ? "green" : undefined} 
         flexDirection="row" 
         flexGrow={1}
         paddingX={1}
       >
         {input}
-      </FocusIndicator>
+      </Box>
 
       {showSaved 
         ? <Text color="green">✔ Saved.</Text>

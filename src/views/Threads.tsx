@@ -32,11 +32,13 @@ const SETTINGS_OPTION: MenuOption = {
 
 
 const NeedsApiKey = () => {
+  const { state: { config } } = useAppState()
   const { navigate } = useRouter()
   
   return (
     <Box flexDirection="column" justifyContent="center" alignItems="center" flexGrow={1} gap={1}>
-      <Text color="red">No API key set. Please update your settings.</Text>
+      <Text color="red">No API key set for <Text bold>{config.model}</Text>.</Text>
+      <Text dimColor>Please update your settings.</Text>
 
       <FocusIndicator
         paddingX={1}
@@ -58,6 +60,12 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
   const { state: { config, selectedThread, threads }, update } = useAppState()
   const [, height] = useTerminalSize()
 
+  const hasApiKey = 
+    config.model === "GPT-4o" 
+      ? Boolean(config.openaiApiKey) 
+      : config.model === "Claude Sonnet 3.5" 
+        ? Boolean(config.anthropicApiKey) 
+        : false
 
   useLayoutEffect(() => {
     loadThreadsFromDisk().then((threads) => {
@@ -138,11 +146,11 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
       // borderStyle="round" 
     >
       <Column flexShrink={1} alignItems="center">
-        <Text bold>TTY Chat v1.0.0</Text>
+        <Text bold>LLM Shell v1.0.0</Text>
         <Text dimColor>Powered Claude Sonnet 3.5.</Text>
       </Column>
     
-      {!config.apiKey
+      {!hasApiKey
         ? <NeedsApiKey /> 
         : (
           <>

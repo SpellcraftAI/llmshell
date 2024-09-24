@@ -1,9 +1,17 @@
 import type { CoreTool } from "ai"
-import { getConfig, loadThreadsFromDisk, loadToolsFromDisk, log, setConfig, type Thread } from "@/lib/log"
+import { getConfig, loadThreadsFromDisk, loadToolsFromDisk, log, writeConfigToDisk, type Thread } from "@/lib/log"
 import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState } from "react"
 
+export type SupportedModel = "GPT-4o" | "Claude Sonnet 3.5"
+
+/**
+ * The app config is synced to a JSON file on disk in ~/.config whenever it
+ * changes.
+ */
 export interface AppConfig {
-  apiKey?: string;
+  openaiApiKey?: string;
+  anthropicApiKey?: string;
+  model: SupportedModel;
 }
 
 export interface AppState {
@@ -11,6 +19,7 @@ export interface AppState {
   selectedThread: Thread | null;
   threads: Thread[];
   customTools?: Record<string, CoreTool>;
+  needsApiKey: boolean;
 }
 
 interface AppStateContextType {
@@ -20,11 +29,24 @@ interface AppStateContextType {
 
 const AppStateContext = createContext<AppStateContextType | undefined>(undefined)
 
+const hasAPIKey = (config: AppConfig): boolean => {
+  switch (config.model) {
+  case "GPT-4o":
+    return Boolean(config.openaiApiKey)
+  case "Claude Sonnet 3.5":
+    return Boolean(config.anthropicApiKey)
+  default:
+    throw new Error(`Unknown model: ${config.model}`)
+  }
+}
+
 export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const config = getConfig()
   const [state, setState] = useState<AppState>({
-    config: getConfig(),
+    config,
     selectedThread: null,
-    threads: []
+    threads: [],
+    needsApiKey: !hasAPIKey(config)
   })
 
   const update = useCallback((newState: Partial<AppState>) => {
@@ -41,12 +63,19 @@ export const AppStateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     })
   }, [update])
 
+  /**
+   * Sync app config to disk whenever it changes.
+   */
   useEffect(
     () => {
-      setConfig(state.config)
+      writeConfigToDisk(state.config)
     }, 
     [state.config]
   )
+
+  useEffect(() => {
+    update({ needsApiKey: !hasAPIKey(state.config) })
+  }, [state.config, state.config.openaiApiKey, update])
 
   return (
     <AppStateContext.Provider value={{ state, update }}>
