@@ -13,7 +13,7 @@ const customStyles: Sheet = {
 export const simpleMarkdown = (text: string) => {
   return emphasize.highlight(
     "markdown", 
-    parseCodeBlocks(text).trim(), 
+    parseCodeBlocks(text), 
     // customStyles
   ).value
 }

@@ -5,9 +5,21 @@ test("parsing code blocks", async () => {
   const input = 
 `This is a code block:
 
+\`\`\`
+console.log("Hello, world!")
+\`\`\`
+
 \`\`\`javascript
 console.log("Hello, world!")
 \`\`\`
+
+\`\`\`
+something
+\`\`\`
+
+Inline code:
+
+\`const xyz = 123\`
 
 This is another code block:
 

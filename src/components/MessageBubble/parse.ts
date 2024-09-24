@@ -3,31 +3,38 @@ import { common, createEmphasize } from "emphasize"
 
 export const emphasize = createEmphasize(common)
 
-export const parseCodeBlocks = (text: string) => {
-  // ANSI escape code pattern
-  // Matches any ANSI escape sequence for text formatting
-  const ansiPattern = "(?:\\x1b\\[[0-9;]*m)*"
+const highlight = (code: string, lang?: string) => {
+  let highlighted = 
+    lang
+      ? emphasize.highlight(lang, code).value
+      : emphasize.highlightAuto(code).value
 
+  /**
+   * If the highlightAuto output is empty, render as plaintext.
+   */
+  if (!lang && !highlighted.trim()) {
+    highlighted = code
+  }
+
+  return highlighted
+}
+
+export const parseCodeBlocks = (text: string) => {
   // Multi-line code block regex
   // Captures:
-  // 1. Opening fence: ``` with optional language and surrounding ANSI codes
+  // 1. Opening fence: ``` with optional language
   // 2. Language identifier (optional)
   // 3. Code block content
   // 4. Closing fence: ``` with surrounding ANSI codes or end of string
   const multiLineCodeBlockRegex = new RegExp(
     "(" +
-      ansiPattern +         // Optional ANSI codes before opening ```
       "```" +               // Opening code fence
-      ansiPattern +         // Optional ANSI codes after opening ```
       "(\\w+)?" +           // Optional language identifier
-      ansiPattern +         // Optional ANSI codes after language
+      "\n" +                // Newline after the opening fence
     ")" +
-    "\\n" +                 // Newline after the opening fence
     "([\\s\\S]*?)" +        // Code block content (non-greedy)
     "(" +
-      ansiPattern +         // Optional ANSI codes before closing ```
-      "```" +               // Closing code fence
-      ansiPattern +         // Optional ANSI codes after closing ```
+      "\n```" +             // Closing code fence
       "|" +                 // OR
       "$" +                 // End of string (for unclosed blocks)
     ")",
@@ -36,20 +43,16 @@ export const parseCodeBlocks = (text: string) => {
 
   // Inline code block regex
   // Captures:
-  // 1. Opening backticks: ` or `` with surrounding ANSI codes
+  // 1. Opening backticks: ` or ``
   // 2. Inline code content
-  // 3. Closing backticks: ` or `` with surrounding ANSI codes
+  // 3. Closing backticks: ` or ``
   const inlineCodeBlockRegex = new RegExp(
     "(" +
-      ansiPattern +         // Optional ANSI codes before opening backticks
       "``?" +               // One or two backticks
-      ansiPattern +         // Optional ANSI codes after opening backticks
     ")" +
     "([^`\\n]+)" +          // Inline code content (no backticks or newlines)
     "(" +
-      ansiPattern +         // Optional ANSI codes before closing backticks
       "``?" +               // One or two backticks (matching the opening)
-      ansiPattern +         // Optional ANSI codes after closing backticks
     ")",
     "g"
   )
@@ -58,11 +61,9 @@ export const parseCodeBlocks = (text: string) => {
   text = text.replace(
     multiLineCodeBlockRegex,
     (match, openingFence, lang, code, closingFence) => {
-      const highlighted = lang
-        ? emphasize.highlight(lang, code).value
-        : emphasize.highlightAuto(code).value
-
-      return `${chalk.dim(openingFence)}\n${highlighted}${chalk.dim(closingFence)}`
+      // console.table({ openingFence, lang, code: JSON.stringify(code), closingFence })
+      const highlighted = highlight(code, lang)
+      return `${chalk.dim(openingFence)}${highlighted}${chalk.dim(closingFence)}`
     }
   )
 
@@ -70,7 +71,8 @@ export const parseCodeBlocks = (text: string) => {
   text = text.replace(
     inlineCodeBlockRegex,
     (match, openingBackticks, code, closingBackticks) => {
-      return chalk.dim(`${openingBackticks}${code}${closingBackticks}`)
+      const highlighted = highlight(code)
+      return chalk.bold(highlighted)
     }
   )
 

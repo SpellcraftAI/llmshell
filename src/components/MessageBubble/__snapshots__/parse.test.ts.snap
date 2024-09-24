@@ -3,20 +3,32 @@
 exports[`parsing code blocks 1`] = `
 "This is a code block:
 
-\`\`\`javascript
-[33mconsole[39m.[34mlog[39m([36m"Hello, world!"[39m)
-\`\`\`
+[2m\`\`\`[22m
+[2m[22mconsole.[31mlog[39m([36m"Hello, world!"[39m)[2m[22m
+[2m\`\`\`[22m
+
+[2m\`\`\`javascript[22m
+[2m[22m[33mconsole[39m.[34mlog[39m([36m"Hello, world!"[39m)[2m[22m
+[2m\`\`\`[22m
+
+[2m\`\`\`[22m
+[2m[22msomething[2m[22m
+[2m\`\`\`[22m
+
+Inline code:
+
+[2m\`[22m[1mconst [33mxyz[39m = [36m123[39m[22m[2m\`[22m
 
 This is another code block:
 
-\`\`\`typescript
-[33mconsole[39m.[34mlog[39m([36m"Hello, world!"[39m)
-\`\`\`
+[2m\`\`\`typescript[22m
+[2m[22m[33mconsole[39m.[34mlog[39m([36m"Hello, world!"[39m)[2m[22m
+[2m\`\`\`[22m
 
 This one is incomplete, but should still parse:
 
-\`\`\`
-function [34mmyTestFunction[39m() {
+[2m\`\`\`[22m
+[2m[22mfunction [34mmyTestFunction[39m() {
   [32mconst[39m a = [36m42[39m
   [32mconst[39m b = [36m50[39m
   [32mreturn[39m a + b
