@@ -3,7 +3,7 @@ import { Box, Text } from "ink"
 
 import { FormInput } from "@/components/FormInput"
 import { Column } from "@/components/Flex"
-import { Menu } from "@/views/Menu"
+import { Menu } from "@/components/Menu"
 import { CenterView } from "@/views/Center"
 
 import { useTerminalSize } from "@/hooks/useTerminalSize"

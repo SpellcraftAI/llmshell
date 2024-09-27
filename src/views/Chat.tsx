@@ -1,14 +1,14 @@
 import { Box, Text } from "ink"
 import { useLayoutEffect } from "react"
 
-import { TextInput } from "@/components/TextInput"
+import { ChatInput } from "@/components/ChatInput"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
 import { useMessages } from "@/hooks/useMessages"
 import { useServer } from "@/hooks/useServer"
 import { compactNumber, compactUSD } from "@/lib/number"
 import { SESSION_ID, type Thread } from "@/lib/log"
 import { Column, Row } from "@/components/Flex"
-import { Paginated } from "./Paginated"
+import { Paginate } from "../components/Paginate"
 
 export interface ChatProps {
   conversation?: Thread
@@ -85,7 +85,7 @@ export const Chat = ({ conversation }: ChatProps) => {
       </Box>
           
       <Box flexDirection="column" flexGrow={1} paddingTop={1}>
-        <TextInput id="CHAT_INPUT" onSubmit={send} />
+        <ChatInput id="CHAT_INPUT" onSubmit={send} />
         <Box paddingX={2} justifyContent="flex-end">
           <Text dimColor>Session ID: {SESSION_ID}</Text>
         </Box>
@@ -106,7 +106,7 @@ export const Chat = ({ conversation }: ChatProps) => {
         <Text dimColor>  DEBUG: messages {messages.length}</Text>
       </Box> */}
 
-      <Paginated paddingBottom={1} maxCharactersPerPage={2_000} messages={messages} streaming={streaming} waiting={waiting} />
+      <Paginate paddingBottom={1} maxCharactersPerPage={2_000} messages={messages} streaming={streaming} waiting={waiting} />
     </Box>
   )
 }

@@ -4,10 +4,9 @@ import { Box, Text } from "ink"
 import chalk from "chalk"
 import { useKeyboard } from "./useKeyboard"
 import { useCallback } from "react"
-import { parseMarkdown } from "../MessageBubble/parse"
 import { simpleMarkdown } from "@/lib/md"
 
-export interface TextInputProps extends React.ComponentProps<typeof Box> {
+export interface ChatInputProps extends React.ComponentProps<typeof Box> {
   id?: string
   onSubmit?: (input: string) => void | Promise<void>
   markdownEditing?: boolean
@@ -18,7 +17,7 @@ const KeyboardKey = ({ children, ...props }: React.ComponentProps<typeof Text>) 
 )
 
 
-export const TextInput = ({ onSubmit, markdownEditing = true, ...props }: TextInputProps) => {
+export const ChatInput = ({ onSubmit, markdownEditing = true, ...props }: ChatInputProps) => {
   // const { isFocused } = useFocus({ autoFocus: true, id })
   const { text, cursorPosition, before, at, after } = useKeyboard({ onSubmit })
   const parseContentAround = useCallback(

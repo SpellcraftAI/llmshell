@@ -7,7 +7,7 @@ import { CoreMessageBubble } from "@/components/MessageBubble/CoreMessage"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
 import { useAppState } from "@/lib/state"
 
-interface PaginatedProps extends BoxProps {
+interface PaginateProps extends BoxProps {
   maxCharactersPerPage: number
   messages: CoreMessage[];
   streaming?: boolean;
@@ -61,7 +61,7 @@ const PagesInfo = ({ totalPages, page, mode }: { page: number, totalPages: numbe
   )
 }
 
-export const Paginated: React.FC<PaginatedProps> = ({ 
+export const Paginate: React.FC<PaginateProps> = ({ 
   maxCharactersPerPage,
   messages,
   streaming,
