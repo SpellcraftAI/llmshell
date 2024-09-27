@@ -7,7 +7,7 @@ try {
   server = startServer()
 } catch (error) {}
 
-const BASE_URL = "http://localhost:3000"
+const BASE_URL = "http://localhost:42069"
 
 describe("Server API", () => {
   afterAll(() => {

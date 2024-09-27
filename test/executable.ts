@@ -52,7 +52,7 @@ subprocess.stderr?.on("data", (chunk) => stderrBuffer.push(...chunk))
 
 await new Promise((resolve) => setTimeout(resolve, 1000))
 // stdin.write(new TextEncoder().encode("hello world\n\n\n"))
-// await new Promise((resolve) => setTimeout(resolve, 3000))
+// await new Promise((resolve) => setTimeout(resolve, 42069))
 
 try {
   if (subprocess.exitCode !== null) {

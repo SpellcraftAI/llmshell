@@ -21,7 +21,7 @@ export const tools = {
       path: z.string().describe("The path to the file to read")
     }),
     execute: async ({ path }) => {
-      const response = await fetch("http://localhost:3000/read", {
+      const response = await fetch("http://localhost:42069/read", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path })
@@ -38,7 +38,7 @@ export const tools = {
       content: z.string().describe("The content to write to the file")
     }),
     execute: async ({ path, content }) => {
-      const response = await fetch("http://localhost:3000/write", {
+      const response = await fetch("http://localhost:42069/write", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path, content })
@@ -57,7 +57,7 @@ export const tools = {
   //     content: z.string().describe("The new content to replace the specified lines"),
   //   }),
   //   execute: async ({ path, content, startLine, endLine }) => {
-  //     const response = await fetch("http://localhost:3000/edit", {
+  //     const response = await fetch("http://localhost:42069/edit", {
   //       method: "POST",
   //       headers: { "Content-Type": "application/json" },
   //       body: JSON.stringify({ path, startLine, endLine, content })
@@ -80,7 +80,7 @@ export const tools = {
       command: z.string().describe("The terminal command to execute. Runs through bash -c.")
     }),
     execute: async ({ command }) => {
-      const response = await fetch("http://localhost:3000/terminal", {
+      const response = await fetch("http://localhost:42069/terminal", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ command })

@@ -181,7 +181,7 @@ export const startServer = ({ cwd = "." }: StartServerArgs = { cwd: "." }) => {
   const apiHandler = new ApiHandler()
 
   return Bun.serve({
-    port: 3000,
+    port: 42069,
     async fetch(request: Request): Promise<Response> {
       const url = new URL(request.url)
       // console.log(`${req.method} ${url.pathname} ${req.body ? "with body" : ""}`)
