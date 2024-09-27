@@ -8,7 +8,7 @@ import { FocusIndicator } from "@/components/FocusIndicator"
 import { Column, Row } from "@/components/Flex"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
 
-export type MenuOptionType = "NEW_THREAD" | "SETTINGS"
+export type MenuOptionType = "NEW_THREAD" | "SETTINGS"  | "INFO"
 
 export interface MenuOption {
   type: MenuOptionType
@@ -20,15 +20,20 @@ export interface ThreadsProps {
   onSelect: (conversation: Thread) => void | Promise<void>
 }
 
-const NEW_THREAD_OPTION: MenuOption = {
-  type: "NEW_THREAD",
-  title: "💬 New chat",
-}
-
-const SETTINGS_OPTION: MenuOption = {
-  type: "SETTINGS",
-  title: "⚙ Settings",
-}
+const MENU_OPTIONS: MenuOption[] = [
+  {
+    type: "NEW_THREAD",
+    title: "💬 New chat",
+  },
+  {
+    type: "SETTINGS",
+    title: "⚙ Settings",
+  },
+  {
+    type: "INFO",
+    title: "ℹ Info",
+  },
+]
 
 
 const NeedsApiKey = () => {
@@ -158,7 +163,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
               // borderStyle={threads.length > 0 ? "round" : undefined}
               borderDimColor
               paddingX={4}
-              items={[[NEW_THREAD_OPTION, SETTINGS_OPTION], ...threads]}
+              items={[MENU_OPTIONS, ...threads]}
               flexGrow={threads.length ? 1 : 0}
               renderItem={renderConversationItem}
               itemHeight={!threads.length ? 2 : 5}
@@ -173,6 +178,10 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
                     return
                   case "SETTINGS":
                     navigate("settings")
+                    return
+
+                  case "INFO":
+                    navigate("info")
                     return
                   }
                 }

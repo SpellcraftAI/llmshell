@@ -15,23 +15,25 @@ export const setSessionId = (id: string) => {
   log("Session ID set to", id)
 } 
 
-export enum LOGFILE {
+export enum PATHS {
   CONFIG = "config.json",
   DEBUG = "debug.txt",
   TRANSCRIPT = "transcript.txt",
   MESSAGES = "messages.jsonl",
-  TOOLS = "tools.ts"
+  TOOLS = "tools.ts",
+  EXAMPLES = "examples/"
 }
 
 export const getConfigDir = () => resolve(homedir(), ".config", "ttychat")
 export const getSessionsDir = () => resolve(getConfigDir(), "sessions")
-export const getConfigPath = () => resolve(getConfigDir(), LOGFILE.CONFIG)
-export const getToolsPath = () => resolve(getConfigDir(), LOGFILE.TOOLS)
+export const getConfigPath = () => resolve(getConfigDir(), PATHS.CONFIG)
+export const getToolsPath = () => resolve(getConfigDir(), PATHS.TOOLS)
+export const getExamplesPath = () => resolve(getConfigDir(), PATHS.EXAMPLES)
 
 export const getCurrentSessionDir = () => resolve(getSessionsDir(), SESSION_ID)
-export const getCurrentDebugPath = () => resolve(getCurrentSessionDir(), LOGFILE.DEBUG)
-export const getCurrentTranscriptPath = () => resolve(getCurrentSessionDir(), LOGFILE.TRANSCRIPT)
-export const getCurrentMessagesPath = () => resolve(getCurrentSessionDir(), LOGFILE.MESSAGES)
+export const getCurrentDebugPath = () => resolve(getCurrentSessionDir(), PATHS.DEBUG)
+export const getCurrentTranscriptPath = () => resolve(getCurrentSessionDir(), PATHS.TRANSCRIPT)
+export const getCurrentMessagesPath = () => resolve(getCurrentSessionDir(), PATHS.MESSAGES)
 
 export const getConfig = (): AppConfig => {
   const configPath = getConfigPath()
@@ -82,7 +84,7 @@ export const getLastSessionDirectory = async () => {
   return lastDirectory
 }
 
-export const getExamplesFromDisk = async (): Promise<Record<string, CoreMessage[]> | null> => {
+export const loadExamplesFromDisk = async (): Promise<Record<string, CoreMessage[]> | null> => {
   await ensureConfigDir()
 
   const glob = new Bun.Glob("./examples/*.jsonl")
@@ -111,7 +113,7 @@ export const getExamplesFromDisk = async (): Promise<Record<string, CoreMessage[
 // console.log(await getExamplesFromDisk())
 
 export const getExamplesAsSystemMessage = async () => {
-  const examples = await getExamplesFromDisk()
+  const examples = await loadExamplesFromDisk()
   if (!examples) {
     return ""
   }
@@ -215,7 +217,7 @@ export const loadThreadsFromDisk = async () => {
   return conversations
 }
 
-export const getLastLog = async (type: LOGFILE) => {
+export const getLastLog = async (type: PATHS) => {
   const lastSessionDirectory = await getLastSessionDirectory()
   const lastLogPath = resolve(lastSessionDirectory, type)
   

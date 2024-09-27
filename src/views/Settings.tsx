@@ -6,7 +6,6 @@ import { Column } from "@/components/Flex"
 import { Menu } from "@/components/Menu"
 import { CenterView } from "@/views/Center"
 
-import { useTerminalSize } from "@/hooks/useTerminalSize"
 import { useResumeStdin } from "@/hooks/useResumeStdin"
 import { useClearScreen } from "@/hooks/useClearScreen"
 import { getConfigPath } from "@/lib/log"
@@ -14,7 +13,6 @@ import { useAppState } from "@/lib/state"
 
 export const Settings: React.FC = () => {
   const { state: { config }, update } = useAppState()
-  const [width] = useTerminalSize({ maxWidth: 60 })
 
   useClearScreen()
   useResumeStdin()
@@ -40,7 +38,7 @@ export const Settings: React.FC = () => {
   }, [config, update])
 
   return (
-    <CenterView gap={1} width={width} marginTop={2} paddingY={1} borderStyle="round" borderDimColor>
+    <CenterView gap={1} marginTop={2} paddingY={1} borderStyle="round" borderDimColor>
       <Box flexDirection="column" alignItems="center">
         <Box paddingBottom={1}>
           <Text bold>Settings</Text>

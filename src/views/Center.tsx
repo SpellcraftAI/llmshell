@@ -6,7 +6,7 @@ export interface CenterViewProps extends BoxProps {
 }
 
 export const CenterView = ({ children, ...props }: CenterViewProps) => {
-  const [terminalWidth] = useTerminalSize({ maxWidth: 100 })
+  const [terminalWidth] = useTerminalSize({ maxWidth: 80 })
 
   if (terminalWidth < 20) {
     return (

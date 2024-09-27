@@ -1,4 +1,4 @@
-import { getLastLog, LOGFILE } from "@/lib/log"
+import { getLastLog, PATHS } from "@/lib/log"
 import { expect, test } from "bun:test"
 import { spawn } from "child_process"
 import os from "os"
@@ -38,7 +38,7 @@ test.skip("terminal", async () => {
   process.stdout.write("STDOUT:\n")
   process.stdout.write(Buffer.from(stdoutBuffer).toString())
 
-  const lastDebugLog = await getLastLog(LOGFILE.DEBUG)
+  const lastDebugLog = await getLastLog(PATHS.DEBUG)
   console.log(lastDebugLog)
 
   expect(lastDebugLog, "should receive ipc stop message").toContain("STOP_CLAUDE_SERVER")

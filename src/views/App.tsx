@@ -7,6 +7,7 @@ import { GOL } from "./GOL"
 import { Chat } from "./Chat"
 import { Threads } from "./Threads"
 import { Settings } from "./Settings"
+import { Info } from "./Info"
 
 export const Home = () => {
   const { state: { selectedThread }, update } = useAppState()
@@ -50,6 +51,9 @@ export const Home = () => {
     }
 
     return <Chat conversation={selectedThread} />
+
+  case "info":
+    return <Info />
 
   case "settings":
     return <Settings />
