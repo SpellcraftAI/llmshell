@@ -15,9 +15,9 @@ export const CenterView = ({ children, ...props }: CenterViewProps) => {
   }
   
   return (
-    <Box 
+    <Box
       flexDirection="column" 
-      justifyContent="center" 
+      justifyContent="center"
       alignSelf="center"
       alignItems="center"
       width={terminalWidth - 4}

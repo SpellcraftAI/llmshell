@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react"
 import { Box, Text, type BoxProps } from "ink"
-import { PasswordInput, TextInput } from "@inkjs/ui"
+import { Row } from "../Flex"
+import { PasswordInput, TextInput } from "./basic"
 
 interface FormInputProps extends BoxProps {
   type?: "text" | "password" | "select";
@@ -61,36 +62,42 @@ export const FormInput: React.FC<FormInputProps> = ({
     break
   case "password":
     input = (
-      <Box flexDirection="row" borderStyle="round" paddingX={1} borderDimColor={isDisabled || !indicateFocus}>
-        <PasswordInput
-          placeholder={placeholder}
-          onSubmit={handleSubmit}
-          isDisabled={isDisabled}
-        />
-      </Box>
+      <PasswordInput
+        defaultValue={value}
+        placeholder={placeholder}
+        onSubmit={handleSubmit}
+        isDisabled={isDisabled}
+      />
     )
     break
   default:
     throw new Error(`Unsupported input type: ${type}`)
   }
 
+  const savedMessage = "✔"
+
   return (
     <Box flexDirection="column" {...boxProps}>
-      {label && <Text dimColor> {label}</Text>}
+      {label && (
+        <Row gap={1}>
+          <Text dimColor={isDisabled || !indicateFocus}> {label}</Text>
+          {showSaved ? <Text color="green">{savedMessage}</Text> : <Box width={savedMessage.length} />}
+        </Row>
+      )}
 
-      <Box 
-        // indicateFocus={indicateFocus} 
-        borderColor={showSaved ? "green" : undefined} 
-        flexDirection="row" 
-        flexGrow={1}
-        paddingX={1}
-      >
-        {input}
-      </Box>
-
-      {showSaved 
-        ? <Text color="green">✔ Saved.</Text>
-        : <Box height={1} />}
+      <Row>
+        <Box 
+          borderStyle="round" 
+          borderDimColor={isDisabled || !indicateFocus}
+          borderColor={showSaved ? "green" : undefined} 
+          flexDirection="row" 
+          flexGrow={1}
+          paddingX={1}
+          marginX={1}
+        >
+          {input}
+        </Box>
+      </Row>
     </Box>
   )
 }

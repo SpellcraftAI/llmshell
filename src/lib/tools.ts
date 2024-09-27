@@ -48,24 +48,24 @@ export const tools = {
     }
   }),
 
-  edit: tool({
-    description: "Edit specific lines in a file.",
-    parameters: z.object({
-      path: z.string().describe("The path to the file to edit"),
-      startLine: z.number().describe("The starting line number for the edit"),
-      endLine: z.number().describe("The ending line number for the edit"),
-      content: z.string().describe("The new content to replace the specified lines"),
-    }),
-    execute: async ({ path, content, startLine, endLine }) => {
-      const response = await fetch("http://localhost:3000/edit", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path, startLine, endLine, content })
-      })
-      return response.body
-      // return await response.text()
-    }
-  }),
+  // edit: tool({
+  //   description: "Edit specific lines in a file.",
+  //   parameters: z.object({
+  //     path: z.string().describe("The path to the file to edit"),
+  //     startLine: z.number().describe("The starting line number for the edit"),
+  //     endLine: z.number().describe("The ending line number for the edit"),
+  //     content: z.string().describe("The new content to replace the specified lines"),
+  //   }),
+  //   execute: async ({ path, content, startLine, endLine }) => {
+  //     const response = await fetch("http://localhost:3000/edit", {
+  //       method: "POST",
+  //       headers: { "Content-Type": "application/json" },
+  //       body: JSON.stringify({ path, startLine, endLine, content })
+  //     })
+  //     return response.body
+  //     // return await response.text()
+  //   }
+  // }),
 
   terminal: tool({
     description: `

@@ -46,72 +46,66 @@ export const Settings: React.FC = () => {
           <Text bold>Settings</Text>
         </Box>
         <Text>Change your API key or other settings.</Text>
-        <Text><Text italic underline dimColor>{getConfigPath()}</Text></Text>
+        <Text><Text underline dimColor>{getConfigPath()}</Text></Text>
       </Box>
 
-      <Box paddingTop={1} width={width - 4} flexDirection="column" alignSelf="center" gap={1}>
-
-        {/* <Menu
-          items={[["API_KEY"], ["GPT-4o", "Sonnet 3.5"]]}
-          onSelect={(item) => console.log(item)}
-        /> */}
-        <Menu
-          flexDirection="column"
-          gap={1}
-          items={["MODEL", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"]}
-          // onChange={(selectedIndex) => console.log(selectedIndex)}
-          renderItem={(item, selected) => {
-            // console.log({ item, selected })
-            switch (item) {
-            case "MODEL":
-              return (
-                <Column>
-                  <Column paddingX={1}>
-                    <Text dimColor>Model</Text>
-                  </Column>
-                  <Menu 
-                    paddingLeft={1}
-                    flexDirection="row"
-                    items={["Claude Sonnet 3.5", "GPT-4o"]}
-                    defaultValue={config.model} 
-                    onSelect={handleSaveModel}
-                    isActive={selected}
-                    renderItem={(item, selected) => (
-                      <Box paddingX={1} borderStyle="round" borderDimColor={!selected}>
-                        <Text underline={item === config.model} bold={selected} dimColor={!selected}>{item}</Text>
-                      </Box>
-                    )} 
-                  />
+      <Menu
+        flexDirection="column"
+        alignSelf="flex-start"
+        gap={1}
+        paddingX={1}
+        items={["MODEL", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"]}
+        // onChange={(selectedIndex) => console.log(selectedIndex)}
+        renderItem={(item, selected) => {
+          switch (item) {
+          case "MODEL":
+            return (
+              <Column>
+                <Column paddingX={1}>
+                  <Text dimColor>Model</Text>
                 </Column>
-              )
+                <Menu 
+                  paddingLeft={1}
+                  flexDirection="row"
+                  items={["Claude Sonnet 3.5", "GPT-4o"]}
+                  defaultValue={config.model} 
+                  onSelect={handleSaveModel}
+                  isActive={selected}
+                  renderItem={(item, selected) => (
+                    <Box paddingX={1} borderStyle="round" borderDimColor={!selected}>
+                      <Text underline={item === config.model} bold={selected} dimColor={!selected}>{item}</Text>
+                    </Box>
+                  )} 
+                />
+              </Column>
+            )
 
-            case "ANTHROPIC_API_KEY":
-              return (
-                <FormInput
-                  label="Anthropic API Key"
-                  placeholder={config.anthropicApiKey ? "*".repeat(32) : "Paste your API key here..."}
-                  type="password"
-                  initialValue={config.anthropicApiKey}
-                  onSave={handleSaveAnthropicKey}
-                  isDisabled={!selected}
-                />
-              )
+          case "ANTHROPIC_API_KEY":
+            return (
+              <FormInput
+                label="Anthropic API Key"
+                placeholder={config.anthropicApiKey ? "*".repeat(32) : "Paste your API key here..."}
+                type="password"
+                initialValue={config.anthropicApiKey}
+                onSave={handleSaveAnthropicKey}
+                isDisabled={!selected}
+              />
+            )
               
-            case "OPENAI_API_KEY":
-              return (
-                <FormInput
-                  label="OpenAI API Key"
-                  placeholder={config.openaiApiKey ? "*".repeat(32) : "Paste your API key here..."}
-                  type="password"
-                  initialValue={config.openaiApiKey}
-                  onSave={handleSaveOpenAIKey}
-                  isDisabled={!selected}
-                />
-              )  
-            }
-          }}
-        />
-      </Box>
+          case "OPENAI_API_KEY":
+            return (
+              <FormInput
+                label="OpenAI API Key"
+                placeholder={"Paste your API key here..."}
+                type="password"
+                initialValue={config.openaiApiKey}
+                onSave={handleSaveOpenAIKey}
+                isDisabled={!selected}
+              />
+            )  
+          }
+        }}
+      />
     </CenterView>
   )
 }
