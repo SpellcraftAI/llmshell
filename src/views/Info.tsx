@@ -1,13 +1,20 @@
 import { platform, release } from "os"
-import { Text } from "ink"
+import { Text, useInput } from "ink"
 import { Column, Row } from "@/components/Flex"
 import { CenterView } from "./Center"
 import { useClearScreen } from "@/hooks/useClearScreen"
 import { useLayoutEffect, useMemo, useState } from "react"
 import { getExamplesPath, getSessionsDir, getToolsPath, loadExamplesFromDisk, loadThreadsFromDisk, loadToolsFromDisk, type Thread } from "@/lib/log"
 import type { CoreMessage, CoreTool } from "ai"
+import { useRouter } from "@/lib/router"
+import { YC } from "./easter/YC"
+import { GSH } from "./easter/GSH"
+
+type EASTER_EGGS = "YC" | "GSH"
 
 export const Info = () => {
+  const [easterEgg, setEasterEgg] = useState<EASTER_EGGS | null>(null)
+  const { page } = useRouter()
   useClearScreen()
 
   const [examples, setExamples] = useState<Record<string, CoreMessage[]> | null>(null)
@@ -29,6 +36,30 @@ export const Info = () => {
       setTools(tools)
     })()
   }, [examplesPromise, threadsPromise, toolsPromise])
+
+  useInput(
+    (input) => {
+      if (input === "y") {
+        setEasterEgg("YC")
+      } else if (input === "g") {
+        setEasterEgg("GSH")
+      }
+    }, 
+    { isActive: page === "info" }
+  )
+  
+  if (easterEgg) {
+    switch (easterEgg) {
+    case "YC":
+      return <YC />
+
+    case "GSH":
+      return <GSH />
+
+    default:
+      throw new Error(`Unknown easter egg: ${easterEgg}`)
+    }
+  }
 
   return (
     <CenterView 
