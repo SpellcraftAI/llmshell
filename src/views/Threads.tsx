@@ -158,7 +158,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
               // borderStyle={threads.length > 0 ? "round" : undefined}
               borderDimColor
               paddingX={4}
-              items={[NEW_THREAD_OPTION, SETTINGS_OPTION, ...threads]}
+              items={[[NEW_THREAD_OPTION, SETTINGS_OPTION], ...threads]}
               flexGrow={threads.length ? 1 : 0}
               renderItem={renderConversationItem}
               itemHeight={!threads.length ? 2 : 5}

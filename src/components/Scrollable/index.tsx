@@ -3,13 +3,12 @@ import { Box, Text, useInput, type BoxProps } from "ink"
 import { useSIGINTListener } from "@/hooks/useSIGINTListener"
 
 interface ScrollableProps<T> extends BoxProps {
-  items: T[];
+  items: (T | T[])[];
   itemHeight?: number;
   visibleItems: number;
-  // highlightColor?: string;
   isActive?: boolean;
-  renderItem: (item: T, isSelected: boolean) => React.ReactNode;
-  onSelect?: (item: T, index: number) => void | Promise<void>;
+  renderItem: (item: T, isSelected: boolean) => JSX.Element;
+  onSelect?: (item: T, rowIndex: number, columnIndex: number) => void | Promise<void>;
 }
 
 const VERTICAL_BAR = "│"
@@ -36,34 +35,46 @@ export function Scrollable<T>({
   items,
   itemHeight = 3,
   visibleItems, 
-  // highlightColor,
   isActive = true,
   renderItem,
   onSelect,
   flexGrow = 1,
   ...props
 }: ScrollableProps<T>) {
-  const [currentIndex, setCurrentIndex] = useState(0)
-  const [viewportStart, setViewportStart] = useState(0)
+  const processedItems = useMemo(() => {
+    return items.map(item => Array.isArray(item) ? item : [item])
+  }, [items])
+
+  const [currentRowIndex, setCurrentRowIndex] = useState(0)
+  const [currentColumnIndex, setCurrentColumnIndex] = useState(0)
+  const [viewportRowStart, setViewportRowStart] = useState(0)
 
   useSIGINTListener(isActive)
 
   useEffect(() => {
-    if (currentIndex < viewportStart) {
-      setViewportStart(currentIndex)
-    } else if (currentIndex >= viewportStart + visibleItems) {
-      setViewportStart(currentIndex - visibleItems + 1)
+    if (currentRowIndex < viewportRowStart) {
+      setViewportRowStart(currentRowIndex)
+    } else if (currentRowIndex >= viewportRowStart + visibleItems) {
+      setViewportRowStart(currentRowIndex - visibleItems + 1)
     }
-  }, [currentIndex, viewportStart, visibleItems])
+  }, [currentRowIndex, viewportRowStart, visibleItems])
 
   useInput(
     (input, key) => {
       if (key.upArrow) {
-        setCurrentIndex(prev => Math.max(0, prev - 1))
+        setCurrentRowIndex(prev => Math.max(0, prev - 1))
+        setCurrentColumnIndex(0)
       } else if (key.downArrow) {
-        setCurrentIndex(prev => Math.min(items.length - 1, prev + 1))
+        setCurrentRowIndex(prev => Math.min(processedItems.length - 1, prev + 1))
+        setCurrentColumnIndex(0)
+      } else if (key.leftArrow) {
+        setCurrentColumnIndex(prev => Math.max(0, prev - 1))
+      } else if (key.rightArrow) {
+        const currentRow = processedItems[currentRowIndex]
+        setCurrentColumnIndex(prev => Math.min(currentRow.length - 1, prev + 1))
       } else if (key.return) {
-        onSelect && onSelect(items[currentIndex], currentIndex)
+        const selectedItem = processedItems[currentRowIndex][currentColumnIndex]
+        onSelect && onSelect(selectedItem, currentRowIndex, currentColumnIndex)
       }
     },
     { isActive: isActive }
@@ -71,21 +82,28 @@ export function Scrollable<T>({
 
   const listItems = useMemo(
     () => {
-      return items.slice(viewportStart, viewportStart + visibleItems).map((item, index) => {
-        const isSelected = viewportStart + index === currentIndex
+      return processedItems.slice(viewportRowStart, viewportRowStart + visibleItems).map((row, rowIndex) => {
+        const isRowSelected = viewportRowStart + rowIndex === currentRowIndex
         return (
-          <Box key={index}>
-            {renderItem(item, isSelected)}
+          <Box key={rowIndex} flexDirection="row">
+            {row.map((item, columnIndex) => {
+              const isItemSelected = isRowSelected && columnIndex === currentColumnIndex
+              return (
+                <Box key={`${rowIndex}-${columnIndex}`}>
+                  {renderItem(item, isItemSelected)}
+                </Box>
+              )
+            })}
           </Box>
         )
       })
     }, 
-    [currentIndex, items, viewportStart, visibleItems, renderItem]
+    [currentRowIndex, currentColumnIndex, processedItems, viewportRowStart, visibleItems, renderItem]
   )
 
   const totalVisibleHeight = visibleItems * itemHeight
-  const scrollThumbHeight = Math.max(itemHeight, Math.floor((visibleItems / items.length) * totalVisibleHeight))
-  const scrollThumbPosition = Math.floor((viewportStart / (items.length - visibleItems)) * (totalVisibleHeight - scrollThumbHeight))
+  const scrollThumbHeight = Math.max(itemHeight, Math.floor((visibleItems / processedItems.length) * totalVisibleHeight))
+  const scrollThumbPosition = Math.floor((viewportRowStart / (processedItems.length - visibleItems)) * (totalVisibleHeight - scrollThumbHeight))
 
   return (
     <Box flexDirection="row" flexGrow={flexGrow}>
@@ -93,7 +111,7 @@ export function Scrollable<T>({
         {listItems}
       </Box>
       <ScrollThumb 
-        show={items.length > visibleItems}
+        show={processedItems.length > visibleItems}
         position={scrollThumbPosition}
         height={scrollThumbHeight}
         totalHeight={totalVisibleHeight}
