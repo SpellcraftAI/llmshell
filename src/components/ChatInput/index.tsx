@@ -13,7 +13,7 @@ export interface ChatInputProps extends React.ComponentProps<typeof Box> {
 }
 
 const KeyboardKey = ({ children, ...props }: React.ComponentProps<typeof Text>) => (
-  <Text color="black" dimColor={false} backgroundColor="rgb(160,160,160)" {...props}> {children} </Text>
+  <Text color="blue" {...props}>{children}</Text>
 )
 
 

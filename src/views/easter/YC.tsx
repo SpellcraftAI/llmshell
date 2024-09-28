@@ -25,7 +25,7 @@ const ASCII = `++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++`
 
-const CHUNK_SIZE = 10
+const CHUNK_SIZE = 20
 const createEmptyAscii = (): string => ASCII.replace(/[^\n]/g, " ")
 
 export const YC: React.FC = () => {
@@ -69,12 +69,12 @@ export const YC: React.FC = () => {
 
   return (
     <Column paddingTop={2}>
-      <Row gap={2} alignItems="flex-start" justifyContent="space-around" paddingX={2}>
+      <Row gap={4} alignItems="center" justifyContent="center" paddingX={2}>
         <Box alignItems="center" justifyContent="center" flexShrink={0}>
-          <Text>{animatedAscii}</Text>
+          <Text color="rgb(255,165,0)" dimColor>{animatedAscii}</Text>
         </Box>
 
-        <Column borderStyle="round" alignItems="center" justifyContent="flex-start" gap={1} paddingX={1}>
+        <Column borderStyle="round" alignItems="center" justifyContent="center" gap={1} paddingX={1}>
           <Text bold>Y Combinator</Text>
           <Column paddingX={1} gap={1}>
             <Text>

@@ -2,7 +2,7 @@ import { tool } from "ai"
 import { z } from "zod"
 
 import { getShellCommand } from "@/internals/getShellCommand"
-import { type Browser }from "playwright"
+import { type Browser, type BrowserType }from "playwright"
 import { ApiHandler } from "./api"
 
 /**
@@ -10,8 +10,10 @@ import { ApiHandler } from "./api"
  * exit.
  */
 export let browser: Browser | null = null
+let chromium: BrowserType | null = null
 try { 
-  const { chromium  } = await import("playwright")
+  const playwright = await import("playwright")
+  chromium = playwright.chromium
   browser = await chromium.launch({ headless: true })
 } catch (error) {}
 
@@ -103,45 +105,92 @@ export const tools = {
       query: z.string().describe("The query to search Google for.")
     }),
     execute: async ({ query }) => {
+      const searchGoogle = async (waitForCaptcha = false) => {
+        if (!browser) {
+          throw new Error("Chromium is not available. Run `bunx playwright install`.")
+        }
+      
+        const context = await browser.newContext()
+        const page = await context.newPage()
+      
+        await page.goto(`https://www.google.com/search?q=${encodeURIComponent(query)}`)
+
+        if (waitForCaptcha) {
+          await page.waitForTimeout(5000)
+        }
+
+        const results = await page.evaluate(() => {
+          const searchResults = document.querySelectorAll("#search [data-async-context*=query] > div")
+          return Array.from(searchResults).map((node) => {
+            const titleNode = node.querySelector("h3")
+            const linkNode = node.querySelector("a")
+            const snippetNode = node.querySelector("div[style*=\"webkit-line-clamp\"]")
+  
+            if (!titleNode || !linkNode) return null
+  
+            const title = titleNode.innerText
+            const primaryLink = linkNode.href
+            const snippet = snippetNode ? snippetNode.textContent : ""
+  
+            // Extract all links
+            const allLinks = Array.from(node.querySelectorAll("a")).map(a => ({
+              text: a.innerText,
+              href: a.href
+            })).filter(link => link.href !== primaryLink)
+  
+            return {
+              title,
+              primaryLink,
+              snippet,
+              additionalLinks: allLinks
+            }
+          }).filter(result => result !== null)
+        })
+  
+        await context.close()
+        return JSON.stringify(results, null, 2)
+      }
+      
+      try {
+        return await searchGoogle()
+      } catch (e) {
+        if (chromium) {
+          browser?.close()
+          browser = await chromium.launch({ headless: true })
+          return await searchGoogle(true)
+        }
+      }
+    }
+  }),
+
+  web: tool({
+    description: "Browse to any provided URL and return the page content.",
+    parameters: z.object({
+      url: z.string().url().describe("The URL to browse to.")
+    }),
+    execute: async ({ url }) => {
       if (!browser) {
         throw new Error("Chromium is not available. Run `bunx playwright install`.")
       }
-
+  
       const context = await browser.newContext()
       const page = await context.newPage()
       
-      await page.goto(`https://www.google.com/search?q=${encodeURIComponent(query)}`)
+      await page.goto(url)
       
-      const results = await page.evaluate(() => {
-        const searchResults = document.querySelectorAll("#search [data-async-context*=query] > div")
-        return Array.from(searchResults).map((node) => {
-          const titleNode = node.querySelector("h3")
-          const linkNode = node.querySelector("a")
-          const snippetNode = node.querySelector("div[style*=\"webkit-line-clamp\"]")
-
-          if (!titleNode || !linkNode) return null
-
-          const title = titleNode.innerText
-          const primaryLink = linkNode.href
-          const snippet = snippetNode ? snippetNode.textContent : ""
-
-          // Extract all links
-          const allLinks = Array.from(node.querySelectorAll("a")).map(a => ({
-            text: a.innerText,
-            href: a.href
-          })).filter(link => link.href !== primaryLink)
-
-          return {
-            title,
-            primaryLink,
-            snippet,
-            additionalLinks: allLinks
-          }
-        }).filter(result => result !== null)
+      const content = await page.evaluate(() => {
+        return {
+          title: document.title,
+          text: document.body.innerText,
+          links: Array.from(document.links).map(link => ({
+            text: link.innerText,
+            href: link.href
+          }))
+        }
       })
-
+  
       await context.close()
-      return JSON.stringify(results, null, 2)
+      return JSON.stringify(content, null, 2)
     }
   }),
 }

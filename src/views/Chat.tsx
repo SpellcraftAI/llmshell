@@ -13,25 +13,10 @@ export interface ChatProps {
 }
 
 export const Chat = ({ conversation }: ChatProps) => {
-  // const server = useServer()
   const [width, height] = useTerminalSize({ maxWidth: 100 })
   const { messages, roundtrips, waiting, streaming, lastUsage, lastCost, totalCost, send } = useMessages({ 
     initialMessages: conversation?.messages.toReversed() 
   })
-
-  // Stop server on exit.
-  // useLayoutEffect(() => {
-  //   return () => server?.stop()
-  // }, [server])
-
-  /**
-   * Static messages only update when a new message is added, and not for old
-   * ones.
-   */
-
-  // if (!server) {
-  //   return null
-  // }
 
   const editorView = (
     <Box 
@@ -41,7 +26,6 @@ export const Chat = ({ conversation }: ChatProps) => {
       gap={1} 
       width={width - 4} 
       paddingBottom={1}
-      // borderStyle="round"
     >
       <Box 
         flexDirection="column" 
@@ -93,17 +77,10 @@ export const Chat = ({ conversation }: ChatProps) => {
 
   // Reverse messages for flex-reverse display, which prevents clipping and
   // forced scrolling up on update with <Static> or naive column.
-  // messages.reverse()
 
   return (
     <Box flexDirection="column-reverse" minHeight={height} gap={0}>
       {editorView}
-      
-      {/* <Box>
-        <Text>{JSON.stringify({ lastUsage })}</Text>
-        <Text dimColor>  DEBUG: messages {messages.length}</Text>
-      </Box> */}
-
       <Paginate paddingBottom={1} maxCharactersPerPage={2_000} messages={messages} streaming={streaming} waiting={waiting} />
     </Box>
   )
