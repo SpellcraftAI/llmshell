@@ -1,10 +1,8 @@
 import { Box, Text } from "ink"
-import { useLayoutEffect } from "react"
 
 import { ChatInput } from "@/components/ChatInput"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
 import { useMessages } from "@/hooks/useMessages"
-import { useServer } from "@/hooks/useServer"
 import { compactNumber, compactUSD } from "@/lib/number"
 import { SESSION_ID, type Thread } from "@/lib/log"
 import { Column, Row } from "@/components/Flex"
@@ -15,25 +13,25 @@ export interface ChatProps {
 }
 
 export const Chat = ({ conversation }: ChatProps) => {
-  const server = useServer()
+  // const server = useServer()
   const [width, height] = useTerminalSize({ maxWidth: 100 })
   const { messages, roundtrips, waiting, streaming, lastUsage, lastCost, totalCost, send } = useMessages({ 
     initialMessages: conversation?.messages.toReversed() 
   })
 
   // Stop server on exit.
-  useLayoutEffect(() => {
-    return () => server?.stop()
-  }, [server])
+  // useLayoutEffect(() => {
+  //   return () => server?.stop()
+  // }, [server])
 
   /**
    * Static messages only update when a new message is added, and not for old
    * ones.
    */
 
-  if (!server) {
-    return null
-  }
+  // if (!server) {
+  //   return null
+  // }
 
   const editorView = (
     <Box 

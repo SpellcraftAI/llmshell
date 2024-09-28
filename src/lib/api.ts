@@ -4,6 +4,7 @@ import { JSONPropertyStream, type JSONPropertyChunk } from "@/internals/JSONProp
 import { parseContentStream } from "@/internals/parseContentStream"
 import { FileWriterStream } from "@/internals/FileWriteStream"
 import { log } from "./log"
+import { getShellCommand } from "@/internals/getShellCommand"
 
 // const ENCODER = new TextEncoder()
 const DECODER = new TextDecoder()
@@ -95,22 +96,35 @@ export class FileSystem {
 export class ApiHandler {
   constructor(private readonly fileSystem = new FileSystem()) {}
 
-  async read(argStream: ReadableStream<Uint8Array>) {
+  async read(argStream: ReadableStream<Uint8Array> | null) {
+    if (!argStream) {
+      throw new Error("No argument stream provided")
+    }
+
     const args = argStream.pipeThrough(new JSONPropertyStream())
     return await this.fileSystem.readFile(args)
   }
 
-  async write(argStream: ReadableStream<Uint8Array>) {
+  async write(argStream: ReadableStream<Uint8Array> | null) {
+    if (!argStream) {
+      throw new Error("No argument stream provided")
+    }
     const args = argStream.pipeThrough(new JSONPropertyStream())
     return await this.fileSystem.writeFile(args)
   }
 
-  async edit(argStream: ReadableStream<Uint8Array>) {
+  async edit(argStream: ReadableStream<Uint8Array> | null) {
+    if (!argStream) {
+      throw new Error("No argument stream provided")
+    }
     const args = argStream.pipeThrough(new JSONPropertyStream())
     return await this.fileSystem.editFileLines(args)
   }
 
-  async shell(argStream: ReadableStream<Uint8Array>): Promise<ReadableStream<Uint8Array>> {
+  async shell(argStream: ReadableStream<Uint8Array> | null): Promise<ReadableStream<Uint8Array>> {
+    if (!argStream) {
+      throw new Error("No argument stream provided")
+    }
     const keystrokes = argStream.pipeThrough(new JSONPropertyStream())
     const commandStream = keystrokes.pipeThrough(
       new TransformStream({
@@ -139,7 +153,7 @@ export class ApiHandler {
     // await bash.stdout.pipeTo(new FileWriterStream(Bun.stdout))
 
     const bash = spawn(
-      "bash",
+      getShellCommand(),
       [],
       {
         shell: true,

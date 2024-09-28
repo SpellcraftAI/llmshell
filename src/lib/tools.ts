@@ -3,6 +3,7 @@ import { z } from "zod"
 
 import { getShellCommand } from "@/internals/getShellCommand"
 import { type Browser }from "playwright"
+import { ApiHandler } from "./api"
 
 /**
  * Initialize Chromium if available for faster search queries, terminate on
@@ -14,6 +15,8 @@ try {
   browser = await chromium.launch({ headless: true })
 } catch (error) {}
 
+const apiHandler = new ApiHandler()
+
 export const tools = {
   read: tool({
     description: "Read the contents of a file.",
@@ -21,12 +24,13 @@ export const tools = {
       path: z.string().describe("The path to the file to read")
     }),
     execute: async ({ path }) => {
-      const response = await fetch("http://localhost:42069/read", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path })
-      })
-      return response.body
+      return await apiHandler.read(new Response(JSON.stringify({ path })).body)
+      // const response = await fetch("http://localhost:42069/read", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({ path })
+      // })
+      // return response.body
       // return await response.text()
     }
   }),
@@ -38,12 +42,13 @@ export const tools = {
       content: z.string().describe("The content to write to the file")
     }),
     execute: async ({ path, content }) => {
-      const response = await fetch("http://localhost:42069/write", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ path, content })
-      })
-      return response.body
+      return await apiHandler.write(new Response(JSON.stringify({ path, content })).body)
+      // const response = await fetch("http://localhost:42069/write", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({ path, content })
+      // })
+      // return response.body
       // return await response.text()
     }
   }),
@@ -80,13 +85,14 @@ export const tools = {
       command: z.string().describe("The terminal command to execute. Runs through bash -c.")
     }),
     execute: async ({ command }) => {
-      const response = await fetch("http://localhost:42069/terminal", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ command })
-      })
+      return await apiHandler.shell(new Response(JSON.stringify({ command })).body)
+      // const response = await fetch("http://localhost:42069/terminal", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({ command })
+      // })
 
-      return response.body
+      // return response.body
       // return await response.text()
     }
   }),

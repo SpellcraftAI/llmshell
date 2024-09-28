@@ -3,7 +3,7 @@ export function getShellCommand() {
   case "win32":
     return "cmd"
   case "darwin":
-    return "zsh"
+    return "bash"
   default:
     return "bash"
   }
