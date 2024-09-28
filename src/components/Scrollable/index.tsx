@@ -85,7 +85,7 @@ export function Scrollable<T>({
       return processedItems.slice(viewportRowStart, viewportRowStart + visibleItems).map((row, rowIndex) => {
         const isRowSelected = viewportRowStart + rowIndex === currentRowIndex
         return (
-          <Box key={rowIndex} flexDirection="row">
+          <Box key={rowIndex} flexDirection="row" justifyContent="center">
             {row.map((item, columnIndex) => {
               const isItemSelected = isRowSelected && columnIndex === currentColumnIndex
               return (

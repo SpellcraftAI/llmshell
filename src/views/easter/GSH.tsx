@@ -60,8 +60,8 @@ export const GSH: React.FC = () => {
 
   return (
     <Column paddingTop={2}>
-      <Row gap={2} alignItems="center" justifyContent="center" paddingX={2}>
-        <Box alignItems="center" justifyContent="center" flexGrow={1} flexShrink={0}>
+      <Row gap={2} alignItems="flex-start" justifyContent="space-around" paddingX={2}>
+        <Box alignItems="center" justifyContent="center" flexShrink={0}>
           <Text>{animatedAscii}</Text>
         </Box>
 

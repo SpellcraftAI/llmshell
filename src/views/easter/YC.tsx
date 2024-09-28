@@ -69,16 +69,20 @@ export const YC: React.FC = () => {
 
   return (
     <Column paddingTop={2}>
-      <Row gap={2} alignItems="center" justifyContent="center" paddingX={2}>
-        <Box alignItems="center" justifyContent="center" flexGrow={1} flexShrink={0}>
+      <Row gap={2} alignItems="flex-start" justifyContent="space-around" paddingX={2}>
+        <Box alignItems="center" justifyContent="center" flexShrink={0}>
           <Text>{animatedAscii}</Text>
         </Box>
 
-        <Column borderStyle="round" alignItems="center" justifyContent="center" gap={1} paddingX={1}>
+        <Column borderStyle="round" alignItems="center" justifyContent="flex-start" gap={1} paddingX={1}>
           <Text bold>Y Combinator</Text>
-          <Column paddingX={1}>
+          <Column paddingX={1} gap={1}>
             <Text>
-              {"YC reviewed a prototype of this tool and did not like it at all."}
+              YC reviewed a prototype of this tool and did not like it at all.
+            </Text>
+
+            <Text>
+              We hope you have a better experience.
             </Text>
           </Column>
         </Column>

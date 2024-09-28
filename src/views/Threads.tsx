@@ -152,7 +152,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
     >
       <Column flexShrink={1} alignItems="center">
         <Text bold>LLM Shell v1.0.0</Text>
-        <Text dimColor>Powered Claude Sonnet 3.5.</Text>
+        <Text dimColor>Powered by Claude Sonnet 3.5 and GPT-4o.</Text>
       </Column>
     
       {!hasApiKey

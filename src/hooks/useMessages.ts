@@ -318,10 +318,16 @@ export const useMessages = ({
    */
   useEffect(
     () => {
-      if (usedTools && roundtrips < maxRoundTrips) {        
+      if (!usedTools) {
+        return
+      }
+      
+      if (roundtrips < maxRoundTrips) {
         // Make trip.
         setRoundtrips((prev) => prev + 1)
         send()
+      } else {
+        setRoundtrips(0)
       }
     },
     [maxRoundTrips, roundtrips, send, usedTools]

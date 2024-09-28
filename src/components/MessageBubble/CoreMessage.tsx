@@ -15,7 +15,7 @@ export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreM
         switch (messageContent.type) {
         case "text":
           return (
-            <MessageBubble key={index} from={from} text={simpleMarkdown(messageContent.text)} waiting={waiting} />
+            <MessageBubble key={index} from={from} text={simpleMarkdown(messageContent.text.trim())} waiting={waiting} />
           )
 
         case "tool-call":
@@ -80,6 +80,6 @@ export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreM
   }
 
   return (
-    <MessageBubble from={from} text={simpleMarkdown(message.content)} waiting={waiting} />
+    <MessageBubble from={from} text={simpleMarkdown(message.content.trim())} waiting={waiting} />
   )
 }
