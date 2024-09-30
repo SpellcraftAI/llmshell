@@ -1,9 +1,13 @@
 import { tool } from "ai"
 import { z } from "zod"
 
+import type { SearchResponse } from "azure-cognitiveservices-websearch/lib/models"
 import { getShellCommand } from "@/internals/getShellCommand"
 import { type Browser, type BrowserType }from "playwright"
 import { ApiHandler } from "./api"
+
+import { machineId } from "node-machine-id"
+import { getConfig } from "./log"
 
 /**
  * Initialize Chromium if available for faster search queries, terminate on
@@ -99,69 +103,99 @@ export const tools = {
     }
   }),
 
-  google: tool({
-    description: "Search Google for the provided query and return structured results.",
+  bing: tool({
+    description: "Search Bing for the provided query and return structured results.",
     parameters: z.object({
-      query: z.string().describe("The query to search Google for.")
+      query: z.string().describe("The query to search Bing for.")
     }),
     execute: async ({ query }) => {
-      const searchGoogle = async (waitForCaptcha = false) => {
-        if (!browser) {
-          throw new Error("Chromium is not available. Run `bunx playwright install`.")
-        }
-      
-        const context = await browser.newContext()
-        const page = await context.newPage()
-      
-        await page.goto(`https://www.google.com/search?q=${encodeURIComponent(query)}`)
+      const config = getConfig()
+      if (!config.licenseKey) {
+        throw new Error("Missing License Key.")
+      }
 
-        if (waitForCaptcha) {
-          await page.waitForTimeout(5000)
+      const response = await fetch("https://api.llmshell.com/api/search", {
+        method: "POST",
+        body: JSON.stringify({ query }),
+        headers: {
+          "Authorization": config.licenseKey,
+          "Machine-Id": await machineId()
         }
+      })
 
-        const results = await page.evaluate(() => {
-          const searchResults = document.querySelectorAll("#search [data-async-context*=query] > div")
-          return Array.from(searchResults).map((node) => {
-            const titleNode = node.querySelector("h3")
-            const linkNode = node.querySelector("a")
-            const snippetNode = node.querySelector("div[style*=\"webkit-line-clamp\"]")
-  
-            if (!titleNode || !linkNode) return null
-  
-            const title = titleNode.innerText
-            const primaryLink = linkNode.href
-            const snippet = snippetNode ? snippetNode.textContent : ""
-  
-            // Extract all links
-            const allLinks = Array.from(node.querySelectorAll("a")).map(a => ({
-              text: a.innerText,
-              href: a.href
-            })).filter(link => link.href !== primaryLink)
-  
-            return {
-              title,
-              primaryLink,
-              snippet,
-              additionalLinks: allLinks
-            }
-          }).filter(result => result !== null)
-        })
-  
-        await context.close()
-        return JSON.stringify(results, null, 2)
+      if (!response.ok) {
+        console.log(response.statusText, await response.text())
+        throw new Error("Failed to search Bing.")
       }
       
-      try {
-        return await searchGoogle()
-      } catch (e) {
-        if (chromium) {
-          browser?.close()
-          browser = await chromium.launch({ headless: true })
-          return await searchGoogle(true)
-        }
-      }
+      const data = await response.json() as SearchResponse
+      return JSON.stringify(data.webPages, null, 2)
     }
   }),
+
+  // google: tool({
+  //   description: "Search Google for the provided query and return structured results.",
+  //   parameters: z.object({
+  //     query: z.string().describe("The query to search Google for.")
+  //   }),
+  //   execute: async ({ query }) => {
+  //     const searchGoogle = async (waitForCaptcha = false) => {
+  //       if (!browser) {
+  //         throw new Error("Chromium is not available. Run `bunx playwright install`.")
+  //       }
+      
+  //       const context = await browser.newContext()
+  //       const page = await context.newPage()
+      
+  //       await page.goto(`https://www.google.com/search?q=${encodeURIComponent(query)}`)
+
+  //       if (waitForCaptcha) {
+  //         await page.waitForTimeout(5000)
+  //       }
+
+  //       const results = await page.evaluate(() => {
+  //         const searchResults = document.querySelectorAll("#search [data-async-context*=query] > div")
+  //         return Array.from(searchResults).map((node) => {
+  //           const titleNode = node.querySelector("h3")
+  //           const linkNode = node.querySelector("a")
+  //           const snippetNode = node.querySelector("div[style*=\"webkit-line-clamp\"]")
+  
+  //           if (!titleNode || !linkNode) return null
+  
+  //           const title = titleNode.innerText
+  //           const primaryLink = linkNode.href
+  //           const snippet = snippetNode ? snippetNode.textContent : ""
+  
+  //           // Extract all links
+  //           const allLinks = Array.from(node.querySelectorAll("a")).map(a => ({
+  //             text: a.innerText,
+  //             href: a.href
+  //           })).filter(link => link.href !== primaryLink)
+  
+  //           return {
+  //             title,
+  //             primaryLink,
+  //             snippet,
+  //             additionalLinks: allLinks
+  //           }
+  //         }).filter(result => result !== null)
+  //       })
+  
+  //       await context.close()
+  //       return JSON.stringify(results, null, 2)
+  //     }
+      
+  //     try {
+  //       return await searchGoogle()
+  //     } catch (e) {
+  //       if (chromium) {
+  //         browser?.close()
+  //         browser = await chromium.launch({ headless: true })
+  //         return await searchGoogle(true)
+  //       }
+  //     }
+  //   }
+  // }),
 
   web: tool({
     description: "Browse to any provided URL and return the page content.",
@@ -181,7 +215,7 @@ export const tools = {
       const content = await page.evaluate(() => {
         return {
           title: document.title,
-          text: document.body.innerText,
+          text: document.body.textContent,
           links: Array.from(document.links).map(link => ({
             text: link.innerText,
             href: link.href

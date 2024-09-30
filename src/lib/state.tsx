@@ -9,6 +9,7 @@ export type SupportedModel = "GPT-4o" | "Claude Sonnet 3.5"
  * changes.
  */
 export interface AppConfig {
+  licenseKey?: string;
   openaiApiKey?: string;
   anthropicApiKey?: string;
   model: SupportedModel;

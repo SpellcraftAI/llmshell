@@ -1,8 +1,6 @@
 import type { ForegroundColorName } from "ansi-styles"
 import { Box, Text } from "ink"
 import { LoadingDots } from "../LoadingDots"
-import { useTerminalSize } from "@/hooks/useTerminalSize"
-import { Children, useMemo } from "react"
 import type { Props } from "node_modules/ink/build/components/Box"
 
 export interface MessageBubbleProps {
@@ -49,23 +47,29 @@ export const MessageBubble = ({ from, text, waiting = false }: MessageBubbleProp
   const prefix = from === "you" ? "You" : from
 
   // const borderStyle = border ? "round" : undefined
-  const borderColor = from === "you" ? "blue" : "yellow"
+  const borderColor = from === "you" ? "blue" : undefined
+
+  const mode = from === "you" ? "send" : "receive"
 
   return (
-    <Box flexDirection={from === "you" ? "row-reverse" : "row"}>
+    <Box 
+      flexDirection={mode === "send" ? "row-reverse" : "row"} 
+    >
       <Box 
         flexDirection="column"
         /**
          * Do not re-add these, no matter how tempted you are. Re-rendering the
          * Chat view janks out when Yoga tries to render this many boxes.
          */
-        // borderStyle="round"
-        // borderColor={borderColor}
-        // borderDimColor
+        borderStyle="round"
+        borderColor={borderColor}
+        borderDimColor
         paddingX={2}
+        paddingY={1}
+        width="80%"
       >
         <Box marginBottom={1}>
-          <Text dimColor color={prefixColor}>
+          <Text bold color={prefixColor}>
             {prefix}
           </Text>
         </Box>
