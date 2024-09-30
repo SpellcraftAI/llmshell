@@ -4,5 +4,57 @@
   "module": "index.ts",
   "type": "module",
   "platform": "node",
-  "files": []
+  "files": [],
+  "scripts": {
+    "bundle": "bun build --bundle --minify src/bin.tsx --outdir dist --target node && bun shim.ts dist/bin.js",
+    "bundle-macos": "NODE_ENV=production DEV=0 bun build --bundle --minify src/bin.tsx --outfile GSH/GSH/bin.js --target node && bun shim.ts GSH/GSH/bin.js",
+    "postbundle": "cp node_modules/yoga-wasm-web/dist/yoga.wasm dist",
+    "postbundle-macos": "cp node_modules/yoga-wasm-web/dist/yoga.wasm GSH/GSH",
+    "compile": "bun build --compile dist/bin.js --outfile dist/bin",
+    "compile-macos": "bun build --target bun-darwin-arm64 --compile GSH/GSH/bin.js --outfile GSH/GSH/bin",
+    "build": "bun run bundle && bun run compile",
+    "build-macos": "bun run bundle-macos && bun run compile-macos",
+    "lint": "eslint src --fix"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.6",
+    "@types/marked-terminal": "^6.1.1",
+    "@types/react": "^18.3.3",
+    "@types/screenshot-desktop": "^1.12.3",
+    "@typescript-eslint/eslint-plugin": "^7.17.0",
+    "@typescript-eslint/parser": "^7.17.0",
+    "eslint": "8.x",
+    "eslint-plugin-react": "^7.35.0",
+    "eslint-plugin-react-hooks": "^4.6.2",
+    "eslint-plugin-typescript": "^0.14.0",
+    "react-devtools": "^5.3.1",
+    "react-devtools-core": "^5.3.1"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@ai-sdk/anthropic": "^0.0.50",
+    "@ai-sdk/openai": "^0.0.62",
+    "@anthropic-ai/sdk": "^0.25.0",
+    "@inkjs/ui": "^2.0.0",
+    "ai": "^3.4.2",
+    "ansi-escapes": "^7.0.0",
+    "ansi-styles": "^6.2.1",
+    "chalk": "^5.3.0",
+    "emphasize": "^7.0.0",
+    "ink": "^5.0.1",
+    "mdstream": "^0.1.1",
+    "node-docker-api": "^1.1.22",
+    "node-machine-id": "^1.1.12",
+    "ora": "^8.0.1",
+    "partial-json": "^0.1.7",
+    "pastel": "^3.0.0",
+    "playwright": "^1.47.0",
+    "react": "^18.3.1",
+    "screenshot-desktop": "^1.15.0",
+    "streaming-markdown": "^0.0.14",
+    "terminal-image": "^3.0.0",
+    "zod": "^3.23.8"
+  }
 }
