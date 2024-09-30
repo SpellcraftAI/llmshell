@@ -82,7 +82,7 @@ export const Settings: React.FC = () => {
             return (
               <FormInput
                 label="Anthropic API Key"
-                placeholder={config.anthropicApiKey ? "*".repeat(32) : "Paste your API key here..."}
+                placeholder={"Paste your API key here..."}
                 type="password"
                 initialValue={config.anthropicApiKey}
                 onSave={handleSaveAnthropicKey}

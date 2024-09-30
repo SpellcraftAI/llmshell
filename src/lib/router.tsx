@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from "react"
 
-export type Page = "animation" | "threads" | "chat" | "settings" | "info";
+export type Page = "animation" | "threads" | "chat" | "settings" | "info" | "activate";
 
 interface RouterContextType {
   page: Page;

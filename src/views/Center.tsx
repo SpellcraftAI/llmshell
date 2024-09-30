@@ -2,11 +2,12 @@ import { useTerminalSize } from "@/hooks/useTerminalSize"
 import { Box, Text, type BoxProps } from "ink"
 
 export interface CenterViewProps extends BoxProps {
+  maxWidth?: number
   children: React.ReactNode
 }
 
-export const CenterView = ({ children, ...props }: CenterViewProps) => {
-  const [terminalWidth] = useTerminalSize({ maxWidth: 80 })
+export const CenterView = ({ maxWidth = 80, children, ...props }: CenterViewProps) => {
+  const [terminalWidth] = useTerminalSize({ maxWidth })
 
   if (terminalWidth < 20) {
     return (

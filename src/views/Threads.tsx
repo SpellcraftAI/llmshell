@@ -8,7 +8,7 @@ import { FocusIndicator } from "@/components/FocusIndicator"
 import { Column, Row } from "@/components/Flex"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
 
-export type MenuOptionType = "NEW_THREAD" | "SETTINGS"  | "INFO"
+export type MenuOptionType = "NEW_THREAD" | "SETTINGS"  | "INFO" | "ACTIVATE"
 
 export interface MenuOption {
   type: MenuOptionType
@@ -28,6 +28,10 @@ const MENU_OPTIONS: MenuOption[] = [
   {
     type: "SETTINGS",
     title: "⚙ Settings",
+  },
+  {
+    type: "ACTIVATE",
+    title: "🔑 Activate",
   },
   {
     type: "INFO",
@@ -182,6 +186,10 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
 
                   case "INFO":
                     navigate("info")
+                    return
+
+                  case "ACTIVATE":
+                    navigate("activate")
                     return
                   }
                 }

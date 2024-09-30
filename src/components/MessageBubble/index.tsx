@@ -64,19 +64,16 @@ export const MessageBubble = ({ from, text, waiting = false }: MessageBubbleProp
         borderStyle="round"
         borderColor={borderColor}
         borderDimColor
+        gap={1}
         paddingX={2}
         paddingY={1}
         width="80%"
       >
-        <Box marginBottom={1}>
-          <Text bold color={prefixColor}>
-            {prefix}
-          </Text>
-        </Box>
+        <Text bold color={prefixColor}>
+          {prefix}
+        </Text>
         
-        <Box>
-          {waiting ? <LoadingDots /> : <Text color={textColor}>{text}</Text>}
-        </Box>
+        {waiting ? <LoadingDots /> : <Text color={textColor}>{text.trim()}</Text>}
       </Box>
     </Box>
   )

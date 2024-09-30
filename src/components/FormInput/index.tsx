@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from "react"
+import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { Box, Text, type BoxProps } from "ink"
+import { Spinner } from "@inkjs/ui"
 import { Row } from "../Flex"
 import { PasswordInput, TextInput } from "./basic"
 
@@ -9,7 +10,7 @@ interface FormInputProps extends BoxProps {
   placeholder?: string;
   initialValue?: string;
   indicateFocus?: boolean;
-  onSave?: (value: string) => void;
+  onSave?: (value: string) => Promise<void> | void;
   isDisabled?: boolean;
 }
 
@@ -25,27 +26,35 @@ export const FormInput: React.FC<FormInputProps> = ({
 }) => {
   // const { isFocused } = useFocus({ autoFocus: true })
   const [value, setValue] = useState<string | undefined>(initialValue)
-  const [showSaved, setShowSaved] = useState<boolean>(false)
+  const [state, setState] = useState<"idle" | "saving" | "saved">("idle")
 
   const handleSubmit = useCallback(
-    (newValue: string): void => {
+    async (newValue: string) => {
       if (newValue.trim()) {
+        const saveResult = onSave?.(newValue)
+        
+        // For promises, use a loading spinner/
+        if (typeof saveResult?.then === "function") {
+          setState("saving")
+          await saveResult
+        }
+
         setValue(newValue)
-        setShowSaved(true)
-        onSave?.(newValue)
+        setState("saved")
       }
     },
     [onSave]
   )
 
   useEffect(() => {
-    if (showSaved) {
+    switch (state) {
+    case "saved":
       const timer = setTimeout(() => {
-        setShowSaved(false)
+        setState("idle")
       }, 2000)
       return () => clearTimeout(timer)
     }
-  }, [showSaved])
+  }, [state])
 
   let input: JSX.Element
 
@@ -75,13 +84,30 @@ export const FormInput: React.FC<FormInputProps> = ({
   }
 
   const savedMessage = "✔"
+  const sideContent = useMemo(
+    () => {
+      switch (state) {
+      case "saving":
+        return (
+          <Row gap={1}>
+            <Spinner />
+            <Text dimColor>Saving...</Text>
+          </Row>
+        )
+
+      case "saved":
+        return <Text color="green">{savedMessage}</Text>
+      }
+    },
+    [state]
+  )
 
   return (
     <Box flexDirection="column" {...boxProps}>
       {label && (
         <Row gap={1}>
           <Text dimColor={isDisabled || !indicateFocus}> {label}</Text>
-          {showSaved ? <Text color="green">{savedMessage}</Text> : <Box width={savedMessage.length} />}
+          {sideContent ? sideContent : <Box width={savedMessage.length} />}
         </Row>
       )}
 
@@ -89,7 +115,7 @@ export const FormInput: React.FC<FormInputProps> = ({
         <Box 
           borderStyle="round" 
           borderDimColor={isDisabled || !indicateFocus}
-          borderColor={showSaved ? "green" : undefined} 
+          borderColor={state === "saved" ? "green" : undefined} 
           flexDirection="row" 
           flexGrow={1}
           paddingX={1}

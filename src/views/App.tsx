@@ -8,6 +8,7 @@ import { Chat } from "./Chat"
 import { Threads } from "./Threads"
 import { Settings } from "./Settings"
 import { Info } from "./Info"
+import { Activation } from "./Activation"
 
 export const Home = () => {
   const { state: { selectedThread }, update } = useAppState()
@@ -33,6 +34,7 @@ export const Home = () => {
   switch (page) {
   case "animation":
     return <GOL onComplete={() => navigate("threads")} />
+
   case "threads":
     return (
       <Threads 
@@ -45,6 +47,7 @@ export const Home = () => {
         }} 
       />
     )
+
   case "chat":
     if (!selectedThread) {
       throw new Error("selectedThread is null")
@@ -57,6 +60,9 @@ export const Home = () => {
 
   case "settings":
     return <Settings />
+
+  case "activate":
+    return <Activation />
   
   default:
     throw new Error(`Unknown page: ${page}`)
