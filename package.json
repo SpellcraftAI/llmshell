@@ -1,8 +1,10 @@
 {
-  "name": "llm-client",
+  "name": "llmshell",
+  "version": "0.0.1",
   "module": "index.ts",
   "type": "module",
   "platform": "node",
+  "files": [],
   "scripts": {
     "bundle": "bun build --bundle --minify src/bin.tsx --outdir dist --target node && bun shim.ts dist/bin.js",
     "bundle-macos": "NODE_ENV=production DEV=0 bun build --bundle --minify src/bin.tsx --outfile GSH/GSH/bin.js --target node && bun shim.ts GSH/GSH/bin.js",
@@ -44,6 +46,7 @@
     "ink": "^5.0.1",
     "mdstream": "^0.1.1",
     "node-docker-api": "^1.1.22",
+    "node-machine-id": "^1.1.12",
     "ora": "^8.0.1",
     "partial-json": "^0.1.7",
     "pastel": "^3.0.0",
