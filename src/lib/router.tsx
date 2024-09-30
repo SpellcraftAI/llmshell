@@ -10,7 +10,7 @@ interface RouterContextType {
 const RouterContext = createContext<RouterContextType | undefined>(undefined)
 
 export const RouterProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [page, setPage] = useState<Page>("animation")
+  const [page, setPage] = useState<Page>("threads")
 
   const navigate = (to: Page) => {
     setPage(to)

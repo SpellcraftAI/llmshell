@@ -1,3 +1,5 @@
+#!/usr/bin/env bun
+
 if (typeof Bun === "undefined") {
   throw new Error("LLM Shell only works with Bun runtime. Sorry!")
 }
