@@ -14,7 +14,7 @@ export interface ChatProps {
 }
 
 export const Chat = ({ conversation }: ChatProps) => {
-  const [width, height] = useTerminalSize({ maxWidth: 100 })
+  const [width, height] = useTerminalSize({ maxWidth: 80 })
   const { messages, roundtrips, waiting, streaming, lastUsage, lastCost, totalCost, send } = useMessages({
     initialMessages: conversation?.messages.toReversed()
   })

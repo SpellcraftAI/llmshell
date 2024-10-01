@@ -127,7 +127,7 @@ export const Paginate: React.FC<PaginateProps> = ({
 
       {currentPageMessages.map((message, index) => 
         streaming
-          ? <CoreMessageBubble maxLength={1500} key={index} message={message} />
+          ? <CoreMessageBubble maxLength={1000} key={index} message={message} />
           : <CoreMessageBubble key={index} message={message} />
       )}
 

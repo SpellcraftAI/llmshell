@@ -13,7 +13,10 @@ const truncateStart = (str: string, start?: number) => {
     return str
   }
 
-  return `...${str.slice(-start)}`
+  const sliced = str.slice(-start)
+  const withDroppedLine = sliced.slice(sliced.indexOf("\n") || 0)
+
+  return `...${withDroppedLine}`
 }
 
 export const CoreMessageBubble = ({ message, waiting = false, maxLength }: { maxLength?: number, message: CoreMessage, waiting?: boolean }) => {
