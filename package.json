@@ -7,6 +7,7 @@
   "files": [],
   "scripts": {
     "bundle": "NODE_ENV=production DEV=0 bun build --bundle --minify src/bin.tsx --outdir dist --target node && bun shim.ts dist/bin.js",
+    "bundle:windows": "NODE_ENV=production DEV=0 bun build --bundle src/bin.tsx --outdir dist --target node && bun shim.ts dist/bin.js",
     "bundle-macos": "NODE_ENV=production DEV=0 bun build --bundle --minify src/bin.tsx --outfile GSH/GSH/bin.js --target node && bun shim.ts GSH/GSH/bin.js",
     "postbundle": "cp node_modules/yoga-wasm-web/dist/yoga.wasm dist",
     "postbundle-macos": "cp node_modules/yoga-wasm-web/dist/yoga.wasm GSH/GSH",
@@ -36,6 +37,8 @@
   "dependencies": {
     "@ai-sdk/anthropic": "^0.0.50",
     "@ai-sdk/openai": "^0.0.62",
+    "@ai-sdk/provider": "^0.0.24",
+    "@ai-sdk/provider-utils": "^1.0.20",
     "@anthropic-ai/sdk": "^0.25.0",
     "@inkjs/ui": "^2.0.0",
     "ai": "^3.4.2",
@@ -44,7 +47,6 @@
     "chalk": "^5.3.0",
     "emphasize": "^7.0.0",
     "ink": "^5.0.1",
-    "mdstream": "^0.1.1",
     "node-docker-api": "^1.1.22",
     "node-machine-id": "^1.1.12",
     "ora": "^8.0.1",

@@ -37,7 +37,7 @@ const hasAPIKey = (config: AppConfig): boolean => {
   case "Claude Sonnet 3.5":
     return Boolean(config.anthropicApiKey)
   default:
-    throw new Error(`Unknown model: ${config.model}`)
+    return false
   }
 }
 

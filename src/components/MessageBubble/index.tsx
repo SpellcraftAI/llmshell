@@ -47,7 +47,7 @@ export const MessageBubble = ({ from, text, waiting = false }: MessageBubbleProp
   const prefix = from === "you" ? "You" : from
 
   // const borderStyle = border ? "round" : undefined
-  const borderColor = from === "you" ? "blue" : undefined
+  // const borderColor = from === "you" ? "blue" : undefined
 
   const mode = from === "you" ? "send" : "receive"
 
@@ -61,13 +61,13 @@ export const MessageBubble = ({ from, text, waiting = false }: MessageBubbleProp
          * Do not re-add these, no matter how tempted you are. Re-rendering the
          * Chat view janks out when Yoga tries to render this many boxes.
          */
-        borderStyle="round"
-        borderColor={borderColor}
-        borderDimColor
+        // borderStyle="round"
+        // borderColor={borderColor}
+        // borderDimColor
         gap={1}
         paddingX={2}
         paddingY={1}
-        width="80%"
+        // width="80%"
       >
         <Text bold color={prefixColor}>
           {prefix}

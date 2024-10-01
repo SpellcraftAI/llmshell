@@ -4,7 +4,19 @@ import { Box, Text } from "ink"
 import { emphasize } from "./parse"
 import { simpleMarkdown } from "@/lib/md"
 
-export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreMessage, waiting?: boolean }) => {
+const truncateStart = (str: string, start?: number) => {
+  if (!start) {
+    return str
+  }
+
+  if (str.length < start) {
+    return str
+  }
+
+  return `...${str.slice(-start)}`
+}
+
+export const CoreMessageBubble = ({ message, waiting = false, maxLength }: { maxLength?: number, message: CoreMessage, waiting?: boolean }) => {
   // console.log(JSON.stringify(message))
   const assistantName = message?.experimental_providerMetadata?.assistant?.model as string ?? "Unknown"
   const from = message.role === "assistant" ? assistantName : "you"
@@ -15,7 +27,7 @@ export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreM
         switch (messageContent.type) {
         case "text":
           return (
-            <MessageBubble key={index} from={from} text={simpleMarkdown(messageContent.text.trim())} waiting={waiting} />
+            <MessageBubble key={index} from={from} text={simpleMarkdown(truncateStart(messageContent.text, maxLength))} waiting={waiting} />
           )
 
         case "tool-call":
@@ -80,6 +92,6 @@ export const CoreMessageBubble = ({ message, waiting = false }: { message: CoreM
   }
 
   return (
-    <MessageBubble from={from} text={simpleMarkdown(message.content.trim())} waiting={waiting} />
+    <MessageBubble from={from} text={simpleMarkdown(truncateStart(message.content, maxLength))} waiting={waiting} />
   )
 }

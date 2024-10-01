@@ -149,6 +149,8 @@ export const useMessages = ({
     [getStream]
   )
 
+  const DEBOUNCE_TIME = 100
+
   /**
    * Read the stream and update the messages context.
    */
@@ -160,6 +162,7 @@ export const useMessages = ({
       const experimental_providerMetadata = { assistant: { model: config.model } }
 
       let textBuffer = ""
+      let lastTime = Date.now()
       await textStream.pipeTo(
         new WritableStream({
           start() {
@@ -171,8 +174,13 @@ export const useMessages = ({
           },
           write(chunk) {
             textBuffer += chunk
-            const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }], experimental_providerMetadata }
-            setMessages((prev) => [message, ...prev.slice(1)])
+            // If > DEBOUNCE_TIME, we can flush the buffer.
+            const now = Date.now()
+            if (now - lastTime >= DEBOUNCE_TIME) {
+              const message: CoreMessage = { role: "assistant", content: [{ type: "text", text: textBuffer }], experimental_providerMetadata }
+              setMessages((prev) => [message, ...prev.slice(1)])
+              lastTime = now
+            }
             // setAssistantMessage(message)
           },
           async close() {

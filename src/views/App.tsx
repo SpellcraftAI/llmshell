@@ -74,7 +74,7 @@ export const App = () => {
   return (
     <AppStateProvider>
       <RouterProvider>
-        <Box flexDirection="column" alignSelf="center" width="100%" minHeight="100%">
+        <Box flexDirection="column" alignSelf="center" width="100%">
           <Home />
         </Box>
       </RouterProvider>

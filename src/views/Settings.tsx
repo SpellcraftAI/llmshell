@@ -14,8 +14,8 @@ import { useAppState } from "@/lib/state"
 export const Settings: React.FC = () => {
   const { state: { config }, update } = useAppState()
 
-  useClearScreen()
   useResumeStdin()
+  useClearScreen()
 
   const handleSaveAnthropicKey = useCallback((value: string): void => {
     update({ config: { ...config, anthropicApiKey: value } })
