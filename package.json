@@ -6,11 +6,11 @@
   "platform": "node",
   "files": [],
   "scripts": {
-    "bundle": "bun build --bundle --minify src/bin.tsx --outdir dist --target node && bun shim.ts dist/bin.js",
+    "bundle": "NODE_ENV=production DEV=0 bun build --bundle --minify src/bin.tsx --outdir dist --target node && bun shim.ts dist/bin.js",
     "bundle-macos": "NODE_ENV=production DEV=0 bun build --bundle --minify src/bin.tsx --outfile GSH/GSH/bin.js --target node && bun shim.ts GSH/GSH/bin.js",
     "postbundle": "cp node_modules/yoga-wasm-web/dist/yoga.wasm dist",
     "postbundle-macos": "cp node_modules/yoga-wasm-web/dist/yoga.wasm GSH/GSH",
-    "compile": "bun build --compile dist/bin.js --outfile dist/bin",
+    "compile": "bun build --compile dist/bin.js --outfile dist/bin --target bun-windows-x64",
     "compile-macos": "bun build --target bun-darwin-arm64 --compile GSH/GSH/bin.js --outfile GSH/GSH/bin",
     "build": "bun run bundle && bun run compile",
     "build-macos": "bun run bundle-macos && bun run compile-macos",
