@@ -19,8 +19,9 @@ export const Chat = ({ conversation }: ChatProps) => {
     initialMessages: conversation?.messages.toReversed()
   })
 
+  // TODO: later do, !(config.hideEditorWhileStreaming && streaming) && (<Box>...</Box>)
   const editorView = useMemo(
-    () => !streaming && (
+    () => (
       <Box
         flexDirection="row"
         alignItems="flex-start"

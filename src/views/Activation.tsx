@@ -9,6 +9,7 @@ import { useResumeStdin } from "@/hooks/useResumeStdin"
 import { useClearScreen } from "@/hooks/useClearScreen"
 import { getConfigPath } from "@/lib/log"
 import { useAppState } from "@/lib/state"
+import { machineId } from "node-machine-id"
 
 export const Activation: React.FC = () => {
   const { state: { config }, update } = useAppState()
@@ -18,7 +19,17 @@ export const Activation: React.FC = () => {
 
   const handleSaveLicenseKey = useCallback(async (value: string) => {
     update({ config: { ...config, licenseKey: value } })
-    await new Promise((resolve) => setTimeout(resolve, 1000))
+    const response = await fetch("https://api.llmshell.com/api/activate", {
+      headers: {
+        "Authorization": value,
+        "Machine-ID": await machineId()
+      }
+    })
+
+    const message = await response.text()
+    if (!response.ok) {
+      throw new Error(message)
+    }
   }, [config, update])
 
   return (
@@ -38,6 +49,7 @@ export const Activation: React.FC = () => {
           onSave={handleSaveLicenseKey}
         // isDisabled={!selected}
         />
+        {/* {message && <Text color="red">{message}</Text>} */}
       </Column>
     </CenterView>
   )

@@ -16,8 +16,8 @@ interface FormInputProps extends BoxProps {
 
 export const FormInput: React.FC<FormInputProps> = ({
   type = "text",
-  label, 
-  placeholder, 
+  label,
+  placeholder,
   initialValue,
   indicateFocus = true,
   isDisabled = false,
@@ -26,21 +26,29 @@ export const FormInput: React.FC<FormInputProps> = ({
 }) => {
   // const { isFocused } = useFocus({ autoFocus: true })
   const [value, setValue] = useState<string | undefined>(initialValue)
-  const [state, setState] = useState<"idle" | "saving" | "saved">("idle")
+  const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">("idle")
+  const [message, setMessage] = useState<string | undefined>()
 
   const handleSubmit = useCallback(
     async (newValue: string) => {
       if (newValue.trim()) {
-        const saveResult = onSave?.(newValue)
-        
-        // For promises, use a loading spinner/
-        if (typeof saveResult?.then === "function") {
-          setState("saving")
-          await saveResult
-        }
+        try {
+          const saveResult = onSave?.(newValue)
 
-        setValue(newValue)
-        setState("saved")
+          // For promises, use a loading spinner/
+          if (typeof saveResult?.then === "function") {
+            setState("saving")
+            await saveResult
+          }
+
+          setValue(newValue)
+          setState("saved")
+        } catch (e: unknown) {
+          setState("failed")
+          if (e instanceof Error) {
+            setMessage(e.message)
+          }
+        }
       }
     },
     [onSave]
@@ -48,55 +56,55 @@ export const FormInput: React.FC<FormInputProps> = ({
 
   useEffect(() => {
     switch (state) {
-    case "saved":
-      const timer = setTimeout(() => {
-        setState("idle")
-      }, 2000)
-      return () => clearTimeout(timer)
+      case "saved":
+        const timer = setTimeout(() => {
+          setState("idle")
+        }, 2000)
+        return () => clearTimeout(timer)
     }
   }, [state])
 
   let input: JSX.Element
 
   switch (type) {
-  case "text":
-    input = (
-      <TextInput
-        defaultValue={value}
-        placeholder={placeholder}
-        onSubmit={handleSubmit}
-        isDisabled={isDisabled || !indicateFocus}
-      />
-    )
-    break
-  case "password":
-    input = (
-      <PasswordInput
-        defaultValue={value}
-        placeholder={placeholder}
-        onSubmit={handleSubmit}
-        isDisabled={isDisabled}
-      />
-    )
-    break
-  default:
-    throw new Error(`Unsupported input type: ${type}`)
+    case "text":
+      input = (
+        <TextInput
+          defaultValue={value}
+          placeholder={placeholder}
+          onSubmit={handleSubmit}
+          isDisabled={isDisabled || !indicateFocus}
+        />
+      )
+      break
+    case "password":
+      input = (
+        <PasswordInput
+          defaultValue={value}
+          placeholder={placeholder}
+          onSubmit={handleSubmit}
+          isDisabled={isDisabled}
+        />
+      )
+      break
+    default:
+      throw new Error(`Unsupported input type: ${type}`)
   }
 
   const savedMessage = "✔"
   const sideContent = useMemo(
     () => {
       switch (state) {
-      case "saving":
-        return (
-          <Row gap={1}>
-            <Spinner />
-            <Text dimColor>Saving...</Text>
-          </Row>
-        )
+        case "saving":
+          return (
+            <Row gap={1}>
+              <Spinner />
+              <Text dimColor>Saving...</Text>
+            </Row>
+          )
 
-      case "saved":
-        return <Text color="green">{savedMessage}</Text>
+        case "saved":
+          return <Text color="green">{savedMessage}</Text>
       }
     },
     [state]
@@ -112,11 +120,11 @@ export const FormInput: React.FC<FormInputProps> = ({
       )}
 
       <Row>
-        <Box 
-          borderStyle="round" 
+        <Box
+          borderStyle="round"
           borderDimColor={isDisabled || !indicateFocus}
-          borderColor={state === "saved" ? "green" : undefined} 
-          flexDirection="row" 
+          borderColor={state === "saved" ? "green" : state === "failed" ? "red" : undefined}
+          flexDirection="row"
           flexGrow={1}
           paddingX={1}
           marginX={1}
@@ -124,6 +132,10 @@ export const FormInput: React.FC<FormInputProps> = ({
           {input}
         </Box>
       </Row>
+
+      {message && (
+        <Text color={state === "saved" ? "green" : state === "failed" ? "red" : undefined}>{message}</Text>
+      )}
     </Box>
   )
 }
