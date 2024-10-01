@@ -1,7 +1,14 @@
-// import wasm from "./yoga.wasm" with { type: "file" }
+#!/usr/bin/env node
+// import "./yoga.wasm" with { type: "file" }
 
 if (typeof Bun === "undefined") {
   throw new Error("LLM Shell only works with Bun runtime. Sorry!")
+}
+
+import { compareVersions } from "compare-versions"
+
+if (compareVersions(Bun.version, "1.1.29") === -1) {
+  throw new Error("LLM Shell requires Bun version 1.1.29 or later. Please upgrade with `bun upgrade`.")
 }
 
 import { render } from "ink"

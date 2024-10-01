@@ -74,10 +74,10 @@ export const Info = () => {
       <Text dimColor>Information about your system.</Text>
 
       <Column gap={1}>
-        <Row gap={2} justifyContent="space-between">
+        <Column>
           <Text>Platform</Text>
           <Text dimColor>{platform()} {release()}</Text>
-        </Row>
+        </Column>
 
         <Column>
           <Row gap={2} justifyContent="space-between">

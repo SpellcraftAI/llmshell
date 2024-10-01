@@ -24,7 +24,7 @@ export enum PATHS {
   EXAMPLES = "examples/"
 }
 
-export const getConfigDir = () => resolve(homedir(), ".config", "ttychat")
+export const getConfigDir = () => resolve(homedir(), ".config", "llmshell")
 export const getSessionsDir = () => resolve(getConfigDir(), "sessions")
 export const getConfigPath = () => resolve(getConfigDir(), PATHS.CONFIG)
 export const getToolsPath = () => resolve(getConfigDir(), PATHS.TOOLS)
