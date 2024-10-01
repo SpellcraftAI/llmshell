@@ -20,6 +20,7 @@ export const Activation: React.FC = () => {
   const handleSaveLicenseKey = useCallback(async (value: string) => {
     update({ config: { ...config, licenseKey: value } })
     const response = await fetch("https://api.llmshell.com/api/activate", {
+      method: "POST",
       headers: {
         "Authorization": value,
         "Machine-ID": await machineId()
@@ -28,8 +29,10 @@ export const Activation: React.FC = () => {
 
     const message = await response.text()
     if (!response.ok) {
-      throw new Error(message)
+      throw new Error(`[${response.status}] ${response.statusText}\n${message}`.trim())
     }
+
+    return message
   }, [config, update])
 
   return (

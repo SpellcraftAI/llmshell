@@ -1,4 +1,4 @@
-import wasm from "./yoga.wasm" with { type: "file" }
+// import wasm from "./yoga.wasm" with { type: "file" }
 
 if (typeof Bun === "undefined") {
   throw new Error("LLM Shell only works with Bun runtime. Sorry!")

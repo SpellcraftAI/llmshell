@@ -1,20 +1,22 @@
 import React, { useState, useEffect, useCallback, useMemo } from "react"
 import { Box, Text, type BoxProps } from "ink"
 import { Spinner } from "@inkjs/ui"
-import { Row } from "../Flex"
+import { Column, Row } from "../Flex"
 import { PasswordInput, TextInput } from "./basic"
 
-interface FormInputProps extends BoxProps {
+type FormInputSaveResponse = string | null | void
+
+interface FormInputProps<T extends FormInputSaveResponse> extends BoxProps {
   type?: "text" | "password" | "select";
   label?: string;
   placeholder?: string;
   initialValue?: string;
   indicateFocus?: boolean;
-  onSave?: (value: string) => Promise<void> | void;
+  onSave?: (value: string) => Promise<T> | T;
   isDisabled?: boolean;
 }
 
-export const FormInput: React.FC<FormInputProps> = ({
+export const FormInput = <T extends FormInputSaveResponse,>({
   type = "text",
   label,
   placeholder,
@@ -23,30 +25,38 @@ export const FormInput: React.FC<FormInputProps> = ({
   isDisabled = false,
   onSave,
   ...boxProps
-}) => {
+}: FormInputProps<T>) => {
   // const { isFocused } = useFocus({ autoFocus: true })
   const [value, setValue] = useState<string | undefined>(initialValue)
   const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">("idle")
-  const [message, setMessage] = useState<string | undefined>()
+  const [message, setMessage] = useState<string | null | undefined>()
 
   const handleSubmit = useCallback(
     async (newValue: string) => {
       if (newValue.trim()) {
         try {
           const saveResult = onSave?.(newValue)
-
-          // For promises, use a loading spinner/
-          if (typeof saveResult?.then === "function") {
+          let saveResultFinal: T
+  
+          // For promises, use a loading spinner
+          if (saveResult && "then" in saveResult && typeof saveResult?.then === "function") {
             setState("saving")
-            await saveResult
+            saveResultFinal = await saveResult
+          } else {
+            saveResultFinal = saveResult as T
           }
-
+  
           setValue(newValue)
           setState("saved")
+          if (saveResultFinal) {
+            setMessage(saveResultFinal)
+          }
         } catch (e: unknown) {
           setState("failed")
           if (e instanceof Error) {
             setMessage(e.message)
+          } else {
+            setMessage(JSON.stringify(e))
           }
         }
       }
@@ -56,55 +66,57 @@ export const FormInput: React.FC<FormInputProps> = ({
 
   useEffect(() => {
     switch (state) {
-      case "saved":
-        const timer = setTimeout(() => {
-          setState("idle")
-        }, 2000)
-        return () => clearTimeout(timer)
+    case "saved":
+    case "failed":
+      const timer = setTimeout(() => {
+        setMessage(null)
+        setState("idle")
+      }, 3_000)
+      return () => clearTimeout(timer)
     }
   }, [state])
 
   let input: JSX.Element
 
   switch (type) {
-    case "text":
-      input = (
-        <TextInput
-          defaultValue={value}
-          placeholder={placeholder}
-          onSubmit={handleSubmit}
-          isDisabled={isDisabled || !indicateFocus}
-        />
-      )
-      break
-    case "password":
-      input = (
-        <PasswordInput
-          defaultValue={value}
-          placeholder={placeholder}
-          onSubmit={handleSubmit}
-          isDisabled={isDisabled}
-        />
-      )
-      break
-    default:
-      throw new Error(`Unsupported input type: ${type}`)
+  case "text":
+    input = (
+      <TextInput
+        defaultValue={value}
+        placeholder={placeholder}
+        onSubmit={handleSubmit}
+        isDisabled={isDisabled || !indicateFocus}
+      />
+    )
+    break
+  case "password":
+    input = (
+      <PasswordInput
+        defaultValue={value}
+        placeholder={placeholder}
+        onSubmit={handleSubmit}
+        isDisabled={isDisabled}
+      />
+    )
+    break
+  default:
+    throw new Error(`Unsupported input type: ${type}`)
   }
 
   const savedMessage = "✔"
   const sideContent = useMemo(
     () => {
       switch (state) {
-        case "saving":
-          return (
-            <Row gap={1}>
-              <Spinner />
-              <Text dimColor>Saving...</Text>
-            </Row>
-          )
+      case "saving":
+        return (
+          <Row gap={1}>
+            <Spinner />
+            <Text dimColor>Saving...</Text>
+          </Row>
+        )
 
-        case "saved":
-          return <Text color="green">{savedMessage}</Text>
+      case "saved":
+        return <Text color="green">{savedMessage}</Text>
       }
     },
     [state]
@@ -134,7 +146,9 @@ export const FormInput: React.FC<FormInputProps> = ({
       </Row>
 
       {message && (
-        <Text color={state === "saved" ? "green" : state === "failed" ? "red" : undefined}>{message}</Text>
+        <Column paddingX={2} width={40}>
+          <Text color={state === "saved" ? "green" : state === "failed" ? "red" : undefined}>{message}</Text>
+        </Column>
       )}
     </Box>
   )
