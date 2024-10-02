@@ -27,9 +27,9 @@ export const Info = () => {
 
   useLayoutEffect(() => {
     (async () => {
-      const examples = await examplesPromise
-      const threads = await threadsPromise
-      const tools = await toolsPromise
+      const examples = await examplesPromise ?? {}
+      const threads = await threadsPromise ?? []
+      const tools = await toolsPromise ?? {}
       
       setExamples(examples)
       setThreads(threads)

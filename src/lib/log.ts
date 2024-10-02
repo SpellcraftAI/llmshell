@@ -59,7 +59,8 @@ export const loadToolsFromDisk = async () => {
   const toolsPath = getToolsPath()
   await log("Loading tools file", toolsPath)
   try {
-    const { default: tools } = await import(toolsPath)
+    const { default: defaultExport, tools: namedExport } = await import(toolsPath)
+    const tools = defaultExport ?? namedExport
     await log("Loaded tools file", tools)
     return tools as Record<string, CoreTool>
   } catch (e) {
