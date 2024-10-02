@@ -19,7 +19,9 @@
     "postbundletest": "mkdir -p dist/node_modules && cp -r node_modules/yoga-wasm-web dist/node_modules",
     "buildtest": "bun build -e yoga-wasm-web --compile src/bin.tsx --outfile dist/llmshell --target bun",
     "postbuildtest": "mkdir -p dist/node_modules && cp -r node_modules/yoga-wasm-web dist/node_modules",
-    "lint": "eslint src --fix"
+    "lint": "eslint src --fix",
+    "zip": "zip llmshell.zip ./**",
+    "tar": "tar -czvf llmshell.tar.gz -C dist ."
   },
   "devDependencies": {
     "@types/bun": "^1.1.6",

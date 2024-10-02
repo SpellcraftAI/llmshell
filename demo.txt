@@ -1,3 +1,0 @@
-This is a demo file created during our test conversation.
-It shows how Auto Terminal can interact with the file system.
-Feel free to modify or delete this file later!
