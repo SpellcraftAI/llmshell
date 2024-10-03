@@ -7,7 +7,6 @@ import { CenterView } from "@/views/Center"
 
 import { useResumeStdin } from "@/hooks/useResumeStdin"
 import { useClearScreen } from "@/hooks/useClearScreen"
-import { getConfigPath } from "@/lib/log"
 import { useAppState } from "@/lib/state"
 import { machineId } from "node-machine-id"
 
@@ -36,11 +35,11 @@ export const Activation: React.FC = () => {
   }, [config, update])
 
   return (
-    <CenterView maxWidth={60} gap={1} marginTop={2} paddingY={1} borderStyle="round" borderDimColor>
+    <CenterView justifyContent="flex-start" maxWidth={70} gap={1} marginTop={2} paddingY={1} borderStyle="round" borderDimColor>
       <Box flexDirection="column" alignItems="center" gap={1}>
         <Text bold>Activation</Text>
         <Text>You can activate a License Key below to use Bing Search and Internet Browsing.</Text>
-        <Text underline dimColor>{getConfigPath()}</Text>
+        {/* <Text underline dimColor>{getConfigPath()}</Text> */}
       </Box>
 
       <Column gap={1} paddingY={1} paddingX={1} alignSelf="flex-start">

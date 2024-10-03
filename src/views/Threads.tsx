@@ -7,6 +7,7 @@ import { useRouter } from "@/lib/router"
 import { FocusIndicator } from "@/components/FocusIndicator"
 import { Column, Row } from "@/components/Flex"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
+import { CenterView } from "./Center"
 
 export type MenuOptionType = "NEW_THREAD" | "SETTINGS"  | "INFO" | "ACTIVATE"
 
@@ -142,20 +143,20 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
   )
 
   return (
-    <Box
+    <CenterView
       flexDirection="column"
       justifyContent="flex-start"
       alignItems="center"
       // height={height}
       minHeight={height}
       overflow="hidden" 
-      paddingTop={2}
+      paddingTop={1}
       paddingBottom={1} 
       gap={1}
       // borderStyle="round" 
     >
       <Column flexShrink={1} alignItems="center">
-        <Text bold>LLM Shell v1.0.0</Text>
+        <Text bold>LLM Shell v1.0.5</Text>
         <Text dimColor>Powered by Claude Sonnet 3.5 and GPT-4o.</Text>
       </Column>
     
@@ -206,6 +207,6 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
             )}
           </>
         )}
-    </Box>
+    </CenterView>
   )
 }

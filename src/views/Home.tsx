@@ -1,7 +1,7 @@
 
-import { Box, useInput } from "ink"
-import { AppStateProvider, useAppState } from "@/lib/state"
-import { RouterProvider, useRouter } from "@/lib/router"
+import { useInput } from "ink"
+import { useAppState } from "@/lib/state"
+import { useRouter } from "@/lib/router"
 import { useSIGINTListener } from "@/hooks/useSIGINTListener"
 import { GOL } from "./GOL"
 import { Chat } from "./Chat"
@@ -69,15 +69,3 @@ export const Home = () => {
   }
 }
 
-export const App = () => {
-  // const [width, height] = useTerminalSize()
-  return (
-    <AppStateProvider>
-      <RouterProvider>
-        <Box flexDirection="column" alignSelf="center" width="100%">
-          <Home />
-        </Box>
-      </RouterProvider>
-    </AppStateProvider>
-  )
-}

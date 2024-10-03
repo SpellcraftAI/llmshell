@@ -5,6 +5,7 @@ import type { CoreMessage, CoreTool } from "ai"
 import { parseJsonl } from "./jsonl"
 import type { AppConfig } from "@/lib/state"
 import { readFileSync, writeFileSync } from "fs"
+import { unlink } from "fs/promises"
 
 // date-time file compatible
 export let SESSION_ID = new Date().getTime().toString()
@@ -24,7 +25,7 @@ export enum PATHS {
   EXAMPLES = "examples/"
 }
 
-export const getConfigDir = () => resolve(homedir(), ".config", "llmshell")
+export const getConfigDir = () => resolve(homedir(), "llmshell")
 export const getSessionsDir = () => resolve(getConfigDir(), "sessions")
 export const getConfigPath = () => resolve(getConfigDir(), PATHS.CONFIG)
 export const getToolsPath = () => resolve(getConfigDir(), PATHS.TOOLS)
@@ -229,6 +230,11 @@ export const getLastLog = async (type: PATHS) => {
 export const ensureConfigDir = async () => {
   const CONFIG_DIR = getConfigDir()
   await mkdir(CONFIG_DIR, { recursive: true })
+}
+
+export const deleteSession = async (sessionId: string) => {
+  const sessionDir = resolve(getSessionsDir(), sessionId)
+  await unlink(sessionDir)
 }
 
 const ensureLogsExist = async () => {

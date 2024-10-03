@@ -62,7 +62,8 @@ export const Info = () => {
   }
 
   return (
-    <CenterView 
+    <CenterView
+      justifyContent="flex-start"
       alignItems="center"
       gap={1} 
       marginTop={2}

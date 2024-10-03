@@ -38,7 +38,7 @@ export const Settings: React.FC = () => {
   }, [config, update])
 
   return (
-    <CenterView gap={1} marginTop={2} paddingY={1} borderStyle="round" borderDimColor>
+    <CenterView justifyContent="flex-start" gap={1} marginTop={2} paddingY={1} borderStyle="round" borderDimColor>
       <Box flexDirection="column" alignItems="center">
         <Box paddingBottom={1}>
           <Text bold>Settings</Text>

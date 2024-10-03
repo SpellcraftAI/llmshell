@@ -1,6 +1,7 @@
 import { Box, Text } from "ink"
 import { Column, Row } from "@/components/Flex"
 import { useCallback, useEffect, useState } from "react"
+import { useClearScreen } from "@/hooks/useClearScreen"
 
 const ASCII = `++++++++++++++++++++++++++++++++++++++++
 ++++++++++++++++++++++++++++++++++++++++
@@ -29,6 +30,7 @@ const CHUNK_SIZE = 20
 const createEmptyAscii = (): string => ASCII.replace(/[^\n]/g, " ")
 
 export const YC: React.FC = () => {
+  useClearScreen()
   const [animatedAscii, setAnimatedAscii] = useState<string>(createEmptyAscii())
   const [remainingIndices, setRemainingIndices] = useState<number[]>([])
 
@@ -76,7 +78,7 @@ export const YC: React.FC = () => {
 
         <Column borderStyle="round" alignItems="center" justifyContent="center" gap={1} paddingX={1}>
           <Text bold>Y Combinator</Text>
-          <Column paddingX={1} gap={1}>
+          <Column paddingX={1} gap={1} minWidth={20}>
             <Text>
               YC reviewed a prototype of this tool and did not like it at all.
             </Text>

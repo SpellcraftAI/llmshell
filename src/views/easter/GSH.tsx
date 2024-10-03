@@ -1,8 +1,9 @@
 import { Box, Text } from "ink"
 import { Column, Row } from "@/components/Flex"
 import { useCallback, useEffect, useState } from "react"
+import { useClearScreen } from "@/hooks/useClearScreen"
 
-const ASCII = `             _     
+const ASCII = `             _
   __ _  ___ | |__    GSH Shell
  / _\` |/ __|| '_ \\ 
 | (_| |\__ \\| | | |  Built by GPT Labs
@@ -10,16 +11,17 @@ const ASCII = `             _
  |___/
  
    __  ______  ____ _   UPG CLI
- / / / / __ \\/ __ \`/    
-/ /_/ / /_/ / /_/ /     
+ / / / / __ \\/ __ \`/ 
+/ /_/ / /_/ / /_/ / 
 \\__,_/ .___/\\__, /    Built by Spellcraft Inc
-    /_/    /____/       (c) 2023 MIT                       
+    /_/    /____/       (c) 2023 MIT
  `
 
 const CHUNK_SIZE = 10
 const createEmptyAscii = (): string => ASCII.replace(/[^\n]/g, " ")
 
 export const GSH: React.FC = () => {
+  useClearScreen()
   const [animatedAscii, setAnimatedAscii] = useState<string>(createEmptyAscii())
   const [remainingIndices, setRemainingIndices] = useState<number[]>([])
 
@@ -67,7 +69,7 @@ export const GSH: React.FC = () => {
 
         <Column borderStyle="round" alignItems="center" justifyContent="center" gap={1} paddingX={1}>
           <Text bold>GSH & UPG</Text>
-          <Column paddingX={1} gap={1}>
+          <Column paddingX={1} gap={1} minWidth={20}>
             <Text>
               {"This builds on GSH and UPG, our projects from 2022-23 under GPT Labs."}
             </Text>

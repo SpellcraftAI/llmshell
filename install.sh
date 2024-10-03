@@ -1,4 +1,8 @@
+#!/bin/bash
 set -euo pipefail
+
+LATEST=$(curl --silent "https://api.github.com/repos/SpellcraftAI/llmshell/releases/latest" | jq -r .tag_name)
+VERSION="${1:-$LATEST}"
 
 if [[ ${OS:-} = Windows_NT ]]; then
   echo "Only Linux and MacOS are supported for now. Use WSL for Windows."
@@ -9,21 +13,27 @@ fi
 install_dir="$HOME/llmshell"
 mkdir -p "$install_dir"
 
-# Download and install llmshell
-echo "Downloading llmshell..."
-curl -L "https://github.com/SpellcraftAI/llmshell/releases/download/v0.0.1/llmshell.tar.gz" -o "$install_dir/llmshell.tar.gz"
-
-echo "Extracting llmshell..."
+# Download and extract llmshell directly
+echo "Downloading and extracting llmshell version $VERSION..."
 echo -n "Progress: "
-tar -xzf "$install_dir/llmshell.tar.gz" -C "$install_dir" & pid=$!
+
+# For debugging:
+# cat llmshell.tar.gz | tar -xz -C "$install_dir" & pid=$!
+curl -L "https://github.com/SpellcraftAI/llmshell/releases/download/$VERSION/llmshell.tar.gz" | tar -xz -C "$install_dir" & pid=$!
 while kill -0 $pid 2>/dev/null; do
     echo -n "."
     sleep 1
 done
-echo " done!"
+wait $pid
+exit_status=$?
 
-# Clean up the downloaded tar.gz file
-rm "$install_dir/llmshell.tar.gz"
+if [ $exit_status -ne 0 ]; then
+    echo " failed!"
+    echo "Error: Failed to download or extract llmshell. Please check your internet connection and try again."
+    exit 1
+fi
+
+echo " done!"
 
 # Add to PATH in .zshrc, .bashrc, and .bash_profile if they exist
 rc_files=("$HOME/.zshrc" "$HOME/.bashrc" "$HOME/.bash_profile")
@@ -31,10 +41,10 @@ updated_files=()
 
 for shell_rc in "${rc_files[@]}"; do
     if [[ -f "$shell_rc" ]]; then
-        if grep -q "export PATH=.*$install_dir" "$shell_rc"; then
+        if grep -q "export PATH=.*$install_dir/bin" "$shell_rc"; then
             echo "llmshell already in PATH in $shell_rc"
         else
-            echo "export PATH=\"\$PATH:$install_dir\"" >> "$shell_rc"
+            echo "export PATH=\"\$PATH:$install_dir/bin\"" >> "$shell_rc"
             echo "llmshell added to PATH in $shell_rc"
             updated_files+=("$shell_rc")
         fi

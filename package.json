@@ -17,8 +17,8 @@
     "build-macos": "bun run bundle-macos && bun run compile-macos",
     "bundletest": "NODE_ENV=production DEV=0 bun build -e yoga-wasm-web --bundle --minify src/bin.tsx --outdir dist --target node",
     "postbundletest": "mkdir -p dist/node_modules && cp -r node_modules/yoga-wasm-web dist/node_modules",
-    "buildtest": "bun build -e yoga-wasm-web --compile src/bin.tsx --outfile dist/llmshell --target bun",
-    "postbuildtest": "mkdir -p dist/node_modules && cp -r node_modules/yoga-wasm-web dist/node_modules",
+    "buildtest": "bun build -e yoga-wasm-web --compile src/app.tsx --outfile dist/app --target bun",
+    "postbuildtest": "mkdir -p dist/node_modules && cp -r node_modules/yoga-wasm-web dist/node_modules && mkdir -p dist/bin && cp -r src/bin dist && chmod +x dist/bin/llmshell && cp uninstall.sh dist && cp -r src/examples dist",
     "lint": "eslint src --fix",
     "zip": "zip llmshell.zip ./**",
     "tar": "tar -czvf llmshell.tar.gz -C dist ."
@@ -51,6 +51,7 @@
     "ansi-escapes": "^7.0.0",
     "ansi-styles": "^6.2.1",
     "chalk": "^5.3.0",
+    "compare-versions": "^6.1.1",
     "emphasize": "^7.0.0",
     "ink": "^5.0.1",
     "node-docker-api": "^1.1.22",
