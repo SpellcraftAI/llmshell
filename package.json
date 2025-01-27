@@ -24,46 +24,46 @@
     "tar": "tar -czvf llmshell.tar.gz -C dist ."
   },
   "devDependencies": {
-    "@types/bun": "^1.1.6",
+    "@types/bun": "^1.2.0",
     "@types/marked-terminal": "^6.1.1",
-    "@types/react": "^18.3.3",
+    "@types/react": "^18.3.18",
     "@types/screenshot-desktop": "^1.12.3",
-    "@typescript-eslint/eslint-plugin": "^7.17.0",
-    "@typescript-eslint/parser": "^7.17.0",
-    "eslint": "8.x",
-    "eslint-plugin-react": "^7.35.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-plugin-react": "^7.37.4",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-typescript": "^0.14.0",
-    "react-devtools": "^5.3.1",
-    "react-devtools-core": "^5.3.1"
+    "react-devtools": "^5.3.2",
+    "react-devtools-core": "^5.3.2"
   },
   "peerDependencies": {
-    "typescript": "^5.0.0"
+    "typescript": "^5.5.4"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^0.0.50",
     "@ai-sdk/openai": "^0.0.62",
     "@ai-sdk/provider": "^0.0.24",
-    "@ai-sdk/provider-utils": "^1.0.20",
-    "@anthropic-ai/sdk": "^0.25.0",
+    "@ai-sdk/provider-utils": "^1.0.22",
+    "@anthropic-ai/sdk": "^0.25.2",
     "@inkjs/ui": "^2.0.0",
-    "ai": "^3.4.2",
+    "ai": "^3.4.33",
     "ansi-escapes": "^7.0.0",
     "ansi-styles": "^6.2.1",
-    "chalk": "^5.3.0",
+    "chalk": "^5.4.1",
     "compare-versions": "^6.1.1",
     "emphasize": "^7.0.0",
-    "ink": "^5.0.1",
+    "ink": "^5.1.0",
     "node-docker-api": "^1.1.22",
     "node-machine-id": "^1.1.12",
-    "ora": "^8.0.1",
+    "ora": "^8.1.1",
     "partial-json": "^0.1.7",
     "pastel": "^3.0.0",
-    "playwright": "^1.47.0",
+    "playwright": "^1.50.0",
     "react": "^18.3.1",
-    "screenshot-desktop": "^1.15.0",
+    "screenshot-desktop": "^1.15.1",
     "streaming-markdown": "^0.0.14",
-    "terminal-image": "^3.0.0",
-    "zod": "^3.23.8"
+    "terminal-image": "^3.1.1",
+    "zod": "^3.24.1"
   }
 }

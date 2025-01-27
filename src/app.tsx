@@ -6,9 +6,14 @@ import { AppStateProvider } from "@/lib/state"
 import { RouterProvider } from "@/lib/router"
 import { browser } from "@/lib/tools"
 import { Home } from "./views/Home"
+import { useSIGINTListener } from "./hooks/useSIGINTListener"
 
 export const App = () => {
   // const [width, height] = useTerminalSize()
+  // Top-level SIGINTListener is used to ensure that the app never hangs on
+  // Ctrl+C, even though Ink's exit() function already bound to it.
+  useSIGINTListener()
+
   return (
     <AppStateProvider>
       <RouterProvider>

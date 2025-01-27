@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState } from "react"
+import React, { createContext, useContext, useLayoutEffect, useState } from "react"
 
 export type Page = "animation" | "threads" | "chat" | "settings" | "info" | "activate";
 
@@ -25,6 +25,8 @@ export const RouterProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
 export const useRouter = () => {
   const context = useContext(RouterContext)
+  useLayoutEffect(() => { process.stdin.resume() }, [context])
+
   if (context === undefined) {
     throw new Error("useRouter must be used within a RouterProvider")
   }
