@@ -78,7 +78,10 @@ export const useMessages = ({
     async (text?: string) => {
       try { 
         const messageText = text?.trimEnd()
-        const userMessage: CoreMessage | null = messageText ? { role: "user", content: messageText } : null
+        const userMessage: CoreMessage | null = 
+          messageText 
+            ? { role: "user", content: messageText } 
+            : null
   
         const unreversed = messages.toReversed()
         if (userMessage) {
@@ -238,18 +241,33 @@ export const useMessages = ({
       }
 
       // Add tool calls to messages context.
-      const toolCallsMessage: CoreMessage = { role: "assistant", content: finishedToolCalls, experimental_providerMetadata }
+      const toolCallsMessage: CoreMessage = { 
+        role: "assistant", 
+        content: finishedToolCalls, 
+        experimental_providerMetadata 
+      }
+      
       setMessages((prev) => [toolCallsMessage, ...prev])
       await writeMessagesToDisk(toolCallsMessage)
 
+      await Bun.write(Bun.file("debug.txt"), JSON.stringify(finishedToolResults, null, 2))
+
       for (const toolResult of finishedToolResults) {
-        if (!toolResult.result) continue
+        if (toolResult.result === undefined) continue
+
+        const toolResultMessage: CoreMessage = { role: "tool", content: [toolResult], experimental_providerMetadata }
+
+        if (toolResult.result === null) {
+          setMessages((prev) => [toolResultMessage, ...prev])
+          await writeMessagesToDisk(toolResultMessage)
+          await writeMessagesToTranscript(toolResultMessage)
+          continue
+        }
 
         if (!(toolResult.result instanceof ReadableStream)) {
-          const message: CoreMessage = { role: "tool", content: [toolResult], experimental_providerMetadata }
-          setMessages((prev) => [message, ...prev])
-          await writeMessagesToDisk(message)
-          await writeMessagesToTranscript(message)
+          setMessages((prev) => [toolResultMessage, ...prev])
+          await writeMessagesToDisk(toolResultMessage)
+          await writeMessagesToTranscript(toolResultMessage)
           continue
         }
 
