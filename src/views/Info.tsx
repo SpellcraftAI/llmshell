@@ -9,6 +9,7 @@ import type { CoreMessage, CoreTool } from "ai"
 import { useRouter } from "@/lib/router"
 import { YC } from "./easter/YC"
 import { GSH } from "./easter/GSH"
+import { ThemedText } from "@/components/Themed"
 
 type EASTER_EGGS = "YC" | "GSH"
 
@@ -71,18 +72,18 @@ export const Info = () => {
       borderStyle="round" 
       borderDimColor
     >
-      <Text bold>Info</Text>
+      <ThemedText bold>Info</ThemedText>
       <Text dimColor>Information about your system.</Text>
 
       <Column gap={1}>
         <Column>
-          <Text>Platform</Text>
+          <ThemedText>Platform</ThemedText>
           <Text dimColor>{platform()} {release()}</Text>
         </Column>
 
         <Column>
           <Row gap={2} justifyContent="space-between">
-            <Text># Threads</Text>
+            <ThemedText># Threads</ThemedText>
             <Text bold>{threads.length}</Text>
           </Row>
           <Text dimColor>{getSessionsDir()}</Text>
@@ -90,7 +91,7 @@ export const Info = () => {
 
         <Column>
           <Row gap={2} justifyContent="space-between">
-            <Text># Custom Examples</Text>
+            <ThemedText># Custom Examples</ThemedText>
             <Text bold>{Object.keys(examples ?? {}).length}</Text>
           </Row>
           <Text dimColor>{getExamplesPath()}</Text>
@@ -98,7 +99,7 @@ export const Info = () => {
 
         <Column>
           <Row gap={2} justifyContent="space-between">
-            <Text># Custom Tools</Text>
+            <ThemedText># Custom Tools</ThemedText>
             <Text bold>{Object.keys(tools).length}</Text>
           </Row>
           <Text dimColor>{getToolsPath()}</Text>

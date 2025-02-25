@@ -49,8 +49,11 @@ export const Activation: React.FC = () => {
           type="password"
           initialValue={config.licenseKey}
           onSave={handleSaveLicenseKey}
+          isDisabled
         // isDisabled={!selected}
         />
+
+        <Text color="red" bold>Service no longer active. Sorry.</Text>
         {/* {message && <Text color="red">{message}</Text>} */}
       </Column>
     </CenterView>

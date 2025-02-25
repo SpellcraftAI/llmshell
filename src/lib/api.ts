@@ -42,7 +42,18 @@ export class FileSystem {
     }
 
     const file = Bun.file(path)
-    return file.stream()
+    const fileExists = await file.exists()
+    if (!fileExists) {
+      return new Response("ERROR: File not found", { status: 404 }).body
+    }
+
+    const text = await file.text()
+    const lines = text.split("\n")
+    const withPrefixes = lines.map((line, index) => `${index + 1} | ${line}`).join("\n")
+
+    return new Response(withPrefixes).body
+    // Hardly a speed benefit to returning a stream here.
+    // return file.stream()
   }
 
   async writeFile(argStream: ReadableStream<JSONPropertyChunk>) {

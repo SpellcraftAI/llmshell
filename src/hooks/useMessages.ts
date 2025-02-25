@@ -1,5 +1,5 @@
 import { createAnthropic } from "@ai-sdk/anthropic"
-import { streamText, type CoreMessage, type CoreTool, type LanguageModel, type LanguageModelUsage, type StreamTextResult } from "ai"
+import { streamText, type CoreMessage, type LanguageModel, type LanguageModelUsage, type StreamTextResult, type Tool } from "ai"
 import { useCallback, useEffect, useState } from "react"
 import { writeMessagesToDisk, log, writeMessagesToTranscript } from "@/lib/log"
 import { SYSTEM_PROMPT } from "@/lib/system"
@@ -45,7 +45,7 @@ export const useMessages = ({
   const [messages, setMessages] = useState<CoreMessage[]>(initialMessages)
   // const [assistantMessage, setAssistantMessage] = useState<CoreMessage | null>(null)
   
-  const [stream, setStream] = useState<StreamTextResult<typeof tools & Record<string, CoreTool>> | null>(null)
+  const [stream, setStream] = useState<StreamTextResult<typeof tools & Record<string, Tool>, string> | null>(null)
   const [usedTools, setUsedTools] = useState(false)
   const [roundtrips, setRoundtrips] = useState(0)
 
@@ -62,9 +62,9 @@ export const useMessages = ({
     model = openai.languageModel("gpt-4o")
     break
 
-  case "Claude Sonnet 3.5":
+  case "Claude Sonnet 3.7":
     const anthropic = createAnthropic({ apiKey: config.anthropicApiKey }) 
-    model = anthropic.languageModel("claude-3-5-sonnet-20240620")
+    model = anthropic.languageModel("claude-3-5-sonnet-latest")
     break
       
   default:
@@ -250,7 +250,7 @@ export const useMessages = ({
       setMessages((prev) => [toolCallsMessage, ...prev])
       await writeMessagesToDisk(toolCallsMessage)
 
-      await Bun.write(Bun.file("debug.txt"), JSON.stringify(finishedToolResults, null, 2))
+      // await Bun.write(Bun.file("debug.txt"), JSON.stringify(finishedToolResults, null, 2))
 
       for (const toolResult of finishedToolResults) {
         if (toolResult.result === undefined) continue

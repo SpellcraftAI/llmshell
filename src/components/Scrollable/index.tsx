@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react"
 import { Box, Text, useInput, type BoxProps } from "ink"
 import { useSIGINTListener } from "@/hooks/useSIGINTListener"
+import { useAppState } from "@/lib/state"
 
 interface ScrollableProps<T> extends BoxProps {
   items: (T | T[])[];
@@ -15,17 +16,19 @@ const VERTICAL_BAR = "│"
 
 const ScrollThumb: React.FC<{ show: boolean; position: number; height: number; totalHeight: number }> = 
   ({ show, position, height, totalHeight }) => {
+    const { state: { config } } = useAppState()
+
     if (!show) return null
     return (
       <Box flexDirection="column" marginLeft={1} height={totalHeight}>
         {Array(position).fill(VERTICAL_BAR).map((char, i) => (
-          <Text dimColor key={`space-${i}`}>{char}</Text>
+          <Text color={config.themeColor} dimColor key={`space-${i}`}>{char}</Text>
         ))}
         {Array(height).fill(VERTICAL_BAR).map((char, i) => (
-          <Text key={`thumb-${i}`}>{char}</Text>
+          <Text color={config.themeColor} key={`thumb-${i}`}>{char}</Text>
         ))}
         {Array(Math.max(0, totalHeight - position - height)).fill(VERTICAL_BAR).map((char, i) => (
-          <Text dimColor key={`space-${i}`}>{char}</Text>
+          <Text color={config.themeColor} dimColor key={`space-${i}`}>{char}</Text>
         ))}
       </Box>
     )
@@ -40,7 +43,7 @@ export function Scrollable<T>({
   onSelect,
   flexGrow = 1,
   ...props
-}: ScrollableProps<T>) {
+}: ScrollableProps<T>) {  
   const processedItems = useMemo(() => {
     return items.map(item => Array.isArray(item) ? item : [item])
   }, [items])
@@ -98,7 +101,7 @@ export function Scrollable<T>({
         )
       })
     }, 
-    [currentRowIndex, currentColumnIndex, processedItems, viewportRowStart, visibleItems, renderItem]
+    [currentColumnIndex, currentRowIndex, processedItems, renderItem, viewportRowStart, visibleItems]
   )
 
   const totalVisibleHeight = visibleItems * itemHeight
@@ -107,7 +110,7 @@ export function Scrollable<T>({
 
   return (
     <Box flexDirection="row" flexGrow={flexGrow}>
-      <Box flexDirection="column" justifyContent="flex-start" flexGrow={flexGrow} overflowY="hidden" {...props}>
+      <Box flexDirection="column" justifyContent="flex-start" overflowY="hidden" {...props}>
         {listItems}
       </Box>
       <ScrollThumb 

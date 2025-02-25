@@ -3,35 +3,35 @@
 exports[`parsing code blocks 1`] = `
 "This is a code block:
 
-[2m\`\`\`[22m
-[2m[22mconsole.[31mlog[39m([36m"Hello, world!"[39m)[2m[22m
-[2m\`\`\`[22m
+\`\`\`
+console.\x1B[31mlog\x1B[39m(\x1B[36m"Hello, world!"\x1B[39m)
+\`\`\`
 
-[2m\`\`\`javascript[22m
-[2m[22m[33mconsole[39m.[34mlog[39m([36m"Hello, world!"[39m)[2m[22m
-[2m\`\`\`[22m
+\`\`\`javascript
+\x1B[33mconsole\x1B[39m.\x1B[34mlog\x1B[39m(\x1B[36m"Hello, world!"\x1B[39m)
+\`\`\`
 
-[2m\`\`\`[22m
-[2m[22msomething[2m[22m
-[2m\`\`\`[22m
+\`\`\`
+something
+\`\`\`
 
 Inline code:
 
-[2m\`[22m[1mconst [33mxyz[39m = [36m123[39m[22m[2m\`[22m
+\`const xyz = 123\`
 
 This is another code block:
 
-[2m\`\`\`typescript[22m
-[2m[22m[33mconsole[39m.[34mlog[39m([36m"Hello, world!"[39m)[2m[22m
-[2m\`\`\`[22m
+\`\`\`typescript
+\x1B[33mconsole\x1B[39m.\x1B[34mlog\x1B[39m(\x1B[36m"Hello, world!"\x1B[39m)
+\`\`\`
 
 This one is incomplete, but should still parse:
 
-[2m\`\`\`[22m
-[2m[22mfunction [34mmyTestFunction[39m() {
-  [32mconst[39m a = [36m42[39m
-  [32mconst[39m b = [36m50[39m
-  [32mreturn[39m a + b
+\`\`\`
+function \x1B[34mmyTestFunction\x1B[39m() {
+  \x1B[32mconst\x1B[39m a = \x1B[36m42\x1B[39m
+  \x1B[32mconst\x1B[39m b = \x1B[36m50\x1B[39m
+  \x1B[32mreturn\x1B[39m a + b
 }
 "
 `;

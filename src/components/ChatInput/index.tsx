@@ -5,6 +5,8 @@ import chalk from "chalk"
 import { useKeyboard } from "./useKeyboard"
 import { useCallback } from "react"
 import { simpleMarkdown } from "@/lib/md"
+import { Themed } from "../Themed"
+import { useAppState } from "@/lib/state"
 
 export interface ChatInputProps extends React.ComponentProps<typeof Box> {
   id?: string
@@ -12,9 +14,12 @@ export interface ChatInputProps extends React.ComponentProps<typeof Box> {
   markdownEditing?: boolean
 }
 
-const KeyboardKey = ({ children, ...props }: React.ComponentProps<typeof Text>) => (
-  <Text color="blue" {...props}>{children}</Text>
-)
+const KeyboardKey = ({ children, ...props }: React.ComponentProps<typeof Text>) => {
+  const { state } = useAppState()
+  return (
+    <Text color={state.config.themeColor || "blue"} {...props}>{children}</Text>
+  )
+}
 
 
 export const ChatInput = ({ onSubmit, markdownEditing = true, ...props }: ChatInputProps) => {
@@ -38,7 +43,7 @@ export const ChatInput = ({ onSubmit, markdownEditing = true, ...props }: ChatIn
 
   return (
     <Box paddingX={1} flexDirection="column" flexGrow={1}>
-      <Box
+      <Themed
         paddingX={1}
         minHeight={4}
         borderStyle="round"
@@ -48,7 +53,7 @@ export const ChatInput = ({ onSubmit, markdownEditing = true, ...props }: ChatIn
         <Text wrap="wrap">
           {`${beforeContent}${chalk.bgRgb(150, 150, 150)(at || " ")}${afterContent}`}
         </Text>
-      </Box>
+      </Themed>
 
       <Box paddingX={1} flexDirection="row" alignItems="flex-end" justifyContent="space-between">
         <Box flexDirection="column">

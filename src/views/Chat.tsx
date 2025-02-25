@@ -8,12 +8,14 @@ import { SESSION_ID, type Thread } from "@/lib/log"
 import { Column, Row } from "@/components/Flex"
 import { Paginate } from "../components/Paginate"
 import { useMemo } from "react"
+import { useAppState } from "@/lib/state"
 
 export interface ChatProps {
   conversation?: Thread
 }
 
 export const Chat = ({ conversation }: ChatProps) => {
+  const { state } = useAppState()
   const [width, height] = useTerminalSize({ maxWidth: 100 })
   const { messages, roundtrips, waiting, streaming, lastUsage, lastCost, totalCost, send } = useMessages({
     initialMessages: conversation?.messages.toReversed()
@@ -37,7 +39,7 @@ export const Chat = ({ conversation }: ChatProps) => {
           justifyContent="center"
           borderStyle="round"
           borderDimColor
-          borderColor={streaming ? "yellow" : undefined}
+          borderColor={streaming ? "yellow" : state.config.themeColor}
           marginTop={1}
           paddingX={1}
           flexShrink={0}
@@ -77,13 +79,13 @@ export const Chat = ({ conversation }: ChatProps) => {
         </Box>
       </Box>
     ),
-    [lastCost.total, lastUsage?.totalTokens, roundtrips, send, streaming, totalCost.total, width]
+    [lastCost.total, lastUsage?.totalTokens, roundtrips, send, state.config.themeColor, streaming, totalCost.total, width]
   )
 
   const pagesView = useMemo(
     () => {
       return (
-        <Paginate paddingBottom={1} maxCharactersPerPage={1000} messages={messages} streaming={streaming} waiting={waiting} />
+        <Paginate paddingBottom={1} maxCharactersPerPage={2000} messages={messages} streaming={streaming} waiting={waiting} />
       )
     },
     [messages, streaming, waiting]

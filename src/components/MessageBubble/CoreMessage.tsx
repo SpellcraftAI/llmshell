@@ -1,8 +1,8 @@
 import type { CoreMessage } from "ai"
 import { MessageBubble } from "."
 import { Box, Text } from "ink"
-import { emphasize } from "./parse"
 import { simpleMarkdown } from "@/lib/md"
+// import { emphasize } from "./parse"
 
 const truncateStart = (str: string, start?: number) => {
   if (!start) {
@@ -74,10 +74,7 @@ export const CoreMessageBubble = ({ message, waiting = false, maxLength }: { max
             )
           }
 
-          const result = 
-            messageContent.toolName === "read"
-              ? emphasize.highlightAuto(messageContent.result as string).value
-              : messageContent.result as string
+          const result = messageContent.result?.toString() || ""
 
           return (
             // <MessageRow>
@@ -85,7 +82,7 @@ export const CoreMessageBubble = ({ message, waiting = false, maxLength }: { max
               {/* <Box borderStyle="round" borderDimColor flexShrink={1}>
                 <Text bold>{messageContent.toolName}</Text>
               </Box> */}
-              <Text>{result}</Text>
+              <Text dimColor>{result}</Text>
             </Box>
             // </MessageRow>
           )

@@ -94,7 +94,7 @@ describe("Server API", () => {
     expect(response.statusText).toBe("OK")
     expect(response.status).toBe(200)
     result = await response.text()
-    expect(result).toEqual(testContent)
+    expect(result).toEqual(`1 | ${testContent}`)
 
     // Clean up
     await Bun.write(testFilePath, "") // Clear file content

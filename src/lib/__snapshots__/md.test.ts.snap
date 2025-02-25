@@ -1,29 +1,29 @@
 // Bun Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Markdown rendering 1`] = `
-"[34m# This should be markdown[39m
+"# This should be markdown
 
-This [3m*is italic*[23m and [1m**this is bold**[22m.
+This *is italic* and **this is bold**.
 
-[35m1.[39m This is a list
-[35m2.[39m With two items
-[35m3.[39m And a third
-[35m4.[39m With a sub-item
+1. This is a list
+2. With two items
+3. And a third
+4. With a sub-item
 
-[35m-[39m This is a bullet list
-[35m-[39m With two items
-[35m-[39m And a third
-[35m  -[39m With a sub-item
-[35m  -[39m And another
+- This is a bullet list
+- With two items
+- And a third
+  - With a sub-item
+  - And another
   
     \`\`\`
-    [32mcode[39m
+    \x1B[32mcode\x1B[39m
     \`\`\`
 
-[35m    -[39m And another
+    - And another
 
 
 \`\`\`javascript
-[33mconsole[39m.[34mlog[39m([36m"Hello, world!"[39m)
+\x1B[33mconsole\x1B[39m.\x1B[34mlog\x1B[39m(\x1B[36m"Hello, world!"\x1B[39m)
 \`\`\`"
 `;

@@ -5,9 +5,10 @@ import { Scrollable } from "@/components/Scrollable"
 import { useAppState } from "@/lib/state"
 import { useRouter } from "@/lib/router"
 import { FocusIndicator } from "@/components/FocusIndicator"
-import { Column, Row } from "@/components/Flex"
+import { Column } from "@/components/Flex"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
 import { CenterView } from "./Center"
+import { Themed, ThemedText } from "@/components/Themed"
 
 export type MenuOptionType = "NEW_THREAD" | "SETTINGS"  | "INFO" | "ACTIVATE"
 
@@ -73,7 +74,7 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
   const hasApiKey = 
     config.model === "GPT-4o" 
       ? Boolean(config.openaiApiKey) 
-      : config.model === "Claude Sonnet 3.5" 
+      : config.model === "Claude Sonnet 3.7" 
         ? Boolean(config.anthropicApiKey) 
         : false
 
@@ -96,7 +97,8 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
     (item: Thread | MenuOption, isSelected: boolean) => {
       if ("type" in item) {
         return (
-          <Row 
+          <Themed
+            flexDirection="row"
             alignItems="center" 
             justifyContent="center" 
             paddingX={1} 
@@ -105,8 +107,8 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
             borderStyle="round" 
             borderDimColor={!isSelected}
           >
-            <Text bold={isSelected} dimColor={!isSelected}>{item.title}</Text>
-          </Row>
+            <ThemedText bold={isSelected} dimColor={!isSelected}>{item.title}</ThemedText>
+          </Themed>
         )
       }
 
@@ -122,21 +124,21 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
       const date = new Date(item.timestamp).toLocaleString()
       const count = item.messages.filter(({ role }) => role !== "tool").length
       return (
-        <Box flexDirection="column" borderStyle="round" borderDimColor={!isSelected} paddingX={1} flexGrow={1} width={60}>
+        <Themed flexDirection="column" borderStyle="round" borderDimColor={!isSelected} paddingX={1} flexGrow={1} width={60}>
           <Box flexDirection="row" justifyContent="space-between" gap={2}>
             <Box>
-              <Text bold={isSelected} dimColor={!isSelected}>
+              <ThemedText bold={isSelected} dimColor={!isSelected}>
                 {titlePreview}{titlePreview.length < title.length ? "…" : ""}
-              </Text>
+              </ThemedText>
             </Box>
 
             <Box width={16} flexDirection="row" justifyContent="flex-end">
-              <Text dimColor={!isSelected}>{count} msgs</Text>
+              <ThemedText dimColor={!isSelected}>{count} msgs</ThemedText>
             </Box>
           </Box>
           
           <Text dimColor>{date}</Text>
-        </Box>
+        </Themed>
       )
     },
     []
@@ -156,8 +158,8 @@ export const Threads = ({ onSelect }: ThreadsProps) => {
       // borderStyle="round" 
     >
       <Column flexShrink={1} alignItems="center">
-        <Text bold>LLM Shell v1.0.5</Text>
-        <Text dimColor>Powered by Claude Sonnet 3.5 and GPT-4o.</Text>
+        <ThemedText bold>LLM Shell 0.0.2</ThemedText>
+        <Text dimColor>Powered by Claude Sonnet 3.7 and GPT-4o.</Text>
       </Column>
     
       {!hasApiKey

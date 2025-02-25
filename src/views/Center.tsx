@@ -1,7 +1,8 @@
 import { Column } from "@/components/Flex"
+import { Themed } from "@/components/Themed"
 import { useClearScreen } from "@/hooks/useClearScreen"
 import { useTerminalSize } from "@/hooks/useTerminalSize"
-import { Box, Text, type BoxProps } from "ink"
+import { Text, type BoxProps } from "ink"
 import { useMemo } from "react"
 
 export interface CenterViewProps extends BoxProps {
@@ -10,7 +11,7 @@ export interface CenterViewProps extends BoxProps {
 }
 
 const MIN_WIDTH = 70
-const MIN_HEIGHT = 20
+const MIN_HEIGHT = 27
 
 export const CenterView = ({ maxWidth = 80, children, ...props }: CenterViewProps) => {
   const [terminalWidth, terminalHeight] = useTerminalSize({ maxWidth })  
@@ -45,7 +46,7 @@ export const CenterView = ({ maxWidth = 80, children, ...props }: CenterViewProp
   )
   
   return (
-    <Box
+    <Themed
       flexDirection="column" 
       justifyContent="center"
       alignSelf="center"
@@ -55,6 +56,6 @@ export const CenterView = ({ maxWidth = 80, children, ...props }: CenterViewProp
       {...props}
     >
       {content}
-    </Box>
+    </Themed>
   )
 }

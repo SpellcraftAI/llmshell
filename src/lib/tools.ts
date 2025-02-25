@@ -1,13 +1,19 @@
+/**
+ * The tools on here were originally built to pass streams around, and parse
+ * iteratively, but model providers don't give us tool call args as chunks yet,
+ * they all come at once, so it's redundant. (Unless this has changed since
+ * Sept.)
+ */
 import { tool } from "ai"
 import { z } from "zod"
 
-import type { SearchResponse } from "azure-cognitiveservices-websearch/lib/models"
+// import type { SearchResponse } from "azure-cognitiveservices-websearch/lib/models"
 import { getShellCommand } from "@/internals/getShellCommand"
 import { type Browser, type BrowserType }from "playwright"
 import { ApiHandler } from "./api"
 
-import { machineId } from "node-machine-id"
-import { getConfig } from "./log"
+// import { machineId } from "node-machine-id"
+// import { getConfig } from "./log"
 
 /**
  * Initialize Chromium if available for faster search queries, terminate on
@@ -25,7 +31,7 @@ const apiHandler = new ApiHandler()
 
 export const tools = {
   read: tool({
-    description: "Read the contents of a file.",
+    description: "Read the contents of a file. Includes line prefixes.",
     parameters: z.object({
       path: z.string().describe("The path to the file to read")
     }),
@@ -59,24 +65,25 @@ export const tools = {
     }
   }),
 
-  // edit: tool({
-  //   description: "Edit specific lines in a file.",
-  //   parameters: z.object({
-  //     path: z.string().describe("The path to the file to edit"),
-  //     startLine: z.number().describe("The starting line number for the edit"),
-  //     endLine: z.number().describe("The ending line number for the edit"),
-  //     content: z.string().describe("The new content to replace the specified lines"),
-  //   }),
-  //   execute: async ({ path, content, startLine, endLine }) => {
-  //     const response = await fetch("http://localhost:42069/edit", {
-  //       method: "POST",
-  //       headers: { "Content-Type": "application/json" },
-  //       body: JSON.stringify({ path, startLine, endLine, content })
-  //     })
-  //     return response.body
-  //     // return await response.text()
-  //   }
-  // }),
+  edit: tool({
+    description: "Edit specific lines in a file.",
+    parameters: z.object({
+      path: z.string().describe("The path to the file to edit"),
+      startLine: z.number().describe("The starting line number for the edit"),
+      endLine: z.number().describe("The ending line number for the edit"),
+      content: z.string().describe("The new content to replace the specified lines"),
+    }),
+    execute: async ({ path, content, startLine, endLine }) => {
+      return await apiHandler.edit(new Response(JSON.stringify({ path, startLine, endLine, content })).body)
+      // const response = await fetch("http://localhost:42069/edit", {
+      //   method: "POST",
+      //   headers: { "Content-Type": "application/json" },
+      //   body: JSON.stringify({ path, startLine, endLine, content })
+      // })
+      // return response.body
+      // return await response.text()
+    }
+  }),
 
   terminal: tool({
     description: `
@@ -103,35 +110,38 @@ export const tools = {
     }
   }),
 
-  bing: tool({
-    description: "Search Bing for the provided query and return structured results.",
-    parameters: z.object({
-      query: z.string().describe("The query to search Bing for.")
-    }),
-    execute: async ({ query }) => {
-      const config = getConfig()
-      if (!config.licenseKey) {
-        throw new Error("Missing License Key.")
-      }
+  /**
+   * The Bing service is shut down.
+   */
+  // bing: tool({
+  //   description: "Search Bing for the provided query and return structured results.",
+  //   parameters: z.object({
+  //     query: z.string().describe("The query to search Bing for.")
+  //   }),
+  //   execute: async ({ query }) => {
+  //     const config = getConfig()
+  //     if (!config.licenseKey) {
+  //       throw new Error("Missing License Key.")
+  //     }
 
-      const response = await fetch("https://api.llmshell.com/api/search", {
-        method: "POST",
-        body: JSON.stringify({ query }),
-        headers: {
-          "Authorization": config.licenseKey,
-          "Machine-Id": await machineId()
-        }
-      })
+  //     const response = await fetch("https://api.llmshell.com/api/search", {
+  //       method: "POST",
+  //       body: JSON.stringify({ query }),
+  //       headers: {
+  //         "Authorization": config.licenseKey,
+  //         "Machine-Id": await machineId()
+  //       }
+  //     })
 
-      if (!response.ok) {
-        console.log(response.statusText, await response.text())
-        throw new Error("Failed to search Bing.")
-      }
+  //     if (!response.ok) {
+  //       console.log(response.statusText, await response.text())
+  //       throw new Error("Failed to search Bing.")
+  //     }
       
-      const data = await response.json() as SearchResponse
-      return JSON.stringify(data.webPages, null, 2)
-    }
-  }),
+  //     const data = await response.json() as SearchResponse
+  //     return JSON.stringify(data.webPages, null, 2)
+  //   }
+  // }),
 
   // google: tool({
   //   description: "Search Google for the provided query and return structured results.",

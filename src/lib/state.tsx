@@ -2,7 +2,7 @@ import type { CoreTool } from "ai"
 import { getConfig, loadThreadsFromDisk, loadToolsFromDisk, log, writeConfigToDisk, type Thread } from "@/lib/log"
 import React, { createContext, useCallback, useContext, useEffect, useLayoutEffect, useState } from "react"
 
-export type SupportedModel = "GPT-4o" | "Claude Sonnet 3.5"
+export type SupportedModel = "GPT-4o" | "Claude Sonnet 3.7"
 
 /**
  * The app config is synced to a JSON file on disk in ~/.config whenever it
@@ -13,6 +13,7 @@ export interface AppConfig {
   openaiApiKey?: string;
   anthropicApiKey?: string;
   model: SupportedModel;
+  themeColor?: string;
 }
 
 export interface AppState {
@@ -34,7 +35,7 @@ const hasAPIKey = (config: AppConfig): boolean => {
   switch (config.model) {
   case "GPT-4o":
     return Boolean(config.openaiApiKey)
-  case "Claude Sonnet 3.5":
+  case "Claude Sonnet 3.7":
     return Boolean(config.anthropicApiKey)
   default:
     return false

@@ -1,11 +1,12 @@
-import React, { useState } from "react"
-import { Text, useInput, Box } from "ink"
+import { useEffect, useRef, useState } from "react"
+import { Text, useInput } from "ink"
 import chalk from "chalk"
-
+import { Themed, ThemedText } from "../Themed"
 
 interface InputProps {
   defaultValue?: string;
   placeholder?: string;
+  onChange?: (value: string) => void;
   onSubmit?: (value: string) => void;
   isDisabled?: boolean;
   mask?: string;
@@ -14,12 +15,18 @@ interface InputProps {
 const Input = ({ 
   defaultValue = "", 
   placeholder = "", 
+  onChange,
   onSubmit, 
   isDisabled = false, 
   mask 
 }: InputProps) => {
   const [value, setValue] = useState(defaultValue)
   const [cursorPosition, setCursorPosition] = useState(defaultValue.length)
+
+  const onChangeRef = useRef(onChange)
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
 
   useInput((input, key) => {
     if (isDisabled) return
@@ -45,20 +52,27 @@ const Input = ({
     }
   }, { isActive: !isDisabled })
 
+  // Only depend on the value change. The ref always holds the latest onChange.
+  useEffect(() => {
+    if (value) {
+      onChangeRef.current?.(value)
+    }
+  }, [value])
+
   if (!value) {
     return (
-      <Box>
+      <Themed>
         <Text dimColor>{placeholder}</Text>
-      </Box>
+      </Themed>
     )
   }
 
   const displayValue = mask ? mask.repeat(value.length) : value
   if (isDisabled) {
     return (
-      <Box>
+      <Themed>
         <Text dimColor>{displayValue}</Text>
-      </Box>
+      </Themed>
     )
   }
  
@@ -67,11 +81,11 @@ const Input = ({
   const at = displayValue[cursorPosition] || " "
 
   return (
-    <Box>
-      <Text dimColor={isDisabled}>
+    <Themed>
+      <ThemedText dimColor={isDisabled}>
         {`${before}${chalk.inverse(at)}${after}`}
-      </Text>
-    </Box>
+      </ThemedText>
+    </Themed>
   )
 }
 

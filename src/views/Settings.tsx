@@ -10,6 +10,8 @@ import { useResumeStdin } from "@/hooks/useResumeStdin"
 import { useClearScreen } from "@/hooks/useClearScreen"
 import { getConfigPath } from "@/lib/log"
 import { useAppState } from "@/lib/state"
+import { Themed, ThemedText } from "@/components/Themed"
+// import { Scrollable } from "@/components/Scrollable"
 
 export const Settings: React.FC = () => {
   const { state: { config }, update } = useAppState()
@@ -27,7 +29,7 @@ export const Settings: React.FC = () => {
 
   const handleSaveModel = useCallback((model: string): void => {
     switch (model) {
-    case "Claude Sonnet 3.5":
+    case "Claude Sonnet 3.7":
     case "GPT-4o":
       update({ config: { ...config, model } })
       break
@@ -37,42 +39,57 @@ export const Settings: React.FC = () => {
     }
   }, [config, update])
 
+  const handleChangeThemeColor = useCallback((color: string): void => {
+    update({ config: { ...config, themeColor: color } })
+  }, [config, update])
+
+  const items = ["MODEL", "ANTHROPIC_API_KEY", "OPENAI_API_KEY", "THEME_COLOR"]
+
   return (
-    <CenterView justifyContent="flex-start" gap={1} marginTop={2} paddingY={1} borderStyle="round" borderDimColor>
+    <CenterView justifyContent="flex-start" gap={1} marginTop={2} paddingY={1} paddingX={1} borderStyle="round" borderColor={config.themeColor} borderDimColor>
       <Box flexDirection="column" alignItems="center">
         <Box paddingBottom={1}>
-          <Text bold>Settings</Text>
+          <ThemedText bold>Settings</ThemedText>
         </Box>
         <Text>Change your API key or other settings.</Text>
         <Text><Text underline dimColor>{getConfigPath()}</Text></Text>
       </Box>
 
+      {/* 
+        Scrollable freezes here on second page for any combo of (items.length, visibleItems) 
+        - not sure why, works for Threads view, not spending any more time on it. Requiring
+        terminal height >=27.
+      */}
       <Menu
         flexDirection="column"
         alignSelf="flex-start"
-        gap={1}
-        paddingX={1}
-        items={["MODEL", "ANTHROPIC_API_KEY", "OPENAI_API_KEY"]}
+        alignItems="flex-start"
+        // gap={1}
+        // paddingX={1}
+        items={items}
         // onChange={(selectedIndex) => console.log(selectedIndex)}
+        // itemHeight={4}
+        // visibleItems={2}
+        isActive
         renderItem={(item, selected) => {
           switch (item) {
           case "MODEL":
             return (
               <Column>
                 <Column paddingX={1}>
-                  <Text dimColor>Model</Text>
+                  <Text dimColor={!selected}>Model</Text>
                 </Column>
                 <Menu 
                   paddingLeft={1}
                   flexDirection="row"
-                  items={["Claude Sonnet 3.5", "GPT-4o"]}
+                  items={["Claude Sonnet 3.7", "GPT-4o"]}
                   defaultValue={config.model} 
                   onSelect={handleSaveModel}
                   isActive={selected}
                   renderItem={(item, selected) => (
-                    <Box paddingX={1} borderStyle="round" borderDimColor={!selected}>
-                      <Text underline={item === config.model} bold={selected} dimColor={!selected}>{item}</Text>
-                    </Box>
+                    <Themed paddingX={1} borderStyle="round" borderDimColor={!selected}>
+                      <ThemedText underline={item === config.model} dimColor={!selected}>{item}</ThemedText>
+                    </Themed>
                   )} 
                 />
               </Column>
@@ -101,7 +118,23 @@ export const Settings: React.FC = () => {
                 isDisabled={!selected}
               />
             )  
+
+          case "THEME_COLOR":
+            return (
+              <FormInput
+                label="Theme Color"
+                placeholder={"Enter your theme color here..."}
+                initialValue={config.themeColor}
+                onSave={handleChangeThemeColor}
+                isDisabled={!selected}
+                borderColor={config.themeColor}
+              />
+            )
           }
+
+          return (
+            <Text dimColor>{item}</Text>
+          )
         }}
       />
     </CenterView>

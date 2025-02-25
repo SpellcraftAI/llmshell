@@ -46,7 +46,7 @@ export const getConfig = (): AppConfig => {
   } catch (error) {
     log("Error loading config file")
     return {
-      model: "Claude Sonnet 3.5"
+      model: "Claude Sonnet 3.7"
     }
   }
 }
@@ -75,8 +75,8 @@ export const loadToolsFromDisk = async () => {
  */
 export const getLastSessionDirectory = async () => {
   const glob = new Bun.Glob("./*")
-  const scanner = glob.scan({ cwd: getSessionsDir(), absolute: true, onlyFiles: false })
-  const results = await Array.fromAsync(scanner)
+  const scanner = glob.scanSync({ cwd: getSessionsDir(), absolute: true, onlyFiles: false })
+  const results = Array.from(scanner)
   
   const lastDirectory = results.sort().pop()
   if (!lastDirectory) {

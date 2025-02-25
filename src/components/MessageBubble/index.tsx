@@ -2,6 +2,7 @@ import type { ForegroundColorName } from "ansi-styles"
 import { Box, Text } from "ink"
 import { LoadingDots } from "../LoadingDots"
 import type { Props } from "node_modules/ink/build/components/Box"
+import { useAppState } from "@/lib/state"
 
 export interface MessageBubbleProps {
   from: "you" | string
@@ -42,8 +43,9 @@ export const MessageRow = ({ children, width, maxWidth = 96, ...props }: Message
 }
 
 export const MessageBubble = ({ from, text, waiting = false }: MessageBubbleProps) => {
-  const prefixColor: ForegroundColorName | undefined = from === "you" ? "blue" : "yellow"
-  const textColor: ForegroundColorName | undefined = from === "you" ? "blue" : undefined
+  const { state } = useAppState()
+  const prefixColor: ForegroundColorName | undefined = from === "you" ? (state.config.themeColor as ForegroundColorName ?? "blue") : "yellow"
+  const textColor: ForegroundColorName | undefined = from === "you" ? (state.config.themeColor as ForegroundColorName ?? "blue")  : undefined
   const prefix = from === "you" ? "You" : from
 
   // const borderStyle = border ? "round" : undefined

@@ -3,6 +3,7 @@ import { Box, Text, type BoxProps } from "ink"
 import { Spinner } from "@inkjs/ui"
 import { Column, Row } from "../Flex"
 import { PasswordInput, TextInput } from "./basic"
+import { useAppState } from "@/lib/state"
 
 type FormInputSaveResponse = string | null | void
 
@@ -12,6 +13,7 @@ interface FormInputProps<T extends FormInputSaveResponse> extends BoxProps {
   placeholder?: string;
   initialValue?: string;
   indicateFocus?: boolean;
+  onChange?: (value: string) => void;
   onSave?: (value: string) => Promise<T> | T;
   isDisabled?: boolean;
 }
@@ -23,10 +25,12 @@ export const FormInput = <T extends FormInputSaveResponse,>({
   initialValue,
   indicateFocus = true,
   isDisabled = false,
+  onChange,
   onSave,
   ...boxProps
 }: FormInputProps<T>) => {
   // const { isFocused } = useFocus({ autoFocus: true })
+  const { state: appState } = useAppState()
   const [value, setValue] = useState<string | undefined>(initialValue)
   const [state, setState] = useState<"idle" | "saving" | "saved" | "failed">("idle")
   const [message, setMessage] = useState<string | null | undefined>()
@@ -84,6 +88,7 @@ export const FormInput = <T extends FormInputSaveResponse,>({
       <TextInput
         defaultValue={value}
         placeholder={placeholder}
+        onChange={onChange}
         onSubmit={handleSubmit}
         isDisabled={isDisabled || !indicateFocus}
       />
@@ -94,6 +99,7 @@ export const FormInput = <T extends FormInputSaveResponse,>({
       <PasswordInput
         defaultValue={value}
         placeholder={placeholder}
+        onChange={onChange}
         onSubmit={handleSubmit}
         isDisabled={isDisabled}
       />
@@ -135,7 +141,7 @@ export const FormInput = <T extends FormInputSaveResponse,>({
         <Box
           borderStyle="round"
           borderDimColor={isDisabled || !indicateFocus}
-          borderColor={state === "saved" ? "green" : state === "failed" ? "red" : undefined}
+          borderColor={state === "saved" ? "green" : state === "failed" ? "red" : appState.config.themeColor}
           flexDirection="row"
           flexGrow={1}
           paddingX={1}
@@ -147,7 +153,7 @@ export const FormInput = <T extends FormInputSaveResponse,>({
 
       {message && (
         <Column paddingX={2} width={40}>
-          <Text color={state === "saved" ? "green" : state === "failed" ? "red" : undefined}>{message}</Text>
+          <Text color={state === "saved" ? "green" : state === "failed" ? "red" : appState.config.themeColor}>{message}</Text>
         </Column>
       )}
     </Box>

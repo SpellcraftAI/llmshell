@@ -1,23 +1,18 @@
 {
   "name": "llmshell",
-  "version": "0.0.1",
+  "description": "OpenAI/Anthropic chat in your terminal.",
+  "version": "0.0.2",
   "module": "index.ts",
   "type": "module",
-  "platform": "node",
-  "files": [],
+  "platform": "bun",
+  "bin": "dist/bin.js",
+  "files": [
+    "dist/"
+  ],
   "scripts": {
     "bundle": "NODE_ENV=production DEV=0 bun build --bundle src/bin.tsx --outdir dist --target bun",
-    "bundle:windows": "NODE_ENV=production DEV=0 bun build --bundle src/bin.tsx --outdir dist --target node && bun shim.ts dist/bin.js",
-    "bundle-macos": "NODE_ENV=production DEV=0 bun build --bundle --minify src/bin.tsx --outfile GSH/GSH/bin.js --target node && bun shim.ts GSH/GSH/bin.js",
-    "postbundle-macos": "cp node_modules/yoga-wasm-web/dist/yoga.wasm GSH/GSH",
     "compile": "bun shim.ts dist/bin.js && bun build --compile dist/bin.js --outfile dist/llmshell",
-    "compile-macos": "bun build --target bun-darwin-arm64 --compile GSH/GSH/bin.js --outfile GSH/GSH/bin",
-    "build": "bun run bundle && bun run compile",
-    "build-macos": "bun run bundle-macos && bun run compile-macos",
-    "bundletest": "NODE_ENV=production DEV=0 bun build -e yoga-wasm-web --bundle --minify src/bin.tsx --outdir dist --target node",
-    "postbundletest": "mkdir -p dist/node_modules && cp -r node_modules/yoga-wasm-web dist/node_modules",
-    "buildtest": "bun build -e yoga-wasm-web --compile src/app.tsx --outfile dist/app --target bun",
-    "postbuildtest": "mkdir -p dist/node_modules && cp -r node_modules/yoga-wasm-web dist/node_modules && mkdir -p dist/bin && cp -r src/bin dist && chmod +x dist/bin/llmshell && cp uninstall.sh dist && cp -r src/examples dist",
+    "build": "bun run bundle && bun run compile && chmod +x dist/bin.js dist/llmshell",
     "lint": "eslint src --fix",
     "zip": "zip llmshell.zip ./**",
     "tar": "tar -czvf llmshell.tar.gz -C dist ."
@@ -34,19 +29,14 @@
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-typescript": "^0.14.0",
     "react-devtools": "^5.3.2",
-    "react-devtools-core": "^5.3.2"
-  },
-  "peerDependencies": {
-    "typescript": "^5.5.4"
-  },
-  "dependencies": {
-    "@ai-sdk/anthropic": "^0.0.50",
-    "@ai-sdk/openai": "^0.0.62",
+    "react-devtools-core": "^5.3.2",
+    "@ai-sdk/anthropic": "^1.1.10",
+    "@ai-sdk/openai": "^1.1.14",
     "@ai-sdk/provider": "^0.0.24",
     "@ai-sdk/provider-utils": "^1.0.22",
     "@anthropic-ai/sdk": "^0.25.2",
     "@inkjs/ui": "^2.0.0",
-    "ai": "^3.4.33",
+    "ai": "^4.1.46",
     "ansi-escapes": "^7.0.0",
     "ansi-styles": "^6.2.1",
     "chalk": "^5.4.1",
@@ -61,10 +51,15 @@
     "pastel": "^3.0.0",
     "playwright": "^1.50.0",
     "react": "^18.3.1",
-    "react-dom": "^19.0.0",
+    "react-dom": "^18.3.1",
     "screenshot-desktop": "^1.15.1",
     "streaming-markdown": "^0.0.14",
     "terminal-image": "^3.1.1",
-    "zod": "^3.24.1"
+    "zod": "^3.24.1",
+    "typescript": "^5.5.4",
+    "azure-cognitiveservices-websearch": "^2.0.0"
+  },
+  "dependencies": {
+    "yoga-wasm-web": "^0.3.3"
   }
 }

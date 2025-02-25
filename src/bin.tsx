@@ -1,4 +1,4 @@
-
+#!/usr/bin/env bun
 
 import { Box, render } from "ink"
 import { clearTerminal, cursorShow } from "ansi-escapes"

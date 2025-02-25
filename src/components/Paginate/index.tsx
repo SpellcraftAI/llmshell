@@ -61,6 +61,28 @@ const PagesInfo = ({ totalPages, page, mode }: { page: number, totalPages: numbe
   )
 }
 
+const truncate = (message: CoreMessage, end = 1000): CoreMessage => {
+  if (typeof message.content === "string" && message.role !== "tool") {
+    if (!end) {
+      return message
+    }
+  
+    if (message.content.length < end) {
+      return message
+    }
+  
+    const sliced = message.content.slice(0, end)
+    const withDroppedLine = sliced.slice(0, sliced.indexOf("\n") || undefined)
+  
+    return {
+      ...message,
+      content: `${withDroppedLine}...`
+    }
+  }
+
+  return message
+}
+
 export const Paginate: React.FC<PaginateProps> = ({ 
   maxCharactersPerPage,
   messages,
@@ -71,7 +93,7 @@ export const Paginate: React.FC<PaginateProps> = ({
   const [width] = useTerminalSize({ maxWidth: 100 }) 
   const pages = useMemo(() => {
     if (streaming) {
-      return [[messages?.[0]]]  // Only include the last message while streaming
+      return [[messages?.[0], ...messages.slice(1, 2).map(truncate)]]  // Only include the last message while streaming
     }
 
     const calculatedPages: CoreMessage[][] = []
@@ -106,14 +128,19 @@ export const Paginate: React.FC<PaginateProps> = ({
   }, [pages.length])
 
   useResumeStdin()
-  useInput((input, key) => {
+  useInput(async (input, key) => {
     const modKey = key.meta || key.ctrl
-    if (key.upArrow && modKey) {
+    const altUp = key.upArrow && modKey
+    const pageUp = key.pageUp
+
+    if (altUp || pageUp) {
       setCurrentPage((prevPage) => Math.min(prevPage + 1, pages.length - 1))
     } else if (key.downArrow && modKey) {
       setCurrentPage((prevPage) => Math.max(prevPage - 1, 0))
     }
-  })
+  },
+  { isActive: true }
+  )
 
   const currentPageMessages = pages[currentPage] || []
 
@@ -127,7 +154,7 @@ export const Paginate: React.FC<PaginateProps> = ({
 
       {currentPageMessages.map((message, index) => 
         streaming
-          ? <CoreMessageBubble maxLength={1000} key={index} message={message} />
+          ? <CoreMessageBubble maxLength={2000} key={index} message={message} />
           : <CoreMessageBubble key={index} message={message} />
       )}
 
