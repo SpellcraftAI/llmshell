@@ -7,3 +7,17 @@ with [`ink`](https://github.com/vadimdemedes/ink).
 We recommend [Claude Code](https://docs.anthropic.com/en/docs/agents-and-tools/claude-code/overview) today.
 
 https://github.com/user-attachments/assets/1b05980e-3093-4a7b-9cfb-9814242ffd4a
+
+### Usage
+
+If you want to use it, it requires Bun. Install with:
+
+```shell
+bun i -g llmshell
+```
+
+Then call:
+
+```
+llmshell
+```
